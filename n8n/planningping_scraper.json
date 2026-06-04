@@ -1,0 +1,282 @@
+{
+  "name": "PlanningPing — Weekly Scraper",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "trigger-schedule",
+      "name": "Every Monday 6am",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 0],
+      "notes": "Runs every Monday at 6am UTC. Adjust the cron expression to change timing."
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $vars.SUPABASE_URL }}/rest/v1/tracked_areas",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $vars.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Prefer", "value": "return=representation" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "select", "value": "council_slug" },
+            { "name": "is_active", "value": "eq.true" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-active-areas",
+      "name": "Get Active Tracked Areas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0],
+      "notes": "Fetches all active tracked_areas from Supabase. Uses the service role key so RLS does not filter results."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Deduplicate council slugs — if multiple users track the same council, scrape it once.\nconst items = $input.all();\nconst seen = new Set();\nconst unique = [];\n\nfor (const item of items) {\n  const slug = item.json.council_slug;\n  if (slug && !seen.has(slug)) {\n    seen.add(slug);\n    unique.push({ json: { council_slug: slug } });\n  }\n}\n\nreturn unique;"
+      },
+      "id": "deduplicate-councils",
+      "name": "Deduplicate Councils",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 0],
+      "notes": "Cost-efficiency step. One scrape per council regardless of how many users track it."
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $vars.SUPABASE_URL }}/rest/v1/councils",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $vars.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_SERVICE_ROLE_KEY }}" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "slug", "value": "=eq.{{ $json.council_slug }}" },
+            { "name": "is_supported", "value": "eq.true" },
+            { "name": "select", "value": "slug,name,portal_url,portal_type" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-council-url",
+      "name": "Get Council Portal URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 0],
+      "notes": "Looks up portal_url and portal_type for this council from the councils table."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate date range: last 7 days in DD/MM/YYYY (what both portal types expect).\nconst now = new Date();\nconst weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);\n\nfunction fmt(d) {\n  const dd = String(d.getDate()).padStart(2, '0');\n  const mm = String(d.getMonth() + 1).padStart(2, '0');\n  return dd + '/' + mm + '/' + d.getFullYear();\n}\n\nconst council = $input.first().json;\n\nreturn [{\n  json: {\n    council_slug:  council.slug,\n    council_name:  council.name,\n    portal_url:    council.portal_url,\n    portal_type:   council.portal_type || 'idox_search_do',\n    date_from:     fmt(weekAgo),\n    date_to:       fmt(now),\n  }\n}];"
+      },
+      "id": "prepare-scrape-params",
+      "name": "Prepare Scrape Parameters",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 0],
+      "notes": "Builds the date range and passes portal_type through so the IF node can route correctly."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.portal_type }}",
+              "operation": "equals",
+              "value2": "idox_servlet"
+            }
+          ]
+        }
+      },
+      "id": "if-servlet",
+      "name": "Servlet Portal?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1100, 0],
+      "notes": "Routes to the correct scrape+parse branch. True = old servlet portal (POST). False = newer search.do portal (GET)."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.portal_url }}",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "ReceivedDateFrom", "value": "={{ $json.date_from }}" },
+            { "name": "ReceivedDateTo",   "value": "={{ $json.date_to }}" }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "scrape-servlet",
+      "name": "Scrape: POST Servlet",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, -150],
+      "notes": "POSTs a date-range search to the servlet portal. No address filter — returns all applications for the council in the period."
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.portal_url }}/search.do",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "action",     "value": "advanced" },
+            { "name": "searchType", "value": "Application" },
+            { "name": "dateType",   "value": "DC_Received" },
+            { "name": "dateFrom",   "value": "={{ $json.date_from }}" },
+            { "name": "dateTo",     "value": "={{ $json.date_to }}" }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "scrape-searchdo",
+      "name": "Scrape: GET Search.do",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 150],
+      "notes": "GETs the standard Idox search.do endpoint. Used by most modern councils."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse results from an Idox servlet portal (older style).\n// Columns are positional — no CSS classes. Order:\n//   0 application_number  1 received_date  2 valid_date\n//   3 address             4 proposal       5 status/decision  6 decision_date\n\nconst html    = $input.first().json.data;\nconst context = $input.first().json;\n\nif (!html || typeof html !== 'string') {\n  return [{ json: { applications: [], council_slug: context.council_slug, parse_error: 'No HTML received' } }];\n}\n\nfunction stripTags(h) {\n  return h\n    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ')\n    .replace(/&#(\\d+);/g, function(_, n) { return String.fromCharCode(Number(n)); })\n    .replace(/<[^>]+>/g, '');\n}\n\nfunction parseAddress(cellHtml) {\n  return stripTags(cellHtml)\n    .split(/[\\n,]+/)\n    .map(function(s) { return s.trim(); })\n    .filter(function(s) { return s.length > 0; })\n    .join(', ');\n}\n\nfunction parseDate(cellHtml) {\n  const text = stripTags(cellHtml).trim();\n  const m = text.match(/(\\d{2})\\/(\\d{2})\\/(\\d{4})/);\n  return m ? (m[3] + '-' + m[2] + '-' + m[1]) : null;\n}\n\nif (/your query did not return any results/i.test(html)) {\n  return [{ json: { applications: [], council_slug: context.council_slug, scraped_count: 0 } }];\n}\n\nconst tableStart = html.indexOf('<th><strong>Application number');\nif (tableStart === -1) {\n  return [{ json: { applications: [], council_slug: context.council_slug, parse_error: 'Results table not found' } }];\n}\n\nconst tableOpenPos = html.lastIndexOf('<table', tableStart);\nconst tableEndPos  = html.indexOf('</table>', tableStart);\nif (tableOpenPos === -1 || tableEndPos === -1) {\n  return [{ json: { applications: [], council_slug: context.council_slug, parse_error: 'Table boundaries not found' } }];\n}\n\nconst tableHtml  = html.slice(tableOpenPos, tableEndPos + 8);\nconst rowChunks  = tableHtml.split(/<tr[^>]*>/i).slice(1);\nconst applications = [];\n\nfor (var i = 0; i < rowChunks.length; i++) {\n  const chunk = rowChunks[i];\n  if (/<th/i.test(chunk) || chunk.indexOf('PKID=') === -1) continue;\n\n  const cellChunks = chunk.split(/<td[^>]*>/i).slice(1);\n  if (cellChunks.length < 6) continue;\n\n  const cells    = cellChunks.map(function(c) { return c.replace(/<\\/td>[\\s\\S]*/i, ''); });\n  const refMatch = /<a[^>]+href=\"([^\"]*PKID=[^\"]*)\"[^>]*>([^<]+)<\\/a>/i.exec(cells[0]);\n  if (!refMatch) continue;\n\n  applications.push({\n    reference:        refMatch[2].trim(),\n    address:          parseAddress(cells[3]),\n    description:      stripTags(cells[4]).trim(),\n    status:           stripTags(cells[5]).trim(),\n    application_date: parseDate(cells[1]),\n    decision_date:    cells[6] ? parseDate(cells[6]) : null\n  });\n}\n\nreturn [{ json: { council_slug: context.council_slug, applications: applications, scraped_count: applications.length } }];"
+      },
+      "id": "parse-servlet",
+      "name": "Parse: Servlet HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, -150],
+      "notes": "Positional column parser for servlet-based Idox portals (Staffordshire Moorlands, Haringey, etc)."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse results from a modern Idox search.do portal.\n// Rows have CSS classes (odd/even). Fields identified by class name.\n\nconst html    = $input.first().json.data;\nconst context = $input.first().json;\n\nif (!html || typeof html !== 'string') {\n  return [{ json: { applications: [], council_slug: context.council_slug, parse_error: 'No HTML received' } }];\n}\n\nconst applications = [];\nconst rowRegex = /<tr[^>]+class=[\"'](?:odd|even)[\"'][^>]*>([\\s\\S]*?)<\\/tr>/gi;\nlet rowMatch;\n\nwhile ((rowMatch = rowRegex.exec(html)) !== null) {\n  const row = rowMatch[1];\n\n  const refMatch = /<td[^>]*class=[\"'][^\"']*number[^\"']*[\"'][^>]*>[\\s\\S]*?<a[^>]*href=[\"']([^\"']*)[\"'][^>]*>\\s*([^<]+)\\s*<\\/a>/i.exec(row);\n  if (!refMatch) continue;\n\n  const addrMatch   = /<td[^>]*class=[\"'][^\"']*address[^\"']*[\"'][^>]*>([\\s\\S]*?)<\\/td>/i.exec(row);\n  const address     = addrMatch ? addrMatch[1].replace(/<[^>]+>/g, '').trim() : null;\n\n  const descMatch   = /<td[^>]*class=[\"'][^\"']*description[^\"']*[\"'][^>]*>([\\s\\S]*?)<\\/td>/i.exec(row);\n  const description = descMatch ? descMatch[1].replace(/<[^>]+>/g, '').trim() : null;\n\n  const statusMatch = /<td[^>]*class=[\"'][^\"']*status[^\"']*[\"'][^>]*>([\\s\\S]*?)<\\/td>/i.exec(row);\n  const status      = statusMatch ? statusMatch[1].replace(/<[^>]+>/g, '').trim() : null;\n\n  const dateMatch   = /<td[^>]*class=[\"'][^\"']*date[^\"']*[\"'][^>]*>([\\s\\S]*?)<\\/td>/i.exec(row);\n  let application_date = null;\n  if (dateMatch) {\n    const raw   = dateMatch[1].replace(/<[^>]+>/g, '').trim();\n    const parts = raw.match(/(\\d{2})\\/(\\d{2})\\/(\\d{4})/);\n    if (parts) application_date = parts[3] + '-' + parts[2] + '-' + parts[1];\n  }\n\n  applications.push({\n    reference:        refMatch[2].trim(),\n    address:          address,\n    description:      description,\n    status:           status,\n    application_date: application_date,\n    decision_date:    null\n  });\n}\n\nreturn [{ json: { council_slug: context.council_slug, applications: applications, scraped_count: applications.length } }];"
+      },
+      "id": "parse-searchdo",
+      "name": "Parse: Search.do HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 150],
+      "notes": "CSS-class parser for modern Idox search.do portals (Westminster, Camden, etc)."
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nif (!item.applications || item.applications.length === 0) {\n  return [];\n}\nreturn [$input.first()];"
+      },
+      "id": "skip-empty",
+      "name": "Skip If No Applications",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1800, 0],
+      "notes": "Drops councils with 0 applications — no point hitting the webhook with nothing to store."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.PLANNINGPING_WEBHOOK_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-webhook-secret", "value": "={{ $vars.WEBHOOK_SECRET }}" },
+            { "name": "Content-Type",      "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ council_slug: $json.council_slug, applications: $json.applications }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "send-to-webhook",
+      "name": "Send to PlanningPing Webhook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2020, 0],
+      "notes": "POSTs scraped applications to the Next.js webhook. The webhook deduplicates via state_hash before writing to Supabase."
+    }
+  ],
+  "connections": {
+    "Every Monday 6am": {
+      "main": [[{ "node": "Get Active Tracked Areas", "type": "main", "index": 0 }]]
+    },
+    "Get Active Tracked Areas": {
+      "main": [[{ "node": "Deduplicate Councils", "type": "main", "index": 0 }]]
+    },
+    "Deduplicate Councils": {
+      "main": [[{ "node": "Get Council Portal URL", "type": "main", "index": 0 }]]
+    },
+    "Get Council Portal URL": {
+      "main": [[{ "node": "Prepare Scrape Parameters", "type": "main", "index": 0 }]]
+    },
+    "Prepare Scrape Parameters": {
+      "main": [[{ "node": "Servlet Portal?", "type": "main", "index": 0 }]]
+    },
+    "Servlet Portal?": {
+      "main": [
+        [{ "node": "Scrape: POST Servlet",  "type": "main", "index": 0 }],
+        [{ "node": "Scrape: GET Search.do", "type": "main", "index": 0 }]
+      ]
+    },
+    "Scrape: POST Servlet": {
+      "main": [[{ "node": "Parse: Servlet HTML", "type": "main", "index": 0 }]]
+    },
+    "Scrape: GET Search.do": {
+      "main": [[{ "node": "Parse: Search.do HTML", "type": "main", "index": 0 }]]
+    },
+    "Parse: Servlet HTML": {
+      "main": [[{ "node": "Skip If No Applications", "type": "main", "index": 0 }]]
+    },
+    "Parse: Search.do HTML": {
+      "main": [[{ "node": "Skip If No Applications", "type": "main", "index": 0 }]]
+    },
+    "Skip If No Applications": {
+      "main": [[{ "node": "Send to PlanningPing Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "notes": "Before activating, set these n8n Variables (Settings → Variables): SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, PLANNINGPING_WEBHOOK_URL (e.g. https://your-domain.com/api/webhooks/n8n), WEBHOOK_SECRET. Also run supabase/migration_portal_type.sql to add the portal_type column."
+  }
+}
