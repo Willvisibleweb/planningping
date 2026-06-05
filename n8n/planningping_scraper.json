@@ -56,7 +56,7 @@
         440,
         0
       ],
-      "notes": "True = old servlet portal (POST). False = newer search.do portal (GET)."
+      "notes": "True = old servlet portal (POST to servlet URL). False = newer search.do portal (POST to search.do)."
     },
     {
       "parameters": {
@@ -97,10 +97,11 @@
     },
     {
       "parameters": {
-        "method": "GET",
+        "method": "POST",
         "url": "={{ $json.portal_url }}/search.do",
-        "sendQuery": true,
-        "queryParameters": {
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
           "parameters": [
             {
               "name": "action",
@@ -121,6 +122,10 @@
             {
               "name": "dateTo",
               "value": "={{ $json.date_to }}"
+            },
+            {
+              "name": "_csrf",
+              "value": ""
             }
           ]
         },
@@ -134,7 +139,7 @@
         }
       },
       "id": "scrape-searchdo",
-      "name": "Scrape: GET Search.do",
+      "name": "Scrape: POST Search.do",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
@@ -254,7 +259,7 @@
         ],
         [
           {
-            "node": "Scrape: GET Search.do",
+            "node": "Scrape: POST Search.do",
             "type": "main",
             "index": 0
           }
@@ -272,7 +277,7 @@
         ]
       ]
     },
-    "Scrape: GET Search.do": {
+    "Scrape: POST Search.do": {
       "main": [
         [
           {
