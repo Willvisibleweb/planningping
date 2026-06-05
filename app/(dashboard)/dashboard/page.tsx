@@ -24,7 +24,7 @@ export default async function DashboardPage() {
         .from('planning_applications')
         .select('*')
         .in('council_slug', councilSlugs)
-        .order('updated_at', { ascending: false })
+        .order('application_date', { ascending: false })
         .limit(50)
     : { data: [] }
 

@@ -76,7 +76,7 @@ function AreaCard({ area, applications }: { area: TrackedArea; applications: Pla
         </div>
       ) : (
         <p className="mt-3 text-xs text-gray-400">
-          No applications scraped yet — n8n will pick this up on its next run.
+          No applications found for this area yet.
         </p>
       )}
     </div>
@@ -94,11 +94,18 @@ function ApplicationRow({ app }: { app: PlanningApplication }) {
   const badgeClass = colourClass ? statusColour[colourClass] : 'text-gray-600 bg-gray-100'
 
   return (
-    <div className="py-2 flex items-start justify-between gap-2">
-      <div className="min-w-0">
-        <p className="text-xs font-mono text-gray-500">{app.reference}</p>
-        <p className="text-sm text-gray-800 truncate">{app.description ?? 'No description'}</p>
-        <p className="text-xs text-gray-400 truncate">{app.address ?? ''}</p>
+    <div className="py-3 flex items-start justify-between gap-3">
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 mb-0.5">
+          <p className="text-xs font-mono text-[#6B7280]">{app.reference}</p>
+          {app.application_date && (
+            <p className="text-xs text-[#9CA3AF]">{app.application_date}</p>
+          )}
+        </div>
+        <p className="text-sm text-[#111827]">{app.description ?? 'No description'}</p>
+        {app.address && (
+          <p className="text-xs text-[#9CA3AF] mt-0.5">{app.address}</p>
+        )}
       </div>
       {app.status && (
         <span className={`shrink-0 rounded px-2 py-0.5 text-xs font-medium ${badgeClass}`}>
