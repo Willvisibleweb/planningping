@@ -11,6 +11,9 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// Max time to wait for Supabase auth before giving up and failing open.
+const AUTH_TIMEOUT_MS = 3000
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
@@ -37,10 +40,25 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Calling getUser() refreshes the session if needed. Do NOT use getSession()
-  // here — it reads from the cookie without server validation and can be
-  // spoofed. getUser() makes a network call to Supabase to verify the token.
-  const { data: { user } } = await supabase.auth.getUser()
+  // getUser() validates the token against Supabase (a network call). Do NOT use
+  // getSession() — it reads the cookie without server validation and can be
+  // spoofed. We race getUser() against a timeout so a slow/unreachable/paused
+  // Supabase can never hang the request into a MIDDLEWARE_INVOCATION_TIMEOUT.
+  // On timeout or error we FAIL OPEN with user = null: protected routes bounce
+  // to /login, everything else continues. The dashboard layout re-validates the
+  // session server-side, so failing open never exposes protected content.
+  let user = null
+  try {
+    const { data } = await Promise.race([
+      supabase.auth.getUser(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('supabase-auth-timeout')), AUTH_TIMEOUT_MS)
+      ),
+    ])
+    user = data.user
+  } catch {
+    user = null
+  }
 
   const { pathname } = request.nextUrl
 
@@ -66,7 +84,9 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Run on all routes except Next.js internals and static assets.
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // Run only on page routes that need session handling. Now also EXCLUDES
+    // /api (those routes do their own auth — webhook secret, cron bearer — and
+    // must not pay the session-lookup cost) plus Next internals and assets.
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)',
   ],
 }
