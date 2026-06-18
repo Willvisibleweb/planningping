@@ -97,7 +97,48 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Database error' }, { status: 500 })
   }
 
+  // ── CRM status sync (Task 5) ────────────────────────────────────────────────
+  // Any tracked_lead pointing at an application that just changed status gets
+  // flagged as a priority follow-up, with its cached_status refreshed. This is
+  // additive — it does not affect ingestion or the digest flow.
+  await flagChangedLeads(supabase, council_slug, toUpsert)
+
   return NextResponse.json({ received: applications.length, updated: toUpsert.length })
+}
+
+// Flag tracked leads whose underlying application changed in this scrape.
+// Only touches leads that actually exist for the changed references, so it's
+// cheap even when a council returns many applications.
+async function flagChangedLeads(
+  supabase: ReturnType<typeof createAdminClient>,
+  councilSlug: string,
+  changed: Array<{ reference: string; status: string | null }>,
+): Promise<void> {
+  if (changed.length === 0) return
+
+  const statusByRef = new Map(changed.map((c) => [c.reference, c.status]))
+  const changedRefs = [...statusByRef.keys()]
+
+  // Which changed references are actually being tracked by someone?
+  const { data: trackedRefs, error } = await supabase
+    .from('tracked_leads')
+    .select('reference')
+    .eq('council_slug', councilSlug)
+    .in('reference', changedRefs)
+
+  if (error || !trackedRefs || trackedRefs.length === 0) return
+
+  const uniqueRefs = [...new Set(trackedRefs.map((r) => r.reference as string))]
+
+  // Update per reference so each lead gets its own new status. The set is small
+  // (only tracked refs), so a short loop is fine.
+  for (const ref of uniqueRefs) {
+    await supabase
+      .from('tracked_leads')
+      .update({ priority_follow_up: true, cached_status: statusByRef.get(ref) ?? null })
+      .eq('council_slug', councilSlug)
+      .eq('reference', ref)
+  }
 }
 
 // Hash the fields that indicate a meaningful change. If only peripheral fields

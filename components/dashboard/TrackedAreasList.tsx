@@ -1,15 +1,19 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { deleteTrackedArea } from './actions'
+import { trackOpportunity } from './leadActions'
 import type { TrackedArea, PlanningApplication } from '@/types/database'
 
 interface Props {
   areas: TrackedArea[]
   applications: PlanningApplication[]
+  trackedIds: string[]
 }
 
-export default function TrackedAreasList({ areas, applications }: Props) {
+export default function TrackedAreasList({ areas, applications, trackedIds }: Props) {
+  const trackedSet = new Set(trackedIds)
+
   if (areas.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-gray-300 p-10 text-center">
@@ -32,13 +36,22 @@ export default function TrackedAreasList({ areas, applications }: Props) {
           key={area.id}
           area={area}
           applications={appsByCouncil[area.council_slug] ?? []}
+          trackedSet={trackedSet}
         />
       ))}
     </div>
   )
 }
 
-function AreaCard({ area, applications }: { area: TrackedArea; applications: PlanningApplication[] }) {
+function AreaCard({
+  area,
+  applications,
+  trackedSet,
+}: {
+  area: TrackedArea
+  applications: PlanningApplication[]
+  trackedSet: Set<string>
+}) {
   const [isPending, startTransition] = useTransition()
 
   function handleDelete() {
@@ -66,7 +79,7 @@ function AreaCard({ area, applications }: { area: TrackedArea; applications: Pla
       {applications.length > 0 ? (
         <div className="mt-4 divide-y divide-gray-100">
           {applications.slice(0, 5).map((app) => (
-            <ApplicationRow key={app.id} app={app} />
+            <ApplicationRow key={app.id} app={app} isTracked={trackedSet.has(app.id)} />
           ))}
           {applications.length > 5 && (
             <p className="pt-2 text-xs text-gray-400">
@@ -83,7 +96,7 @@ function AreaCard({ area, applications }: { area: TrackedArea; applications: Pla
   )
 }
 
-function ApplicationRow({ app }: { app: PlanningApplication }) {
+function ApplicationRow({ app, isTracked }: { app: PlanningApplication; isTracked: boolean }) {
   const statusColour: Record<string, string> = {
     approved: 'text-green-700 bg-green-50',
     refused: 'text-red-700 bg-red-50',
@@ -92,6 +105,18 @@ function ApplicationRow({ app }: { app: PlanningApplication }) {
   const statusKey = (app.status ?? '').toLowerCase()
   const colourClass = Object.keys(statusColour).find((k) => statusKey.includes(k))
   const badgeClass = colourClass ? statusColour[colourClass] : 'text-gray-600 bg-gray-100'
+
+  // Local optimistic flag so the button flips to "Tracked ✓" without a reload.
+  const [tracked, setTracked] = useState(isTracked)
+  const [isPending, startTransition] = useTransition()
+
+  function handleTrack() {
+    startTransition(async () => {
+      const result = await trackOpportunity(app.id)
+      // Treat "already tracking" as success too — the row is tracked either way.
+      if (!result?.error || result.error.startsWith('Already')) setTracked(true)
+    })
+  }
 
   return (
     <div className="py-3 flex items-start justify-between gap-3">
@@ -107,11 +132,26 @@ function ApplicationRow({ app }: { app: PlanningApplication }) {
           <p className="text-xs text-[#9CA3AF] mt-0.5">{app.address}</p>
         )}
       </div>
-      {app.status && (
-        <span className={`shrink-0 rounded px-2 py-0.5 text-xs font-medium ${badgeClass}`}>
-          {app.status}
-        </span>
-      )}
+      <div className="flex shrink-0 items-center gap-2">
+        {app.status && (
+          <span className={`rounded px-2 py-0.5 text-xs font-medium ${badgeClass}`}>
+            {app.status}
+          </span>
+        )}
+        {tracked ? (
+          <span className="rounded border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
+            Tracked ✓
+          </span>
+        ) : (
+          <button
+            onClick={handleTrack}
+            disabled={isPending}
+            className="rounded border border-[#2563EB] px-2 py-0.5 text-xs font-medium text-[#2563EB] hover:bg-[#2563EB] hover:text-white transition-colors disabled:opacity-40"
+          >
+            {isPending ? 'Tracking…' : 'Track Opportunity'}
+          </button>
+        )}
+      </div>
     </div>
   )
 }
