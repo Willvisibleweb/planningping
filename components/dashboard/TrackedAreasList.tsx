@@ -53,10 +53,13 @@ function AreaCard({
   trackedSet: Set<string>
 }) {
   const [isPending, startTransition] = useTransition()
+  const [showAll, setShowAll] = useState(false)
 
   function handleDelete() {
     startTransition(() => { void deleteTrackedArea(area.id) })
   }
+
+  const visible = showAll ? applications : applications.slice(0, 5)
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-5">
@@ -78,13 +81,18 @@ function AreaCard({
 
       {applications.length > 0 ? (
         <div className="mt-4 divide-y divide-gray-100">
-          {applications.slice(0, 5).map((app) => (
+          {visible.map((app) => (
             <ApplicationRow key={app.id} app={app} isTracked={trackedSet.has(app.id)} />
           ))}
           {applications.length > 5 && (
-            <p className="pt-2 text-xs text-gray-400">
-              +{applications.length - 5} more applications
-            </p>
+            <button
+              onClick={() => setShowAll((v) => !v)}
+              className="pt-2 text-xs font-medium text-[#2563EB] hover:underline"
+            >
+              {showAll
+                ? 'Show less'
+                : `Show ${applications.length - 5} more application${applications.length - 5 === 1 ? '' : 's'}`}
+            </button>
           )}
         </div>
       ) : (
