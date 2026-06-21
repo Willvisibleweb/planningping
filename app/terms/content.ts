@@ -11,7 +11,7 @@ _Last updated: 16/6/26_
 
 ## 1. Who we are
 
-PlanningPing ("PlanningPing", "we", "us", "our") is a planning-application alerting and intelligence service operated by William Kelsall / Planning Ping, [trading as Kelwave / sole trader], based in Alton, United Kingdom. You can contact us at william.kelwave@gmail.com.
+PlanningPing ("PlanningPing", "we", "us", "our") is a planning-application alerting and intelligence service operated by William Kelsall / Planning Ping, trading as Kelwave (sole trader), based in Alton, United Kingdom. You can contact us at william.kelwave@gmail.com.
 
 These Terms of Service ("Terms") govern your access to and use of the PlanningPing website, dashboard, alerts, and related services (together, the "Service"). By creating an account or using the Service, you agree to these Terms. If you do not agree, do not use the Service.
 
