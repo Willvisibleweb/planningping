@@ -64,6 +64,30 @@ export default function SignupForm() {
           <p className="text-sm text-red-600">{error}</p>
         )}
 
+        <p className="text-xs leading-relaxed text-[#6B7280]">
+          By creating an account you agree to our{' '}
+          <a
+            href="/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#2563EB] hover:underline"
+          >
+            Terms of Service
+          </a>{' '}
+          and{' '}
+          <a
+            href="/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#2563EB] hover:underline"
+          >
+            Privacy Policy
+          </a>
+          . PlanningPing provides automated alerts from public planning data on an
+          &ldquo;as is&rdquo; basis and is not a substitute for your own checks against
+          official sources.
+        </p>
+
         <button
           type="submit"
           disabled={isPending}

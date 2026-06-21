@@ -28,6 +28,13 @@ export default async function DashboardPage() {
         .limit(50)
     : { data: [] }
 
+  // Which of these applications is the user already tracking as a lead? Used to
+  // show "Tracked ✓" instead of the Track button. RLS scopes this to the user.
+  const { data: leads } = await supabase
+    .from('tracked_leads')
+    .select('application_id')
+  const trackedIds = new Set((leads ?? []).map((l) => l.application_id as string))
+
   return (
     <div className="space-y-8">
       <div>
@@ -45,6 +52,7 @@ export default async function DashboardPage() {
         <TrackedAreasList
           areas={areas ?? []}
           applications={applications ?? []}
+          trackedIds={[...trackedIds]}
         />
       )}
     </div>

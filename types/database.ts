@@ -37,6 +37,10 @@ export interface PlanningApplication {
   last_scraped_at: string | null
   created_at: string
   updated_at: string
+  // Civils lead-scoring layer (prototype). Null until /api/score has run.
+  score: number | null
+  band: 'HOT' | 'WARM' | 'COLD' | null
+  score_reasons: string[] | null
 }
 
 export interface Digest {
@@ -47,6 +51,32 @@ export interface Digest {
   period_end: string     // ISO date string
   application_count: number
   summary: string | null
+}
+
+// Pipeline stages for the civils CRM. Order matters for display.
+export type PipelineStage = 'Identified' | 'Contacted' | 'Negotiating' | 'Won' | 'Lost'
+
+export const PIPELINE_STAGES: PipelineStage[] = [
+  'Identified', 'Contacted', 'Negotiating', 'Won', 'Lost',
+]
+
+// A planning application a user is tracking through their sales pipeline.
+export interface TrackedLead {
+  id: string
+  user_id: string
+  application_id: string
+  council_slug: string
+  reference: string
+  description: string | null
+  address: string | null
+  cached_status: string | null
+  pipeline_stage: PipelineStage
+  last_contacted_at: string | null  // ISO timestamp
+  next_follow_up_at: string | null  // ISO timestamp
+  priority_follow_up: boolean
+  notes: string | null
+  created_at: string
+  updated_at: string
 }
 
 // Payload shape n8n sends to the webhook endpoint when delivering scrape results.
