@@ -4,8 +4,8 @@
 //     rest of the document).
 //   - §11 split onto its own heading line (the source ran it into the end of §10).
 // Markdown structure (headings, bullet lists) added for rendering only.
-// Note: [trading as Kelwave] in §1 and the §6 sub-processor placeholders remain
-// as supplied — fill these before relying on the policy publicly.
+// Trading name (§1) and §6 sub-processors filled in with confirmed values:
+// Kelwave (sole trader); Hostinger, Supabase, Vercel, Resend.
 // Last updated: 16/6/26
 
 export const privacyLastUpdated = '16/6/26'
@@ -16,7 +16,7 @@ _Last updated: 16/6/26_
 
 ## 1. Who we are
 
-PlanningPing ("we", "us", "our") is operated by William Kelsall / Planning ping, [trading as Kelwave], based in Alton, United Kingdom. For any privacy questions, contact us at william.kelwave@gmail.com
+PlanningPing ("we", "us", "our") is operated by William Kelsall / Planning ping, trading as Kelwave (sole trader), based in Alton, United Kingdom. For any privacy questions, contact us at william.kelwave@gmail.com
 
 For the purposes of UK data protection law, we are the data controller for the personal data described in this policy.
 
@@ -67,10 +67,10 @@ Some of our service providers may process data outside the UK. Where they do, we
 
 We use the following providers to deliver the Service:
 
-- [Hosting / VPS provider — e.g. Hostinger]
-- [Database — e.g. Supabase]
-- [Application hosting — e.g. Vercel]
-- [Email delivery — e.g. Resend]
+- Hostinger (hosting / VPS)
+- Supabase (database)
+- Vercel (application hosting)
+- Resend (email delivery)
 
 This list may change as the Service develops.
 
