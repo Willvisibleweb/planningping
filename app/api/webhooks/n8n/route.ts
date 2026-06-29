@@ -113,6 +113,20 @@ export async function POST(request: NextRequest) {
       last_scraped_at: new Date().toISOString(),
     }))
 
+  // Brand-new applications: references not previously stored for this council
+  // (a status change on an existing application is NOT "new"). The digest email
+  // uses these so subscribers are only notified about genuinely new items —
+  // never the same 7-day window re-sent every run.
+  const new_applications = toUpsert
+    .filter((r) => !(r.reference in existingHashes))
+    .map((r) => ({
+      reference: r.reference,
+      address: r.address,
+      description: r.description,
+      status: r.status,
+      application_date: r.application_date,
+    }))
+
   if (mislabelled.length > 0) {
     console.error(
       `Webhook REJECTED ${mislabelled.length} mislabelled application(s) sent as council_slug="${council_slug}" — reference prefix belongs to a different council: ${mislabelled.slice(0, 5).join(', ')}${mislabelled.length > 5 ? '…' : ''}`,
@@ -120,7 +134,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (toUpsert.length === 0) {
-    return NextResponse.json({ received: applications.length, updated: 0, rejected: mislabelled.length })
+    return NextResponse.json({ received: applications.length, updated: 0, rejected: mislabelled.length, new_applications })
   }
 
   // Step 5: Upsert changed rows. On conflict (same council + reference),
@@ -143,7 +157,7 @@ export async function POST(request: NextRequest) {
   // additive — it does not affect ingestion or the digest flow.
   await flagChangedLeads(supabase, council_slug, toUpsert)
 
-  return NextResponse.json({ received: applications.length, updated: toUpsert.length, rejected: mislabelled.length })
+  return NextResponse.json({ received: applications.length, updated: toUpsert.length, rejected: mislabelled.length, new_applications })
 }
 
 // Flag tracked leads whose underlying application changed in this scrape.
