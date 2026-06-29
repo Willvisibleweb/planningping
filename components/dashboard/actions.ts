@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 // Resolve a UK postcode to its council slug using postcodes.io (free, no key).
 // Returns null if the postcode is invalid or the lookup fails.
@@ -42,6 +43,29 @@ export async function addTrackedArea(formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+
+  // Coverage gate: only allow councils the scraper actually supports. The admin
+  // client reads the councils config table (which isn't user-readable via RLS).
+  // If the council is missing or unsupported, log the demand as a coverage
+  // request (waitlist) instead of letting the user track a dead area.
+  const admin = createAdminClient()
+  const { data: council } = await admin
+    .from('councils')
+    .select('supported')
+    .eq('slug', councilSlug)
+    .maybeSingle()
+
+  if (!council || council.supported !== true) {
+    await admin.from('coverage_requests').insert({
+      user_id: user.id,
+      postcode,
+      council_slug: councilSlug,
+    })
+    const area = councilSlug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+    return {
+      error: `We don't cover ${area} yet — we've logged your request and will add it as we expand. We'll let you know when it's live.`,
+    }
+  }
 
   const { error } = await supabase.from('tracked_areas').insert({
     user_id: user.id,
