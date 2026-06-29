@@ -58,9 +58,43 @@ export async function POST(request: NextRequest) {
     existingHashes[row.reference] = row.state_hash ?? ''
   }
 
+  // Step 3b: Guard against mislabelled batches. If anything upstream (e.g. an
+  // n8n bug) attributes one council's applications to another, the reference
+  // prefix gives it away — councils with a distinctive prefix are registered in
+  // councils.ref_prefix. Any application whose prefix belongs to a DIFFERENT
+  // council than this batch claims is rejected and logged, never persisted.
+  const { data: prefixed } = await supabase
+    .from('councils')
+    .select('slug, ref_prefixes')
+    .not('ref_prefixes', 'is', null)
+
+  const prefixToCouncil: Record<string, string> = {}
+  for (const c of prefixed ?? []) {
+    for (const p of (c.ref_prefixes as string[] | null) ?? []) {
+      prefixToCouncil[String(p).toUpperCase()] = c.slug as string
+    }
+  }
+
+  // The council a reference belongs to, by its leading alpha prefix (e.g.
+  // "SMD/2024/0123" -> "SMD"). Undefined for numeric-only refs (can't validate).
+  function ownerCouncil(reference: string): string | undefined {
+    const prefix = (reference.match(/^[A-Za-z]+/)?.[0] ?? '').toUpperCase()
+    return prefix ? prefixToCouncil[prefix] : undefined
+  }
+
+  const mislabelled: string[] = []
+
   // Step 4: Filter to only applications with genuine changes.
   const toUpsert = applications
     .filter((app: WebhookApplication) => typeof app.reference === 'string' && app.reference)
+    .filter((app: WebhookApplication) => {
+      const owner = ownerCouncil(app.reference)
+      if (owner && owner !== council_slug) {
+        mislabelled.push(app.reference)
+        return false
+      }
+      return true
+    })
     .map((app: WebhookApplication) => {
       const hash = computeStateHash(app.status, app.decision_date)
       return { app, hash }
@@ -79,8 +113,14 @@ export async function POST(request: NextRequest) {
       last_scraped_at: new Date().toISOString(),
     }))
 
+  if (mislabelled.length > 0) {
+    console.error(
+      `Webhook REJECTED ${mislabelled.length} mislabelled application(s) sent as council_slug="${council_slug}" — reference prefix belongs to a different council: ${mislabelled.slice(0, 5).join(', ')}${mislabelled.length > 5 ? '…' : ''}`,
+    )
+  }
+
   if (toUpsert.length === 0) {
-    return NextResponse.json({ received: applications.length, updated: 0 })
+    return NextResponse.json({ received: applications.length, updated: 0, rejected: mislabelled.length })
   }
 
   // Step 5: Upsert changed rows. On conflict (same council + reference),
@@ -103,7 +143,7 @@ export async function POST(request: NextRequest) {
   // additive — it does not affect ingestion or the digest flow.
   await flagChangedLeads(supabase, council_slug, toUpsert)
 
-  return NextResponse.json({ received: applications.length, updated: toUpsert.length })
+  return NextResponse.json({ received: applications.length, updated: toUpsert.length, rejected: mislabelled.length })
 }
 
 // Flag tracked leads whose underlying application changed in this scrape.
