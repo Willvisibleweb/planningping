@@ -103,9 +103,9 @@ export async function POST(request: NextRequest) {
     .map(({ app, hash }) => ({
       council_slug,
       reference: app.reference,
-      address: app.address ?? null,
-      description: app.description ?? null,
-      status: app.status ?? null,
+      address: cleanAddress(app.address),
+      description: cleanText(app.description),
+      status: cleanText(app.status),
       application_date: app.application_date ?? null,
       decision_date: app.decision_date ?? null,
       state_hash: hash,
@@ -198,6 +198,31 @@ async function flagChangedLeads(
 // Hash the fields that indicate a meaningful change. If only peripheral fields
 // change (e.g. a formatting tweak in the address), we don't treat it as a
 // state change — avoiding unnecessary digest entries and OpenAI calls.
+// Collapse ragged whitespace and trim. Returns null for empty/missing values.
+function cleanText(s?: string | null): string | null {
+  if (!s) return null
+  const t = s.replace(/\s+/g, ' ').trim()
+  return t.length > 0 ? t : null
+}
+
+// Normalise an address to Title Case while keeping UK postcodes and other
+// alphanumeric tokens (house refs) uppercase — portals return random ALL-CAPS
+// chunks like "CHEADLE ROAD, STAFFORDSHIRE, ST13 7HW".
+function cleanAddress(s?: string | null): string | null {
+  const t = cleanText(s)
+  if (!t) return null
+  return t
+    .split(' ')
+    .map((word) => {
+      const core = word.replace(/[^A-Za-z0-9]/g, '')
+      // Letter+digit tokens are postcodes/house refs → keep uppercase.
+      if (/[A-Za-z]/.test(core) && /[0-9]/.test(core)) return word.toUpperCase()
+      // Otherwise Title Case, preserving any trailing punctuation.
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    })
+    .join(' ')
+}
+
 function computeStateHash(status?: string, decisionDate?: string): string {
   const input = `${status ?? ''}|${decisionDate ?? ''}`
   return createHash('sha256').update(input).digest('hex')
