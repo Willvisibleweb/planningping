@@ -2,6 +2,7 @@
 // All data fetching is server-side. RLS ensures users only see their own data.
 
 import { createClient } from '@/lib/supabase/server'
+import { getProfile, hasProAccess } from '@/lib/access'
 import TrackedAreasList from '@/components/dashboard/TrackedAreasList'
 import AddAreaForm from '@/components/dashboard/AddAreaForm'
 import type { TrackedArea, PlanningApplication } from '@/types/database'
@@ -35,6 +36,10 @@ export default async function DashboardPage() {
     .select('application_id')
   const trackedIds = new Set((leads ?? []).map((l) => l.application_id as string))
 
+  // Track Opportunity is a professional feature — homeowners just watch.
+  const profile = await getProfile()
+  const showTrackActions = hasProAccess(profile)
+
   return (
     <div className="space-y-8">
       <div>
@@ -53,6 +58,7 @@ export default async function DashboardPage() {
           areas={areas ?? []}
           applications={applications ?? []}
           trackedIds={[...trackedIds]}
+          showTrackActions={showTrackActions}
         />
       )}
     </div>

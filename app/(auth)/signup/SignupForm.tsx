@@ -3,9 +3,28 @@
 import { useState, useTransition } from 'react'
 import { signup } from './actions'
 
-export default function SignupForm() {
+const USER_TYPES = [
+  {
+    value: 'homeowner',
+    title: "I'm a homeowner",
+    description: 'Follow planning applications near you and get a weekly email digest. Free forever.',
+  },
+  {
+    value: 'professional',
+    title: "I'm a professional",
+    description:
+      'CRM pipeline, lead scoring and AI outreach for civil engineers, agents and architects. 14-day free trial, no card required — then £29/mo.',
+  },
+] as const
+
+export default function SignupForm({
+  defaultType = 'homeowner',
+}: {
+  defaultType?: 'homeowner' | 'professional'
+}) {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [userType, setUserType] = useState<string>(defaultType)
   const [isPending, startTransition] = useTransition()
 
   async function handleSubmit(formData: FormData) {
@@ -30,6 +49,37 @@ export default function SignupForm() {
   return (
     <div className="rounded-lg border border-[#E5E7EB] bg-white p-6 shadow-sm">
       <form action={handleSubmit} className="space-y-4">
+        <fieldset>
+          <legend className="block text-sm font-medium text-[#374151] mb-2">
+            How will you use PlanningPing?
+          </legend>
+          <div className="space-y-2">
+            {USER_TYPES.map((t) => (
+              <label
+                key={t.value}
+                className={`block cursor-pointer rounded-md border p-3 transition-colors ${
+                  userType === t.value
+                    ? 'border-[#2563EB] bg-[#EFF6FF] ring-1 ring-[#2563EB]'
+                    : 'border-[#E5E7EB] hover:border-[#9CA3AF]'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="user_type"
+                  value={t.value}
+                  checked={userType === t.value}
+                  onChange={() => setUserType(t.value)}
+                  className="sr-only"
+                />
+                <span className="block text-sm font-medium text-[#111827]">{t.title}</span>
+                <span className="mt-0.5 block text-xs leading-relaxed text-[#6B7280]">
+                  {t.description}
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-[#374151] mb-1">
             Email

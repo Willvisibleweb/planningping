@@ -6,8 +6,14 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { getProfile, hasProAccess } from '@/lib/access'
 import type { PipelineStage } from '@/types/database'
 import { PIPELINE_STAGES } from '@/types/database'
+
+// The pipeline is a professional feature. UI hiding is cosmetic — these
+// server actions are the enforcement point. (untrackLead stays ungated so a
+// lapsed professional can still clean up their data.)
+const PRO_REQUIRED = 'This feature requires an active professional plan.'
 
 // Start tracking an application: copy a display snapshot into tracked_leads at
 // stage "Identified". Denormalises council_slug/reference/status so the sync can
@@ -16,6 +22,7 @@ export async function trackOpportunity(applicationId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  if (!hasProAccess(await getProfile())) return { error: PRO_REQUIRED }
 
   // Read the application (RLS lets the user see apps for councils they track).
   const { data: app, error: appErr } = await supabase
@@ -55,6 +62,7 @@ export async function setStage(leadId: string, stage: PipelineStage) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  if (!hasProAccess(await getProfile())) return { error: PRO_REQUIRED }
 
   const { error } = await supabase
     .from('tracked_leads')
@@ -74,6 +82,7 @@ export async function markAsSent(leadId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  if (!hasProAccess(await getProfile())) return { error: PRO_REQUIRED }
 
   const { data: lead } = await supabase
     .from('tracked_leads')

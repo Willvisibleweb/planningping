@@ -82,6 +82,51 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Pricing */}
+      <section className="border-t border-[#E5E7EB]">
+        <div className="max-w-5xl mx-auto px-6 py-16">
+          <h2 className="text-center text-xl font-semibold text-[#111827]">Pricing</h2>
+          <p className="mt-1 text-center text-sm text-[#6B7280]">
+            Free for homeowners. Built to pay for itself for professionals.
+          </p>
+          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 max-w-3xl mx-auto">
+            <div className="rounded-lg border border-[#E5E7EB] bg-white p-6 shadow-sm">
+              <h3 className="text-sm font-semibold text-[#111827]">Homeowner</h3>
+              <p className="mt-2 text-2xl font-semibold text-[#111827]">Free</p>
+              <p className="mt-1 text-xs text-[#9CA3AF]">forever</p>
+              <ul className="mt-4 space-y-2 text-sm text-[#6B7280]">
+                <li>Track planning applications near you</li>
+                <li>Weekly email digest</li>
+                <li>Status change alerts</li>
+              </ul>
+              <a
+                href="/signup"
+                className="mt-6 block rounded-md border border-[#2563EB] px-4 py-2 text-center text-sm font-medium text-[#2563EB] transition-colors hover:bg-blue-50"
+              >
+                Start free
+              </a>
+            </div>
+            <div className="rounded-lg border-2 border-[#2563EB] bg-white p-6 shadow-sm">
+              <h3 className="text-sm font-semibold text-[#111827]">Professional</h3>
+              <p className="mt-2 text-2xl font-semibold text-[#111827]">£29<span className="text-sm font-normal text-[#6B7280]">/month</span></p>
+              <p className="mt-1 text-xs text-[#9CA3AF]">or £290/year (2 months free) · 14-day free trial, no card required</p>
+              <ul className="mt-4 space-y-2 text-sm text-[#6B7280]">
+                <li>Everything in Homeowner</li>
+                <li>Lead scoring across your councils</li>
+                <li>Opportunity pipeline (CRM)</li>
+                <li>AI outreach drafts</li>
+              </ul>
+              <a
+                href="/signup?type=professional"
+                className="mt-6 block rounded-md bg-[#2563EB] px-4 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-[#1D4ED8]"
+              >
+                Start free trial
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="border-t border-[#E5E7EB]">
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
