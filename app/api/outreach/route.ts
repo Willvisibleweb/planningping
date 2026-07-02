@@ -18,6 +18,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
+import { getProfile, hasProAccess } from '@/lib/access'
 
 const MODEL = 'claude-haiku-4-5'
 
@@ -50,6 +51,14 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+
+  // Professional feature (and each call costs Anthropic credits) — enforce plan.
+  if (!hasProAccess(await getProfile())) {
+    return NextResponse.json(
+      { error: 'This feature requires an active professional plan.' },
+      { status: 403 },
+    )
+  }
 
   const { data: lead } = await supabase
     .from('tracked_leads')

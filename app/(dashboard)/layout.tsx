@@ -4,6 +4,7 @@
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getProfile, isProfessional, hasProAccess, trialDaysLeft } from '@/lib/access'
 import LogoutButton from '@/components/dashboard/LogoutButton'
 
 export default async function DashboardLayout({
@@ -17,6 +18,13 @@ export default async function DashboardLayout({
   // Hard redirect — no session means no access, full stop.
   if (!user) redirect('/login')
 
+  // Nav is tailored by account type. This is display only — every pro page
+  // and server action re-checks access itself (see lib/access.ts).
+  const profile = await getProfile()
+  const professional = isProfessional(profile)
+  const daysLeft = trialDaysLeft(profile)
+  const onTrial = professional && hasProAccess(profile) && daysLeft !== null
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="border-b border-gray-200 bg-white">
@@ -25,13 +33,23 @@ export default async function DashboardLayout({
             PlanningPing
           </a>
           <div className="flex items-center gap-4">
+            {onTrial && (
+              <a
+                href="/settings#billing"
+                className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-[#2563EB] hover:bg-blue-100"
+              >
+                Trial: {daysLeft} day{daysLeft === 1 ? '' : 's'} left
+              </a>
+            )}
             <span className="text-sm text-gray-500">{user.email}</span>
             <a href="/leads" className="text-sm text-gray-600 hover:text-gray-900">
               Leads
             </a>
-            <a href="/pipeline" className="text-sm text-gray-600 hover:text-gray-900">
-              Pipeline
-            </a>
+            {professional && (
+              <a href="/pipeline" className="text-sm text-gray-600 hover:text-gray-900">
+                Pipeline
+              </a>
+            )}
             <a href="/settings" className="text-sm text-gray-600 hover:text-gray-900">
               Settings
             </a>

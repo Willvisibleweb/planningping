@@ -9,9 +9,12 @@ interface Props {
   areas: TrackedArea[]
   applications: PlanningApplication[]
   trackedIds: string[]
+  // False for homeowners / lapsed trials: hides Track buttons + badges.
+  // Cosmetic only — trackOpportunity re-checks access server-side.
+  showTrackActions: boolean
 }
 
-export default function TrackedAreasList({ areas, applications, trackedIds }: Props) {
+export default function TrackedAreasList({ areas, applications, trackedIds, showTrackActions }: Props) {
   const trackedSet = new Set(trackedIds)
 
   if (areas.length === 0) {
@@ -37,6 +40,7 @@ export default function TrackedAreasList({ areas, applications, trackedIds }: Pr
           area={area}
           applications={appsByCouncil[area.council_slug] ?? []}
           trackedSet={trackedSet}
+          showTrackActions={showTrackActions}
         />
       ))}
     </div>
@@ -47,10 +51,12 @@ function AreaCard({
   area,
   applications,
   trackedSet,
+  showTrackActions,
 }: {
   area: TrackedArea
   applications: PlanningApplication[]
   trackedSet: Set<string>
+  showTrackActions: boolean
 }) {
   const [isPending, startTransition] = useTransition()
   const [showAll, setShowAll] = useState(false)
@@ -82,7 +88,12 @@ function AreaCard({
       {applications.length > 0 ? (
         <div className="mt-4 divide-y divide-gray-100">
           {visible.map((app) => (
-            <ApplicationRow key={app.id} app={app} isTracked={trackedSet.has(app.id)} />
+            <ApplicationRow
+              key={app.id}
+              app={app}
+              isTracked={trackedSet.has(app.id)}
+              showTrackActions={showTrackActions}
+            />
           ))}
           {applications.length > 5 && (
             <button
@@ -104,7 +115,15 @@ function AreaCard({
   )
 }
 
-function ApplicationRow({ app, isTracked }: { app: PlanningApplication; isTracked: boolean }) {
+function ApplicationRow({
+  app,
+  isTracked,
+  showTrackActions,
+}: {
+  app: PlanningApplication
+  isTracked: boolean
+  showTrackActions: boolean
+}) {
   const statusColour: Record<string, string> = {
     approved: 'text-green-700 bg-green-50',
     refused: 'text-red-700 bg-red-50',
@@ -146,7 +165,7 @@ function ApplicationRow({ app, isTracked }: { app: PlanningApplication; isTracke
             {app.status}
           </span>
         )}
-        {tracked ? (
+        {showTrackActions && (tracked ? (
           <span className="rounded border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
             Tracked ✓
           </span>
@@ -158,7 +177,7 @@ function ApplicationRow({ app, isTracked }: { app: PlanningApplication; isTracke
           >
             {isPending ? 'Tracking…' : 'Track Opportunity'}
           </button>
-        )}
+        ))}
       </div>
     </div>
   )

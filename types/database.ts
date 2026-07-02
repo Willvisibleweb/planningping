@@ -1,13 +1,22 @@
 // Hand-written types matching supabase/schema.sql.
 // When the schema changes, update these types to match.
 
-export type Plan = 'free' | 'paid'
+export type Plan = 'free' | 'pro'
+export type UserType = 'homeowner' | 'professional'
 export type DigestDay = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
 
 export interface Profile {
   id: string
   email: string
   plan: Plan
+  user_type: UserType
+  // Professional trial deadline (ISO timestamp). Null = never had a trial.
+  trial_ends_at: string | null
+  // Stripe linkage — populated by checkout/webhook (Phase B). Kept loose:
+  // subscription_status carries Stripe's own strings ('active', 'past_due', …).
+  stripe_customer_id: string | null
+  stripe_subscription_id: string | null
+  subscription_status: string | null
   digest_day: DigestDay
   created_at: string
 }

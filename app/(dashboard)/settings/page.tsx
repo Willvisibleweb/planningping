@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import SettingsForm from './SettingsForm'
 import DigestHistory from './DigestHistory'
+import AccountSection from './AccountSection'
 import type { Profile, Digest } from '@/types/database'
 
 export default async function SettingsPage() {
@@ -18,6 +19,7 @@ export default async function SettingsPage() {
         <h2 className="text-xl font-semibold text-gray-900">Settings</h2>
         <p className="text-sm text-gray-500 mt-1">Manage your account and digest preferences.</p>
       </div>
+      <AccountSection profile={profile as Profile} />
       <SettingsForm profile={profile as Profile} />
       <DigestHistory digests={digests ?? []} />
     </div>

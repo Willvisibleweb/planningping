@@ -6,6 +6,7 @@
 // Isolated route — delete this folder to remove the feature.
 
 import { createClient } from '@/lib/supabase/server'
+import { getProfile, isProfessional, hasProAccess } from '@/lib/access'
 import LeadsList from '@/components/dashboard/LeadsList'
 import type { PlanningApplication } from '@/types/database'
 
@@ -42,8 +43,31 @@ export default async function LeadsPage({
     applications = data ?? []
   }
 
+  // Deliberately visible to homeowners as a read-only teaser — tracking these
+  // as opportunities (pipeline/outreach) is the professional feature.
+  const profile = await getProfile()
+  const teaser = !hasProAccess(profile)
+
   return (
     <div className="space-y-6">
+      {teaser && (
+        <div className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          {isProfessional(profile) ? (
+            <>
+              Your free trial has ended — your leads are saved.{' '}
+              <a href="/settings#billing" className="font-medium underline">Upgrade</a>{' '}
+              to keep tracking opportunities through your pipeline.
+            </>
+          ) : (
+            <>
+              Lead scoring is a professional feature. Switch to a professional account in{' '}
+              <a href="/settings" className="font-medium underline">Settings</a>{' '}
+              (14-day free trial) to track these as opportunities.
+            </>
+          )}
+        </div>
+      )}
+
       <div>
         <h2 className="text-xl font-semibold text-gray-900 mb-1">Civils leads</h2>
         <p className="text-sm text-gray-500">
