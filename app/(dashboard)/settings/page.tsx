@@ -24,7 +24,7 @@ export default async function SettingsPage() {
       {(profile as Profile).user_type === 'professional' && (
         <BillingSection profile={profile as Profile} />
       )}
-      <SettingsForm profile={profile as Profile} />
+      <SettingsForm />
       <DigestHistory digests={digests ?? []} />
     </div>
   )
