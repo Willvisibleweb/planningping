@@ -22,6 +22,11 @@ import { getProfile, hasProAccess } from '@/lib/access'
 
 const MODEL = 'claude-haiku-4-5'
 
+// Per-user daily cap on draft generation. Each call costs Anthropic credits,
+// so this bounds the worst case (e.g. a trial user generating in a loop).
+// Counted per UTC day via outreach_log (migration 0007).
+const DAILY_LIMIT = 20
+
 const SYSTEM_PROMPT = `You are a business-development assistant for a UK civil engineering firm. You write short, specific, professional outreach emails to the applicant or agent behind a planning application, offering the firm's civil engineering services for that project.
 
 Rules:
@@ -57,6 +62,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: 'This feature requires an active professional plan.' },
       { status: 403 },
+    )
+  }
+
+  // Rate limit: count this user's generations since UTC midnight. RLS scopes
+  // the count to their own rows, and outreach_log has no delete policy, so
+  // the counter can't be reset from the client.
+  const startOfDay = new Date()
+  startOfDay.setUTCHours(0, 0, 0, 0)
+  const { count } = await supabase
+    .from('outreach_log')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .gte('created_at', startOfDay.toISOString())
+
+  if ((count ?? 0) >= DAILY_LIMIT) {
+    return NextResponse.json(
+      { error: `Daily limit reached (${DAILY_LIMIT} drafts). Try again tomorrow.` },
+      { status: 429 },
     )
   }
 
@@ -106,6 +129,10 @@ export async function POST(request: NextRequest) {
       .map((b) => b.text)
       .join('')
       .trim()
+
+    // Record the successful generation against today's cap. Failures aren't
+    // logged — a user shouldn't burn allowance on our errors.
+    await supabase.from('outreach_log').insert({ user_id: user.id, lead_id: body.leadId })
 
     return NextResponse.json({ draft })
   } catch (err) {
