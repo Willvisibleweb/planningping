@@ -20,14 +20,22 @@ export default async function DashboardPage() {
   // We get the unique council slugs first, then fetch applications.
   const councilSlugs = [...new Set((areas ?? []).map((a: TrackedArea) => a.council_slug))]
 
-  const { data: applications } = councilSlugs.length > 0
-    ? await supabase
+  // Fetch per-council (in parallel) rather than one combined query with a global
+  // limit. A single .in(...).limit(50) lets a busy borough (e.g. Southwark, 100+)
+  // fill every slot and starve quieter councils, so their cards render empty even
+  // though rows exist. A per-council cap guarantees each tracked area shows its
+  // own recent applications. nullsFirst:false keeps undated rows from sorting on top.
+  const perCouncil = await Promise.all(
+    councilSlugs.map((slug) =>
+      supabase
         .from('planning_applications')
         .select('*')
-        .in('council_slug', councilSlugs)
-        .order('application_date', { ascending: false })
-        .limit(50)
-    : { data: [] }
+        .eq('council_slug', slug)
+        .order('application_date', { ascending: false, nullsFirst: false })
+        .limit(30),
+    ),
+  )
+  const applications = perCouncil.flatMap((r) => r.data ?? [])
 
   // Which of these applications is the user already tracking as a lead? Used to
   // show "Tracked ✓" instead of the Track button. RLS scopes this to the user.
