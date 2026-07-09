@@ -24,10 +24,10 @@ export default function HomePage() {
               UK Planning Application Tracker
             </p>
             <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-[#111827] leading-[1.1] mb-6">
-              Know before your<br />neighbours do.
+              Spot planning<br />applications first.
             </h1>
             <p className="text-lg text-[#6B7280] mb-10 leading-relaxed max-w-lg">
-              Track planning applications across any UK council area. Get a weekly digest every Monday — new applications, status changes, and decisions in your postcode.
+              Track planning applications across any UK council area. Get a weekly digest every Monday — whether you&rsquo;re watching your own street or sourcing new opportunities.
             </p>
             <div className="flex flex-wrap gap-3">
               <a
