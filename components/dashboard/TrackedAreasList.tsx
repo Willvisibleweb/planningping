@@ -1,9 +1,21 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { CheckCircle2, XCircle, Clock, CircleDot, MapPin, Inbox } from 'lucide-react'
 import { deleteTrackedArea } from './actions'
 import { trackOpportunity } from './leadActions'
 import type { TrackedArea, PlanningApplication } from '@/types/database'
+
+// Status → colour + icon, matching the digest email and landing page. Keyword
+// matching keeps it robust across councils' wording ("Approved", "Granted",
+// "Refused", "Pending consideration", "Awaiting decision", etc.).
+function statusStyle(status: string | null) {
+  const s = (status ?? '').toLowerCase()
+  if (/approv|grant|permit/.test(s)) return { cls: 'bg-[#ECFDF5] text-[#047857]', Icon: CheckCircle2 }
+  if (/refus|reject|withdraw|dismiss/.test(s)) return { cls: 'bg-[#FEF2F2] text-[#B91C1C]', Icon: XCircle }
+  if (/pending|await|consult|valid|registered/.test(s)) return { cls: 'bg-[#FFFBEB] text-[#B45309]', Icon: Clock }
+  return { cls: 'bg-gray-100 text-gray-600', Icon: CircleDot }
+}
 
 interface Props {
   areas: TrackedArea[]
@@ -20,7 +32,11 @@ export default function TrackedAreasList({ areas, applications, trackedIds, show
   if (areas.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-gray-300 p-10 text-center">
-        <p className="text-sm text-gray-500">No areas tracked yet. Add one above to get started.</p>
+        <div className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-full bg-[#EFF4FF] text-[#2563EB]">
+          <MapPin size={20} />
+        </div>
+        <p className="text-sm font-medium text-gray-900">No areas tracked yet</p>
+        <p className="mt-1 text-sm text-gray-500">Add a postcode above and we&rsquo;ll start watching that council for you.</p>
       </div>
     )
   }
@@ -107,9 +123,10 @@ function AreaCard({
           )}
         </div>
       ) : (
-        <p className="mt-3 text-xs text-gray-400">
+        <div className="mt-3 flex items-center gap-2 text-xs text-gray-400">
+          <Inbox size={14} className="shrink-0" />
           No applications found for this area yet.
-        </p>
+        </div>
       )}
     </div>
   )
@@ -124,14 +141,7 @@ function ApplicationRow({
   isTracked: boolean
   showTrackActions: boolean
 }) {
-  const statusColour: Record<string, string> = {
-    approved: 'text-green-700 bg-green-50',
-    refused: 'text-red-700 bg-red-50',
-    pending: 'text-yellow-700 bg-yellow-50',
-  }
-  const statusKey = (app.status ?? '').toLowerCase()
-  const colourClass = Object.keys(statusColour).find((k) => statusKey.includes(k))
-  const badgeClass = colourClass ? statusColour[colourClass] : 'text-gray-600 bg-gray-100'
+  const { cls: badgeClass, Icon: StatusIcon } = statusStyle(app.status)
 
   // Local optimistic flag so the button flips to "Tracked ✓" without a reload.
   const [tracked, setTracked] = useState(isTracked)
@@ -161,7 +171,8 @@ function ApplicationRow({
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {app.status && (
-          <span className={`rounded px-2 py-0.5 text-xs font-medium ${badgeClass}`}>
+          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${badgeClass}`}>
+            <StatusIcon size={12} className="shrink-0" />
             {app.status}
           </span>
         )}

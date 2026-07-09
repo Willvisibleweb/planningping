@@ -5,7 +5,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getProfile, isProfessional, hasProAccess, trialDaysLeft } from '@/lib/access'
-import LogoutButton from '@/components/dashboard/LogoutButton'
+import Sidebar from '@/components/dashboard/Sidebar'
 
 export default async function DashboardLayout({
   children,
@@ -26,56 +26,35 @@ export default async function DashboardLayout({
   const onTrial = professional && hasProAccess(profile) && daysLeft !== null
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto max-w-5xl px-4 py-4 flex items-center justify-between">
-          <a href="/dashboard" className="text-lg font-semibold text-gray-900">
-            PlanningPing
-          </a>
-          <div className="flex items-center gap-4">
-            {onTrial && (
-              <a
-                href="/settings#billing"
-                className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-[#2563EB] hover:bg-blue-100"
-              >
-                Trial: {daysLeft} day{daysLeft === 1 ? '' : 's'} left
-              </a>
-            )}
-            <span className="text-sm text-gray-500">{user.email}</span>
-            <a href="/leads" className="text-sm text-gray-600 hover:text-gray-900">
-              Leads
-            </a>
-            {professional && (
-              <a href="/pipeline" className="text-sm text-gray-600 hover:text-gray-900">
-                Pipeline
-              </a>
-            )}
-            <a href="/settings" className="text-sm text-gray-600 hover:text-gray-900">
-              Settings
-            </a>
-            <LogoutButton />
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto max-w-5xl px-4 py-8">
-        {children}
-      </main>
+    <div className="min-h-screen bg-gray-50 lg:flex">
+      <Sidebar
+        userEmail={user.email ?? ''}
+        professional={professional}
+        onTrial={onTrial}
+        daysLeft={daysLeft}
+      />
 
-      {/* Persistent legal disclaimer — subtle, present on every dashboard view. */}
-      <footer className="border-t border-gray-200">
-        <div className="mx-auto max-w-5xl px-4 py-5">
-          <p className="text-xs leading-relaxed text-gray-400">
-            PlanningPing is an alerting tool, not professional advice. Planning data is
-            collected from public portals and may be incomplete, delayed, or inaccurate.
-            Always verify against the official planning authority before acting.
-          </p>
-          <p className="mt-2 text-xs text-gray-400">
-            <a href="/terms" className="hover:text-gray-600">Terms of Service</a>
-            {' · '}
-            <a href="/privacy" className="hover:text-gray-600">Privacy Policy</a>
-          </p>
-        </div>
-      </footer>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 lg:px-8">
+          {children}
+        </main>
+
+        {/* Persistent legal disclaimer — subtle, present on every dashboard view. */}
+        <footer className="border-t border-gray-200">
+          <div className="mx-auto w-full max-w-5xl px-4 py-5 lg:px-8">
+            <p className="text-xs leading-relaxed text-gray-400">
+              PlanningPing is an alerting tool, not professional advice. Planning data is
+              collected from public portals and may be incomplete, delayed, or inaccurate.
+              Always verify against the official planning authority before acting.
+            </p>
+            <p className="mt-2 text-xs text-gray-400">
+              <a href="/terms" className="hover:text-gray-600">Terms of Service</a>
+              {' · '}
+              <a href="/privacy" className="hover:text-gray-600">Privacy Policy</a>
+            </p>
+          </div>
+        </footer>
+      </div>
     </div>
   )
 }
