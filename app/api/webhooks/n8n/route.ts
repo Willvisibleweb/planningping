@@ -18,6 +18,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createHash } from 'crypto'
+import { scoreApplication } from '@/lib/scoring/scoreApplication'
 import type { WebhookPayload, WebhookApplication } from '@/types/database'
 
 export async function POST(request: NextRequest) {
@@ -100,18 +101,33 @@ export async function POST(request: NextRequest) {
       return { app, hash }
     })
     .filter(({ app, hash }) => existingHashes[app.reference] !== hash)
-    .map(({ app, hash }) => ({
-      council_slug,
-      reference: app.reference,
-      address: cleanAddress(app.address),
-      description: cleanText(app.description),
-      status: cleanText(app.status),
-      application_date: app.application_date ?? null,
-      decision_date: app.decision_date ?? null,
-      state_hash: hash,
-      raw_data: app.raw_data ?? null,
-      last_scraped_at: new Date().toISOString(),
-    }))
+    .map(({ app, hash }) => {
+      const address = cleanAddress(app.address)
+      const description = cleanText(app.description)
+      // Score inline on ingestion so the Leads view is never stale. Scoring is
+      // deterministic + local (keyword rules, no API call), so it's cheap to run
+      // on every changed row. /api/score remains the backfill/re-score tool.
+      const { score, band, matchedReasons } = scoreApplication({
+        reference: app.reference,
+        description,
+        address,
+      })
+      return {
+        council_slug,
+        reference: app.reference,
+        address,
+        description,
+        status: cleanText(app.status),
+        application_date: app.application_date ?? null,
+        decision_date: app.decision_date ?? null,
+        state_hash: hash,
+        raw_data: app.raw_data ?? null,
+        last_scraped_at: new Date().toISOString(),
+        score,
+        band,
+        score_reasons: matchedReasons,
+      }
+    })
 
   // Brand-new applications: references not previously stored for this council
   // (a status change on an existing application is NOT "new"). The digest email
