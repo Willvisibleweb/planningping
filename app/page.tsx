@@ -67,12 +67,14 @@ export default function HomePage() {
       </header>
 
       {/* Hero */}
-      <section>
-        <div className="max-w-6xl mx-auto px-6 py-20 w-full">
+      <section className="relative overflow-hidden bg-gradient-to-b from-[#EEF3FF] via-[#F6F9FF] to-white">
+        {/* soft blue glow behind the product mockup */}
+        <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 h-[460px] w-[460px] rounded-full bg-[#2563EB]/15 blur-3xl" />
+        <div className="relative max-w-6xl mx-auto px-6 py-20 w-full">
           <div className="grid items-center gap-14 lg:grid-cols-[1.02fr_1.18fr]">
             {/* Copy */}
             <div>
-              <p className="text-xs font-semibold text-[#2563EB] mb-4 tracking-wider uppercase">
+              <p className="inline-flex items-center rounded-full border border-[#DCE7FF] bg-[#EFF4FF] px-3 py-1 text-xs font-semibold text-[#2563EB] mb-5 tracking-wide uppercase">
                 UK Planning Application Tracker
               </p>
               <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-[#111827] leading-[1.04] mb-5 text-balance">
@@ -84,7 +86,7 @@ export default function HomePage() {
               <div className="flex flex-wrap gap-3">
                 <a
                   href="/signup"
-                  className="inline-flex items-center px-5 py-2.5 rounded-md bg-[#2563EB] text-sm font-medium text-white hover:bg-[#1D4ED8] transition-colors"
+                  className="inline-flex items-center px-5 py-2.5 rounded-md bg-gradient-to-b from-[#3B82F6] to-[#2563EB] text-sm font-medium text-white shadow-sm shadow-blue-600/25 hover:from-[#2563EB] hover:to-[#1D4ED8] transition-colors"
                 >
                   Get started free
                 </a>
@@ -102,7 +104,7 @@ export default function HomePage() {
             </div>
 
             {/* Dashboard mockup */}
-            <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_1px_2px_rgba(16,24,40,.04),0_12px_32px_-12px_rgba(16,24,40,.18)]">
+            <div className="overflow-hidden rounded-2xl border border-[#DCE7FF] bg-white ring-1 ring-[#2563EB]/10 shadow-[0_1px_2px_rgba(16,24,40,.04),0_24px_48px_-16px_rgba(37,99,235,.28)]">
               <div className="flex h-9 items-center gap-1.5 border-b border-[#E5E7EB] bg-[#F9FAFB] px-3.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-[#E5E7EB]" />
                 <span className="h-2.5 w-2.5 rounded-full bg-[#E5E7EB]" />
@@ -155,7 +157,7 @@ export default function HomePage() {
       </section>
 
       {/* Inbox band */}
-      <section className="border-t border-[#E5E7EB] bg-[#F9FAFB]">
+      <section className="border-t border-[#DCE7FF] bg-[#F5F8FF]">
         <div className="max-w-6xl mx-auto px-6 py-16">
           <div className="grid items-center gap-14 lg:grid-cols-2">
             <div>
@@ -229,7 +231,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-6 py-16">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
             <div>
-              <div className="w-9 h-9 rounded-lg bg-white border border-[#E5E7EB] flex items-center justify-center mb-4 shadow-sm">
+              <div className="w-9 h-9 rounded-lg bg-[#EFF4FF] border border-[#DCE7FF] flex items-center justify-center mb-4 shadow-sm">
                 <MapPin size={16} className="text-[#2563EB]" />
               </div>
               <h3 className="text-sm font-semibold text-[#111827] mb-2">Monitor any area</h3>
@@ -238,7 +240,7 @@ export default function HomePage() {
               </p>
             </div>
             <div>
-              <div className="w-9 h-9 rounded-lg bg-white border border-[#E5E7EB] flex items-center justify-center mb-4 shadow-sm">
+              <div className="w-9 h-9 rounded-lg bg-[#EFF4FF] border border-[#DCE7FF] flex items-center justify-center mb-4 shadow-sm">
                 <Mail size={16} className="text-[#2563EB]" />
               </div>
               <h3 className="text-sm font-semibold text-[#111827] mb-2">Weekly digests</h3>
@@ -247,7 +249,7 @@ export default function HomePage() {
               </p>
             </div>
             <div>
-              <div className="w-9 h-9 rounded-lg bg-white border border-[#E5E7EB] flex items-center justify-center mb-4 shadow-sm">
+              <div className="w-9 h-9 rounded-lg bg-[#EFF4FF] border border-[#DCE7FF] flex items-center justify-center mb-4 shadow-sm">
                 <CheckCircle size={16} className="text-[#2563EB]" />
               </div>
               <h3 className="text-sm font-semibold text-[#111827] mb-2">Never miss a decision</h3>
@@ -260,7 +262,7 @@ export default function HomePage() {
       </section>
 
       {/* Pricing */}
-      <section className="border-t border-[#E5E7EB] bg-[#F9FAFB]">
+      <section className="border-t border-[#DCE7FF] bg-[#F5F8FF]">
         <div className="max-w-6xl mx-auto px-6 py-16">
           <h2 className="text-center text-xl font-semibold text-[#111827]">Pricing</h2>
           <p className="mt-1 text-center text-sm text-[#6B7280]">
