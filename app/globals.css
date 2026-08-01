@@ -1,1 +1,18 @@
 @import "tailwindcss";
+
+/* Highlights the application row a map pin's "View full details" link jumps
+   to (id="app-<id>", set only on the territory detail page). Plain CSS
+   :target — no JS state needed, works with any element whose id the URL
+   fragment matches. */
+[id^="app-"]:target {
+  background-color: #eff4ff;
+  outline: 2px solid #93b4f8;
+  outline-offset: 2px;
+  border-radius: 6px;
+  animation: territory-target-fade 2.5s ease-out forwards;
+}
+
+@keyframes territory-target-fade {
+  0%, 60% { background-color: #eff4ff; outline-color: #93b4f8; }
+  100% { background-color: transparent; outline-color: transparent; }
+}

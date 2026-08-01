@@ -17,11 +17,19 @@ export default function ApplicationRow({
   isTracked,
   showTrackActions,
   distanceKm,
+  anchorId,
 }: {
   app: PlanningApplication
   isTracked: boolean
   showTrackActions: boolean
   distanceKm?: number | null
+  // Optional #anchor target for the map's "View full details" link to scroll
+  // to (see globals.css :target rule). Deliberately opt-in, not derived from
+  // app.id automatically: the dashboard can render the same application under
+  // more than one area card when two territories share a council, which would
+  // create duplicate DOM ids. Only the territory page (one flat, deduped list
+  // per page) passes this.
+  anchorId?: string
 }) {
   const { cls: badgeClass, Icon: StatusIcon } = statusStyle(app.status)
 
@@ -38,7 +46,7 @@ export default function ApplicationRow({
   }
 
   return (
-    <div className="py-3 flex items-start justify-between gap-3">
+    <div id={anchorId} className="py-3 flex items-start justify-between gap-3 scroll-mt-4">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 mb-0.5">
           <p className="text-xs font-mono text-[#6B7280]">{app.reference}</p>

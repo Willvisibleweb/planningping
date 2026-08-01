@@ -20,6 +20,7 @@ export default function TerritoryMapLoader(props: {
   radiusMetres: number
   label: string
   applications: MapApplication[]
+  totalApplicationsCount: number
 }) {
   return <TerritoryMap {...props} />
 }

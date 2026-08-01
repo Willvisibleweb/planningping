@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getProfile, hasProAccess } from '@/lib/access'
 import { lookupPostcode, postcodeDistrict, distanceKm } from '@/lib/postcodes'
 import RadiusControl from '@/components/dashboard/RadiusControl'
-import ApplicationRow from '@/components/dashboard/ApplicationRow'
+import ApplicationSearchList from '@/components/dashboard/ApplicationSearchList'
 import TerritoryMap from '@/components/dashboard/TerritoryMapLoader'
 import type { TrackedArea, PlanningApplication } from '@/types/database'
 import type { MapApplication } from '@/components/dashboard/TerritoryMap'
@@ -108,6 +108,7 @@ export default async function TerritoryPage({
           radiusMetres={area.radius_metres}
           label={area.label}
           applications={mapApplications}
+          totalApplicationsCount={apps.length}
         />
       ) : (
         <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-gray-300 text-sm text-gray-400">
@@ -154,22 +155,15 @@ export default async function TerritoryPage({
       </div>
 
       <div className="rounded-lg border border-gray-200 bg-white p-5">
-        <h3 className="text-sm font-medium text-gray-900 mb-1">Applications</h3>
-        {apps.length > 0 ? (
-          <div className="divide-y divide-gray-100">
-            {sorted.map(({ app, distance }) => (
-              <ApplicationRow
-                key={app.id}
-                app={app}
-                isTracked={trackedIds.has(app.id)}
-                showTrackActions={showTrackActions}
-                distanceKm={distance}
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="text-xs text-gray-400">No planning applications found in this territory yet.</p>
-        )}
+        <h3 className="text-sm font-medium text-gray-900 mb-3">Applications</h3>
+        <ApplicationSearchList
+          items={sorted.map(({ app, distance }) => ({
+            app,
+            distanceKm: distance,
+            isTracked: trackedIds.has(app.id),
+          }))}
+          showTrackActions={showTrackActions}
+        />
       </div>
     </div>
   )
