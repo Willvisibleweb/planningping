@@ -3,28 +3,11 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { fetchNearby, slugifyAuthority } from '@/lib/planit'
-import { upsertApplications, type IngestApplication } from '@/lib/ingest/upsertApplications'
+import { lookupPostcode } from '@/lib/postcodes'
+import { fetchAndIngestNearby } from '@/lib/ingest/fetchAndIngestNearby'
 
-const INGEST_RECENT_DAYS = 30
-const INGEST_MIN_RADIUS_KM = 0.5
-
-// Resolve a UK postcode to its council name + slug using postcodes.io (free,
-// no key). Returns null if the postcode is invalid or the lookup fails.
-async function resolveCouncil(postcode: string): Promise<{ name: string; slug: string } | null> {
-  const clean = postcode.replace(/\s+/g, '').toUpperCase()
-  try {
-    const res = await fetch(`https://api.postcodes.io/postcodes/${clean}`)
-    if (!res.ok) return null
-    const json = await res.json()
-    // admin_district gives the council name.
-    const name: string = json.result?.admin_district ?? ''
-    if (!name) return null
-    return { name, slug: slugifyAuthority(name) }
-  } catch {
-    return null
-  }
-}
+const MIN_RADIUS_METRES = 250
+const MAX_RADIUS_METRES = 5000
 
 export async function addTrackedArea(formData: FormData) {
   const postcode = (formData.get('postcode') as string)?.trim().toUpperCase()
@@ -40,7 +23,7 @@ export async function addTrackedArea(formData: FormData) {
     return { error: 'Please enter a valid UK postcode.' }
   }
 
-  const council = await resolveCouncil(postcode)
+  const council = await lookupPostcode(postcode)
   if (!council) {
     return { error: 'Could not identify the planning authority for that postcode. Please check it and try again.' }
   }
@@ -64,7 +47,7 @@ export async function addTrackedArea(formData: FormData) {
   const { data: inserted, error } = await supabase
     .from('tracked_areas')
     .insert({ user_id: user.id, label, postcode, council_slug: council.slug })
-    .select('postcode, radius_metres')
+    .select('id, postcode, radius_metres')
     .single()
 
   if (error || !inserted) {
@@ -75,41 +58,7 @@ export async function addTrackedArea(formData: FormData) {
   // waiting for tomorrow's 6am ingest run. Best-effort: if PlanIt is briefly
   // unavailable or rate-limited, the area is still added successfully and the
   // next scheduled run will pick it up.
-  try {
-    const radiusKm = Math.max(inserted.radius_metres / 1000, INGEST_MIN_RADIUS_KM)
-    const nearby = await fetchNearby({
-      postcode: inserted.postcode,
-      radiusKm,
-      recentDays: INGEST_RECENT_DAYS,
-    })
-
-    // A radius search can surface neighbouring authorities beyond the
-    // requested council (e.g. near a border) — provision those too, not just
-    // the primary one, so their rows aren't orphaned until tomorrow's cron.
-    const otherCouncils = [...new Set(nearby.map((a) => a.councilName))].filter(
-      (n) => slugifyAuthority(n) !== council.slug,
-    )
-    if (otherCouncils.length > 0) {
-      await admin.from('councils').upsert(
-        otherCouncils.map((name) => ({ slug: slugifyAuthority(name), name, supported: true })),
-        { onConflict: 'slug', ignoreDuplicates: true },
-      )
-    }
-
-    const toIngest: IngestApplication[] = nearby.map((app) => ({
-      council_slug: slugifyAuthority(app.councilName),
-      reference: app.reference,
-      address: app.address,
-      description: app.description,
-      status: app.status,
-      application_date: app.applicationDate,
-      decision_date: app.decisionDate,
-      raw_data: { source: 'planit', url: app.url, app_type: app.appType, lat: app.lat, lng: app.lng },
-    }))
-    if (toIngest.length > 0) await upsertApplications(admin, toIngest)
-  } catch (e) {
-    console.error('Immediate PlanIt fetch failed for new area (non-fatal):', e)
-  }
+  await fetchAndIngestNearby(admin, inserted.postcode, inserted.radius_metres, council.slug)
 
   revalidatePath('/dashboard')
   return {}
@@ -133,5 +82,38 @@ export async function deleteTrackedArea(areaId: string) {
   }
 
   revalidatePath('/dashboard')
+  return {}
+}
+
+// Change the tracking radius for one territory, then re-fetch it from PlanIt
+// immediately with the new radius (same best-effort semantics as adding a
+// territory) so the change is reflected right away rather than waiting for
+// tomorrow's cron run.
+export async function updateTrackedAreaRadius(areaId: string, radiusMetres: number) {
+  if (!Number.isFinite(radiusMetres) || radiusMetres < MIN_RADIUS_METRES || radiusMetres > MAX_RADIUS_METRES) {
+    return { error: `Radius must be between ${MIN_RADIUS_METRES}m and ${MAX_RADIUS_METRES / 1000}km.` }
+  }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated.' }
+
+  const { data: updated, error } = await supabase
+    .from('tracked_areas')
+    .update({ radius_metres: Math.round(radiusMetres) })
+    .eq('id', areaId)
+    .eq('user_id', user.id)
+    .select('postcode, radius_metres, council_slug')
+    .single()
+
+  if (error || !updated) {
+    return { error: 'Could not update the radius. Please try again.' }
+  }
+
+  const admin = createAdminClient()
+  await fetchAndIngestNearby(admin, updated.postcode, updated.radius_metres, updated.council_slug)
+
+  revalidatePath('/dashboard')
+  revalidatePath(`/dashboard/${areaId}`)
   return {}
 }
