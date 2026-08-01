@@ -52,51 +52,6 @@ export default function TrackedAreasList({ areas, applications, trackedIds, show
   )
 }
 
-// A deterministic pseudo-random position, seeded from the area id, so the
-// same territory always gets the same-looking thumbnail (not a real map —
-// the real one lives on the territory detail page — just a visual anchor
-// that makes each card feel distinct rather than a repeated icon).
-function seededPercent(seed: string, salt: number): number {
-  let h = salt
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0
-  return 25 + (h % 50) // keep the pin within the visible-ish middle band
-}
-
-function TerritoryThumb({ areaId }: { areaId: string }) {
-  const left = seededPercent(areaId, 7)
-  const top = seededPercent(areaId, 13)
-  return (
-    <div
-      className="relative h-20 shrink-0 overflow-hidden rounded-lg border border-[#D6E4FB] sm:h-auto sm:w-[120px]"
-      style={{
-        backgroundImage: `
-          radial-gradient(circle at ${left}% ${top}%, rgba(37,99,235,.12), transparent 55%),
-          repeating-linear-gradient(0deg, #E9F0FD 0 1px, transparent 1px 20px),
-          repeating-linear-gradient(90deg, #E9F0FD 0 1px, transparent 1px 20px)
-        `,
-        backgroundColor: '#FAFCFF',
-      }}
-      aria-hidden="true"
-    >
-      <div
-        className="absolute h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#2563EB]/25 bg-[#2563EB]/[0.06]"
-        style={{ left: `${left}%`, top: `${top}%` }}
-      />
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="#2563EB"
-        strokeWidth="1.6"
-        className="absolute h-4 w-4 -translate-x-1/2 -translate-y-full"
-        style={{ left: `${left}%`, top: `${top}%` }}
-      >
-        <path d="M12 2C7.6 2 4 5.6 4 10c0 6 8 12 8 12s8-6 8-12c0-4.4-3.6-8-8-8Z" />
-        <circle cx="12" cy="10" r="2.6" fill="white" />
-      </svg>
-    </div>
-  )
-}
-
 function AreaCard({
   area,
   applications,
@@ -118,61 +73,57 @@ function AreaCard({
   const visible = showAll ? applications : applications.slice(0, 5)
 
   return (
-    <div className="flex flex-col gap-4 rounded-lg border border-[#D6E4FB] bg-white p-5 shadow-[0_1px_2px_rgba(32,33,36,.04)] sm:flex-row">
-      <TerritoryThumb areaId={area.id} />
-
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between">
-          <div>
-            <a href={`/dashboard/${area.id}`} className="font-medium text-[#202124] hover:text-[#2563EB] hover:underline">
-              {area.label}
-            </a>
-            <p className="text-sm text-[#6B6C70] mt-0.5">
-              {area.postcode} — {area.council_slug}
-            </p>
-          </div>
-          <div className="flex shrink-0 items-center gap-3">
-            <a href={`/dashboard/${area.id}`} className="text-xs font-medium text-[#2563EB] hover:underline">
-              View territory &rarr;
-            </a>
-            <button
-              onClick={handleDelete}
-              disabled={isPending}
-              className="text-xs text-red-500 hover:text-red-700 disabled:opacity-40"
-            >
-              {isPending ? 'Removing…' : 'Remove'}
-            </button>
-          </div>
+    <div className="rounded-lg border border-[#D6E4FB] bg-white p-5 shadow-[0_1px_2px_rgba(32,33,36,.04)]">
+      <div className="flex items-start justify-between">
+        <div>
+          <a href={`/dashboard/${area.id}`} className="font-medium text-[#202124] hover:text-[#2563EB] hover:underline">
+            {area.label}
+          </a>
+          <p className="text-sm text-[#6B6C70] mt-0.5">
+            {area.postcode} — {area.council_slug}
+          </p>
         </div>
-
-        {applications.length > 0 ? (
-          <div className="mt-4 divide-y divide-[#E9F0FD]">
-            {visible.map((app) => (
-              <ApplicationRow
-                key={app.id}
-                app={app}
-                isTracked={trackedSet.has(app.id)}
-                showTrackActions={showTrackActions}
-              />
-            ))}
-            {applications.length > 5 && (
-              <button
-                onClick={() => setShowAll((v) => !v)}
-                className="pt-2 text-xs font-medium text-[#2563EB] hover:underline"
-              >
-                {showAll
-                  ? 'Show less'
-                  : `Show ${applications.length - 5} more application${applications.length - 5 === 1 ? '' : 's'}`}
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="mt-3 flex items-center gap-2 text-xs text-[#A0A1A6]">
-            <Inbox size={14} className="shrink-0" />
-            No planning applications found in this territory yet.
-          </div>
-        )}
+        <div className="flex shrink-0 items-center gap-3">
+          <a href={`/dashboard/${area.id}`} className="text-xs font-medium text-[#2563EB] hover:underline">
+            View territory &rarr;
+          </a>
+          <button
+            onClick={handleDelete}
+            disabled={isPending}
+            className="text-xs text-red-500 hover:text-red-700 disabled:opacity-40"
+          >
+            {isPending ? 'Removing…' : 'Remove'}
+          </button>
+        </div>
       </div>
+
+      {applications.length > 0 ? (
+        <div className="mt-4 divide-y divide-[#E9F0FD]">
+          {visible.map((app) => (
+            <ApplicationRow
+              key={app.id}
+              app={app}
+              isTracked={trackedSet.has(app.id)}
+              showTrackActions={showTrackActions}
+            />
+          ))}
+          {applications.length > 5 && (
+            <button
+              onClick={() => setShowAll((v) => !v)}
+              className="pt-2 text-xs font-medium text-[#2563EB] hover:underline"
+            >
+              {showAll
+                ? 'Show less'
+                : `Show ${applications.length - 5} more application${applications.length - 5 === 1 ? '' : 's'}`}
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="mt-3 flex items-center gap-2 text-xs text-[#A0A1A6]">
+          <Inbox size={14} className="shrink-0" />
+          No planning applications found in this territory yet.
+        </div>
+      )}
     </div>
   )
 }
