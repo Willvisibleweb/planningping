@@ -7,6 +7,7 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { getLocation, getLocationsByTier, SITE_URL } from '@/lib/seo/locations'
+import LocationPageView from '@/components/seo/LocationPageView'
 
 export const revalidate = 21600
 
@@ -45,21 +46,10 @@ export default async function TownPage({ params }: Params) {
   const location = await getLocation('town', town.toLowerCase(), council.toLowerCase())
   if (!location) notFound()
 
-  const parent = await getLocation('council', council.toLowerCase())
-
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10">
-      <p className="text-xs font-semibold uppercase tracking-wider text-[#2563EB]">
-        Town{parent ? ` · ${parent.name}` : ''}
-      </p>
-      <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#111827] text-balance">
-        Planning applications in {location.name}
-      </h1>
-      <p className="mt-2 text-[#6B7280]">
-        {location.app_count} application{location.app_count === 1 ? '' : 's'} currently tracked in{' '}
-        {location.name}.
-      </p>
-      {/* Phase 3: recent applications, generated summary, alert form, internal links, JSON-LD. */}
-    </div>
+    <LocationPageView
+      location={location}
+      canonicalUrl={`${SITE_URL}/planning-applications/${council.toLowerCase()}/${location.slug}`}
+    />
   )
 }
