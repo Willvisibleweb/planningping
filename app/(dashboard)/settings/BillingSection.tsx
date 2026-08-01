@@ -48,25 +48,25 @@ export default function BillingSection({ profile }: { profile: Profile }) {
   }
 
   return (
-    <div id="billing" className="rounded-lg border border-gray-200 bg-white p-5">
-      <h3 className="text-sm font-semibold text-gray-900">Billing</h3>
+    <div id="billing" className="rounded-lg border border-[#D6E4FB] bg-white p-5">
+      <h3 className="text-sm font-semibold text-[#202124]">Billing</h3>
 
       {subscribed ? (
         <>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-[#6B6C70]">
             You&rsquo;re on the professional plan. Manage or cancel your subscription any time.
           </p>
           <button
             onClick={managePlan}
             disabled={isPending}
-            className="mt-3 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+            className="mt-3 rounded-md border border-[#D6E4FB] px-3 py-1.5 text-sm font-medium text-[#202124] transition-colors hover:bg-[#F7F7F8] disabled:opacity-50"
           >
             {isPending ? 'Opening…' : 'Manage subscription'}
           </button>
         </>
       ) : (
         <>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-[#6B6C70]">
             Upgrade to keep the pipeline, opportunity tracking and AI outreach after your trial.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">

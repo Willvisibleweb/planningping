@@ -49,19 +49,19 @@ export default function ApplicationRow({
     <div id={anchorId} className="py-3 flex items-start justify-between gap-3 scroll-mt-4">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 mb-0.5">
-          <p className="text-xs font-mono text-[#6B7280]">{app.reference}</p>
+          <p className="text-xs font-mono text-[#6B6C70]">{app.reference}</p>
           {app.application_date && (
-            <p className="text-xs text-[#9CA3AF]">{app.application_date}</p>
+            <p className="text-xs text-[#A0A1A6]">{app.application_date}</p>
           )}
           {typeof distanceKm === 'number' && (
-            <p className="text-xs text-[#9CA3AF]">
+            <p className="text-xs text-[#A0A1A6]">
               {distanceKm < 1 ? `${Math.round(distanceKm * 1000)}m away` : `${distanceKm.toFixed(1)}km away`}
             </p>
           )}
         </div>
-        <p className="text-sm text-[#111827]">{app.description ?? 'No description'}</p>
+        <p className="text-sm text-[#202124]">{app.description ?? 'No description'}</p>
         {app.address && (
-          <p className="text-xs text-[#9CA3AF] mt-0.5">{app.address}</p>
+          <p className="text-xs text-[#A0A1A6] mt-0.5">{app.address}</p>
         )}
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1">
@@ -74,7 +74,7 @@ export default function ApplicationRow({
           // Some source records (e.g. certain PlanIt-covered councils) don't
           // carry a status — show that honestly instead of an empty gap, and
           // link out to the council record when we have one (raw_data.url).
-          <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-400">
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#F7F7F8] px-2 py-0.5 text-xs font-medium text-[#A0A1A6]">
             <HelpCircle size={12} className="shrink-0" />
             Status not available
           </span>

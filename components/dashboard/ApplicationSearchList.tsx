@@ -36,26 +36,26 @@ export default function ApplicationSearchList({
   }, [items, query])
 
   if (items.length === 0) {
-    return <p className="text-xs text-gray-400">No planning applications found in this territory yet.</p>
+    return <p className="text-xs text-[#A0A1A6]">No planning applications found in this territory yet.</p>
   }
 
   return (
     <div>
       <div className="relative mb-3">
-        <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+        <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#A0A1A6]" />
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by reference, address or description…"
-          className="w-full rounded-md border border-gray-300 py-1.5 pl-8 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full rounded-md border border-[#D6E4FB] py-1.5 pl-8 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
       {filtered.length === 0 ? (
-        <p className="text-xs text-gray-400">No applications match &ldquo;{query}&rdquo;.</p>
+        <p className="text-xs text-[#A0A1A6]">No applications match &ldquo;{query}&rdquo;.</p>
       ) : (
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-[#E9F0FD]">
           {filtered.map(({ app, distanceKm, isTracked }) => (
             <ApplicationRow
               key={app.id}

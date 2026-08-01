@@ -23,9 +23,9 @@ export default function ProGate({ variant }: { variant: keyof typeof COPY }) {
   const copy = COPY[variant]
 
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-gray-200 bg-white px-6 py-16 text-center">
-      <h2 className="text-lg font-semibold text-gray-900">{copy.heading}</h2>
-      <p className="mt-2 max-w-md text-sm leading-relaxed text-gray-500">{copy.body}</p>
+    <div className="flex flex-col items-center justify-center rounded-lg border border-[#D6E4FB] bg-white px-6 py-16 text-center">
+      <h2 className="text-lg font-semibold text-[#202124]">{copy.heading}</h2>
+      <p className="mt-2 max-w-md text-sm leading-relaxed text-[#6B6C70]">{copy.body}</p>
       <a
         href={copy.href}
         className="mt-6 inline-block rounded-md bg-[#2563EB] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1D4ED8]"

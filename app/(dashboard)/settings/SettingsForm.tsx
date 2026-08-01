@@ -5,13 +5,13 @@
 
 export default function SettingsForm() {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-5">
-      <h3 className="text-sm font-medium text-gray-900 mb-2">Weekly digest</h3>
-      <p className="text-sm text-gray-600">
-        Your digest arrives every <span className="font-medium text-gray-900">Monday morning</span>,
+    <div className="rounded-lg border border-[#D6E4FB] bg-white p-5">
+      <h3 className="text-sm font-medium text-[#202124] mb-2">Weekly digest</h3>
+      <p className="text-sm text-[#6B6C70]">
+        Your digest arrives every <span className="font-medium text-[#202124]">Monday morning</span>,
         covering the previous week&rsquo;s new applications for your tracked areas.
       </p>
-      <p className="mt-2 text-xs text-gray-400">
+      <p className="mt-2 text-xs text-[#A0A1A6]">
         Choosing your own digest day is coming later.
       </p>
     </div>

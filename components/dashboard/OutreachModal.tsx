@@ -63,16 +63,16 @@ export default function OutreachModal({
       >
         <div className="mb-3 flex items-start justify-between">
           <div>
-            <h3 className="text-base font-semibold text-gray-900">Outreach draft</h3>
-            <p className="font-mono text-xs text-gray-400">{lead.reference}</p>
+            <h3 className="text-base font-semibold text-[#202124]">Outreach draft</h3>
+            <p className="font-mono text-xs text-[#A0A1A6]">{lead.reference}</p>
           </div>
-          <button onClick={onClose} className="text-sm text-gray-400 hover:text-gray-700">
+          <button onClick={onClose} className="text-sm text-[#A0A1A6] hover:text-[#202124]">
             ✕
           </button>
         </div>
 
         {loading ? (
-          <div className="py-12 text-center text-sm text-gray-500">Drafting…</div>
+          <div className="py-12 text-center text-sm text-[#6B6C70]">Drafting…</div>
         ) : error ? (
           <p className="py-8 text-center text-sm text-red-600">{error}</p>
         ) : (
@@ -81,9 +81,9 @@ export default function OutreachModal({
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               rows={12}
-              className="w-full rounded-md border border-gray-200 p-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+              className="w-full rounded-md border border-[#D6E4FB] p-3 text-sm text-[#202124] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
             />
-            <p className="mt-1 text-xs text-gray-400">
+            <p className="mt-1 text-xs text-[#A0A1A6]">
               Edit freely, then copy into your email client. Marking as sent logs today
               as the contact date.
             </p>
@@ -91,7 +91,7 @@ export default function OutreachModal({
             <div className="mt-4 flex justify-end gap-2">
               <button
                 onClick={onClose}
-                className="rounded-md px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900"
+                className="rounded-md px-3 py-1.5 text-sm text-[#6B6C70] hover:text-[#202124]"
               >
                 Close
               </button>

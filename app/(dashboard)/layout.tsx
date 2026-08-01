@@ -26,7 +26,7 @@ export default async function DashboardLayout({
   const onTrial = professional && hasProAccess(profile) && daysLeft !== null
 
   return (
-    <div className="min-h-screen bg-[#F7F9FF] lg:flex">
+    <div className="min-h-screen bg-white lg:flex">
       <Sidebar
         userEmail={user.email ?? ''}
         professional={professional}
@@ -40,17 +40,17 @@ export default async function DashboardLayout({
         </main>
 
         {/* Persistent legal disclaimer — subtle, present on every dashboard view. */}
-        <footer className="border-t border-gray-200">
+        <footer className="border-t border-[#D6E4FB]">
           <div className="mx-auto w-full max-w-5xl px-4 py-5 lg:px-8">
-            <p className="text-xs leading-relaxed text-gray-400">
+            <p className="text-xs leading-relaxed text-[#A0A1A6]">
               PlanningPing is an alerting tool, not professional advice. Planning data is
               collected from public portals and may be incomplete, delayed, or inaccurate.
               Always verify against the official planning authority before acting.
             </p>
-            <p className="mt-2 text-xs text-gray-400">
-              <a href="/terms" className="hover:text-gray-600">Terms of Service</a>
+            <p className="mt-2 text-xs text-[#A0A1A6]">
+              <a href="/terms" className="hover:text-[#6B6C70]">Terms of Service</a>
               {' · '}
-              <a href="/privacy" className="hover:text-gray-600">Privacy Policy</a>
+              <a href="/privacy" className="hover:text-[#6B6C70]">Privacy Policy</a>
             </p>
           </div>
         </footer>

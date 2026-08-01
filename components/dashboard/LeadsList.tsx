@@ -30,7 +30,7 @@ export default function LeadsList({
   return (
     <div className="space-y-4">
       {/* Score disclaimer — visible at the point scores are read. */}
-      <p className="text-xs leading-relaxed text-gray-400">{SCORE_DISCLAIMER}</p>
+      <p className="text-xs leading-relaxed text-[#A0A1A6]">{SCORE_DISCLAIMER}</p>
 
       {/* Band filter */}
       <div className="flex gap-2">
@@ -44,7 +44,7 @@ export default function LeadsList({
               className={`rounded-full border px-3 py-1 text-xs font-medium ${
                 active
                   ? 'border-gray-900 bg-gray-900 text-white'
-                  : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                  : 'border-[#D6E4FB] bg-white text-[#6B6C70] hover:border-[#D6E4FB]'
               }`}
             >
               {f}
@@ -54,8 +54,8 @@ export default function LeadsList({
       </div>
 
       {applications.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 p-10 text-center">
-          <p className="text-sm text-gray-500">
+        <div className="rounded-lg border border-dashed border-[#D6E4FB] p-10 text-center">
+          <p className="text-sm text-[#6B6C70]">
             No scored applications{activeBand !== 'ALL' ? ` in ${activeBand}` : ''} yet.
             Run <code className="font-mono text-xs">/api/score</code> after the scraper has stored data.
           </p>
@@ -74,7 +74,7 @@ export default function LeadsList({
 function LeadCard({ app }: { app: PlanningApplication }) {
   const band = app.band ?? 'COLD'
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
+    <div className="rounded-lg border border-[#D6E4FB] bg-white p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-0.5">
@@ -84,14 +84,14 @@ function LeadCard({ app }: { app: PlanningApplication }) {
             >
               {band}
             </span>
-            <span className="text-xs text-gray-400">score {app.score ?? 0}</span>
-            <span className="font-mono text-xs text-gray-500">{app.reference}</span>
+            <span className="text-xs text-[#A0A1A6]">score {app.score ?? 0}</span>
+            <span className="font-mono text-xs text-[#6B6C70]">{app.reference}</span>
             {app.application_date && (
-              <span className="text-xs text-gray-400">{app.application_date}</span>
+              <span className="text-xs text-[#A0A1A6]">{app.application_date}</span>
             )}
           </div>
-          <p className="text-sm text-gray-900">{app.description ?? 'No description'}</p>
-          {app.address && <p className="text-xs text-gray-400 mt-0.5">{app.address}</p>}
+          <p className="text-sm text-[#202124]">{app.description ?? 'No description'}</p>
+          {app.address && <p className="text-xs text-[#A0A1A6] mt-0.5">{app.address}</p>}
         </div>
       </div>
 
@@ -101,7 +101,7 @@ function LeadCard({ app }: { app: PlanningApplication }) {
           {app.score_reasons.map((reason, i) => (
             <span
               key={i}
-              className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+              className="rounded bg-[#F7F7F8] px-2 py-0.5 text-xs text-[#6B6C70]"
             >
               {reason}
             </span>

@@ -7,6 +7,16 @@ import TrackedAreasList from '@/components/dashboard/TrackedAreasList'
 import AddAreaForm from '@/components/dashboard/AddAreaForm'
 import type { TrackedArea, PlanningApplication } from '@/types/database'
 
+function StatTile({ label, value, sub }: { label: string; value: number; sub: string }) {
+  return (
+    <div className="rounded-[10px] border border-[#D6E4FB] bg-white p-3.5 shadow-[0_1px_2px_rgba(32,33,36,.04)]">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-[#A0A1A6]">{label}</p>
+      <p className="mt-1.5 text-2xl font-bold tabular-nums text-[#202124]">{value.toLocaleString()}</p>
+      <p className="mt-0.5 text-[11.5px] text-[#6B6C70]">{sub}</p>
+    </div>
+  )
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient()
 
@@ -48,13 +58,48 @@ export default async function DashboardPage() {
   const profile = await getProfile()
   const showTrackActions = hasProAccess(profile)
 
+  // Stat strip — a real accurate count (not the per-council-capped list above),
+  // plus HOT-lead and pipeline counts for professional accounts.
+  const [{ count: totalApplications }, hotCount, pipelineCount] = await Promise.all([
+    councilSlugs.length > 0
+      ? supabase.from('planning_applications').select('*', { count: 'exact', head: true }).in('council_slug', councilSlugs)
+      : Promise.resolve({ count: 0 }),
+    showTrackActions && councilSlugs.length > 0
+      ? supabase.from('planning_applications').select('*', { count: 'exact', head: true }).in('council_slug', councilSlugs).eq('band', 'HOT')
+      : Promise.resolve({ count: null }),
+    showTrackActions
+      ? supabase.from('tracked_leads').select('*', { count: 'exact', head: true })
+      : Promise.resolve({ count: null }),
+  ])
+
+  const councilCount = councilSlugs.length
+
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-1">Your territory</h2>
-        <p className="text-sm text-gray-500">
-          PlanningPing monitors these areas and emails you a weekly digest of new applications and status changes.
+        <h2 className="text-xl font-semibold text-[#202124] mb-1">Your territory</h2>
+        <p className="text-sm text-[#6B6C70]">
+          PlanningPing monitors these areas and keeps your dashboard current as new applications land.
         </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatTile
+          label="Territories"
+          value={areas?.length ?? 0}
+          sub={`across ${councilCount} planning ${councilCount === 1 ? 'authority' : 'authorities'}`}
+        />
+        <StatTile
+          label="Applications tracked"
+          value={totalApplications ?? 0}
+          sub="in your tracked territory"
+        />
+        {showTrackActions && (
+          <>
+            <StatTile label="HOT leads" value={hotCount.count ?? 0} sub="civils subcontract scope" />
+            <StatTile label="In your pipeline" value={pipelineCount.count ?? 0} sub="tracked opportunities" />
+          </>
+        )}
       </div>
 
       <AddAreaForm />

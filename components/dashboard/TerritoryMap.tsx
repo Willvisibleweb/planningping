@@ -64,7 +64,7 @@ export default function TerritoryMap({
 }: Props) {
   return (
     <div>
-      <div className="h-72 w-full overflow-hidden rounded-lg border border-gray-200 sm:h-96">
+      <div className="h-72 w-full overflow-hidden rounded-lg border border-[#D6E4FB] sm:h-96">
         <MapContainer
           center={[centerLat, centerLng]}
           zoom={14}
@@ -94,7 +94,7 @@ export default function TerritoryMap({
                 <div className="text-xs">
                   <p className="font-mono font-semibold text-[#2563EB]">{app.reference}</p>
                   {app.address && <p className="mt-1">{app.address}</p>}
-                  {app.status && <p className="mt-1 text-gray-500">{app.status}</p>}
+                  {app.status && <p className="mt-1 text-[#6B6C70]">{app.status}</p>}
                   {/* Plain same-page anchor link — jumps to and highlights the
                       matching row in the list below (see globals.css :target
                       rule). No client-side state lifting needed between the
@@ -110,7 +110,7 @@ export default function TerritoryMap({
       </div>
 
       {totalApplicationsCount > applications.length && (
-        <p className="mt-1.5 text-xs text-gray-400">
+        <p className="mt-1.5 text-xs text-[#A0A1A6]">
           Showing {applications.length} of {totalApplicationsCount} applications on the map — only ones
           with known coordinates from the source can be pinned. All {totalApplicationsCount} are listed below.
         </p>

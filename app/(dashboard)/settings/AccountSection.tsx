@@ -34,9 +34,9 @@ export default function AccountSection({ profile }: { profile: Profile }) {
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-5">
-      <h3 className="text-sm font-semibold text-gray-900">Account</h3>
-      <p className="mt-1 text-sm text-gray-600">{planLabel(profile)}</p>
+    <div className="rounded-lg border border-[#D6E4FB] bg-white p-5">
+      <h3 className="text-sm font-semibold text-[#202124]">Account</h3>
+      <p className="mt-1 text-sm text-[#6B6C70]">{planLabel(profile)}</p>
 
       {profile.user_type === 'homeowner' && (
         <div className="mt-3">
@@ -47,7 +47,7 @@ export default function AccountSection({ profile }: { profile: Profile }) {
           >
             {isPending ? 'Switching…' : 'Switch to a professional account'}
           </button>
-          <p className="mt-2 text-xs leading-relaxed text-gray-400">
+          <p className="mt-2 text-xs leading-relaxed text-[#A0A1A6]">
             Unlocks the pipeline, opportunity tracking and AI outreach for pursuing
             planning-application leads.
             {profile.trial_ends_at === null && ' Includes a 14-day free trial — no card required.'}
@@ -56,7 +56,7 @@ export default function AccountSection({ profile }: { profile: Profile }) {
       )}
 
       {profile.user_type === 'professional' && (
-        <p className="mt-2 text-xs text-gray-400">
+        <p className="mt-2 text-xs text-[#A0A1A6]">
           Want to downgrade to a homeowner account? Contact us and we&rsquo;ll sort it.
         </p>
       )}
