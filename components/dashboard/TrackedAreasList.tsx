@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { CheckCircle2, XCircle, Clock, CircleDot, MapPin, Inbox } from 'lucide-react'
+import { CheckCircle2, XCircle, Clock, CircleDot, MapPin, Inbox, HelpCircle } from 'lucide-react'
 import { deleteTrackedArea } from './actions'
 import { trackOpportunity } from './leadActions'
 import type { TrackedArea, PlanningApplication } from '@/types/database'
@@ -169,12 +169,30 @@ function ApplicationRow({
           <p className="text-xs text-[#9CA3AF] mt-0.5">{app.address}</p>
         )}
       </div>
-      <div className="flex shrink-0 items-center gap-2">
-        {app.status && (
+      <div className="flex shrink-0 flex-col items-end gap-1">
+        {app.status ? (
           <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${badgeClass}`}>
             <StatusIcon size={12} className="shrink-0" />
             {app.status}
           </span>
+        ) : (
+          // Some source records (e.g. certain PlanIt-covered councils) don't
+          // carry a status — show that honestly instead of an empty gap, and
+          // link out to the council record when we have one (raw_data.url).
+          <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-400">
+            <HelpCircle size={12} className="shrink-0" />
+            Status not available
+          </span>
+        )}
+        {!app.status && typeof app.raw_data?.url === 'string' && (
+          <a
+            href={app.raw_data.url}
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            className="text-[11px] font-medium text-[#2563EB] hover:underline"
+          >
+            Check council portal &rarr;
+          </a>
         )}
         {showTrackActions && (tracked ? (
           <span className="rounded border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
