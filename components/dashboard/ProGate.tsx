@@ -7,7 +7,7 @@
 const COPY = {
   homeowner: {
     heading: 'This is a professional feature',
-    body: 'The pipeline, opportunity tracking and AI outreach are built for civil engineers, estate agents and architects doing business development. Your account is set up as a homeowner — you can switch to a professional account (with a 14-day free trial) in Settings.',
+    body: 'The pipeline, opportunity tracking and AI outreach are built for civil engineering firms doing business development — pursuing planning applications as opportunities across drainage, highways, flood risk, SuDS, groundworks/geotechnical and structural scope. Your account is set up as a homeowner — you can switch to a professional account (with a 14-day free trial) in Settings.',
     cta: 'View account settings',
     href: '/settings',
   },

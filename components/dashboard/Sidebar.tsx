@@ -59,7 +59,7 @@ export default function Sidebar({ userEmail, professional, onTrial, daysLeft }: 
   }
 
   const nav = [
-    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/dashboard', label: 'Territory', icon: LayoutDashboard },
     { href: '/leads', label: 'Leads', icon: Target },
     ...(professional ? [{ href: '/pipeline', label: 'Pipeline', icon: KanbanSquare }] : []),
     { href: '/settings', label: 'Settings', icon: Settings },

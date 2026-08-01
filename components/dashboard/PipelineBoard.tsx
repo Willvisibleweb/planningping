@@ -17,7 +17,7 @@ export default function PipelineBoard({ leads }: { leads: TrackedLead[] }) {
       <div className="rounded-lg border border-dashed border-gray-300 p-10 text-center">
         <p className="text-sm text-gray-500">
           No tracked opportunities yet. Hit &ldquo;Track Opportunity&rdquo; on an application
-          from your dashboard to add it here.
+          in your territory to add it here.
         </p>
       </div>
     )

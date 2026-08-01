@@ -35,8 +35,8 @@ export default function TrackedAreasList({ areas, applications, trackedIds, show
         <div className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-full bg-[#EFF4FF] text-[#2563EB]">
           <MapPin size={20} />
         </div>
-        <p className="text-sm font-medium text-gray-900">No areas tracked yet</p>
-        <p className="mt-1 text-sm text-gray-500">Add a postcode above and we&rsquo;ll start watching that council for you.</p>
+        <p className="text-sm font-medium text-gray-900">No territory tracked yet</p>
+        <p className="mt-1 text-sm text-gray-500">Add a postcode above and we&rsquo;ll start monitoring that planning authority for you.</p>
       </div>
     )
   }
@@ -125,7 +125,7 @@ function AreaCard({
       ) : (
         <div className="mt-3 flex items-center gap-2 text-xs text-gray-400">
           <Inbox size={14} className="shrink-0" />
-          No applications found for this area yet.
+          No planning applications found in this territory yet.
         </div>
       )}
     </div>

@@ -31,7 +31,7 @@ export async function addTrackedArea(formData: FormData) {
   const label = (formData.get('label') as string)?.trim()
 
   if (!postcode || !label) {
-    return { error: 'Postcode and label are required.' }
+    return { error: 'Enter a postcode and a label for this territory.' }
   }
 
   // Basic UK postcode format check before hitting the API.
@@ -42,7 +42,7 @@ export async function addTrackedArea(formData: FormData) {
 
   const council = await resolveCouncil(postcode)
   if (!council) {
-    return { error: 'Could not identify the council for that postcode. Please check it and try again.' }
+    return { error: 'Could not identify the planning authority for that postcode. Please check it and try again.' }
   }
 
   const supabase = await createClient()
@@ -68,7 +68,7 @@ export async function addTrackedArea(formData: FormData) {
     .single()
 
   if (error || !inserted) {
-    return { error: 'Could not add area. Please try again.' }
+    return { error: 'Could not add this territory. Please try again.' }
   }
 
   // Fetch this one area immediately so the dashboard has data now, instead of
@@ -129,7 +129,7 @@ export async function deleteTrackedArea(areaId: string) {
     .eq('user_id', user.id)  // Explicit check as belt-and-braces
 
   if (error) {
-    return { error: 'Could not remove area.' }
+    return { error: 'Could not remove this territory.' }
   }
 
   revalidatePath('/dashboard')

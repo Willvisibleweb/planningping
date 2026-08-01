@@ -69,10 +69,11 @@ export default async function LeadsPage({
       )}
 
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-1">Civils leads</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-1">Leads</h2>
         <p className="text-sm text-gray-500">
-          Planning applications scored for likely civil-engineering subcontract scope.
-          Higher score = stronger signal. Reasons show why each one scored.
+          Planning applications scored for likely subcontract scope — drainage, highways,
+          flood risk, SuDS, groundworks/geotechnical and structural work. Higher score means
+          a stronger signal; reasons show why each one scored.
         </p>
       </div>
 
