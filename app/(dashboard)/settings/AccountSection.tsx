@@ -48,7 +48,8 @@ export default function AccountSection({ profile }: { profile: Profile }) {
             {isPending ? 'Switching…' : 'Switch to a professional account'}
           </button>
           <p className="mt-2 text-xs leading-relaxed text-gray-400">
-            Unlocks the pipeline, opportunity tracking and AI outreach.
+            Unlocks the pipeline, opportunity tracking and AI outreach for pursuing
+            planning-application leads.
             {profile.trial_ends_at === null && ' Includes a 14-day free trial — no card required.'}
           </p>
         </div>

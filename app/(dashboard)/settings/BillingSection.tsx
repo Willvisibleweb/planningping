@@ -54,7 +54,7 @@ export default function BillingSection({ profile }: { profile: Profile }) {
       {subscribed ? (
         <>
           <p className="mt-1 text-sm text-gray-600">
-            You&rsquo;re on the Pro plan. Manage or cancel your subscription any time.
+            You&rsquo;re on the professional plan. Manage or cancel your subscription any time.
           </p>
           <button
             onClick={managePlan}

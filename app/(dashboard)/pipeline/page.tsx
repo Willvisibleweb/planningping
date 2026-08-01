@@ -27,8 +27,8 @@ export default async function PipelinePage() {
       <div>
         <h2 className="text-xl font-semibold text-gray-900 mb-1">Pipeline</h2>
         <p className="text-sm text-gray-500">
-          Opportunities you&rsquo;re tracking, by stage. Generate a tailored outreach draft
-          for any lead, then mark it sent to log the contact date.
+          Opportunities you&rsquo;re pursuing, by stage. Generate a tailored outreach draft
+          for any opportunity, then mark it sent to log the contact date.
         </p>
       </div>
 

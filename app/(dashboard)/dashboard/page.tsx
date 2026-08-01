@@ -51,7 +51,7 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-1">Your tracked areas</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-1">Your territory</h2>
         <p className="text-sm text-gray-500">
           PlanningPing monitors these areas and emails you a weekly digest of new applications and status changes.
         </p>
