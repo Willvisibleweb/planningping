@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/ingest",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/backfill-councils",
+      "schedule": "0 3 * * *"
     }
   ]
 }

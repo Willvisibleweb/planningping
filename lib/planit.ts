@@ -33,9 +33,42 @@ interface PlanItRecord {
 }
 
 const APPLICS_URL = 'https://www.planit.org.uk/api/applics/json'
-const UA = 'PlanningPing/1.0 (+https://planningping.vercel.app)'
+const AREAS_URL = 'https://www.planit.org.uk/api/areas/json'
+const UA = 'PlanningPing/1.0 (+https://planningping.com)'
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+// Shared GET-with-429-backoff — used by every PlanIt query shape (postcode
+// radius, authority name, area list). Retry-After wins when PlanIt sends it;
+// otherwise exponential backoff, capped at maxBackoffMs.
+//
+// Defaults (4 attempts, 20s cap) suit fetchNearby — a live user is waiting,
+// so it's worth persisting through a 429. Background batch callers
+// (fetchByAuthority, fetchAuthorityList) pass a smaller budget: a council
+// that fails today just gets retried tomorrow via the last_planit_fetch_at
+// queue, so burning minutes retrying one council there only starves the
+// rest of the batch and makes the whole run look hung.
+async function getWithBackoff(
+  url: string,
+  opts?: { maxAttempts?: number; maxBackoffMs?: number },
+): Promise<Response> {
+  const maxAttempts = opts?.maxAttempts ?? 4
+  const maxBackoffMs = opts?.maxBackoffMs ?? 20_000
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const res = await fetch(url, { headers: { 'User-Agent': UA } })
+    if (res.status === 429) {
+      const header = Number(res.headers.get('retry-after'))
+      const backoff = Number.isFinite(header) && header > 0 ? header * 1000 : 2000 * 2 ** attempt
+      await sleep(Math.min(backoff, maxBackoffMs))
+      continue
+    }
+    return res
+  }
+  throw new Error(`PlanIt rate-limited (429) after repeated attempts: ${url}`)
+}
+
+// Background-batch retry budget — fail fast, see getWithBackoff comment above.
+const BACKGROUND_BACKOFF = { maxAttempts: 2, maxBackoffMs: 4_000 }
 
 // UK postcodes need a space before the last 3 characters (the "inward code").
 // Users/DB rows sometimes store them without one ("BS79DZ") — PlanIt's pcode
@@ -84,22 +117,48 @@ export async function fetchNearby(opts: {
   })
   const url = `${APPLICS_URL}?${params.toString()}`
 
-  const MAX_ATTEMPTS = 4
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    const res = await fetch(url, { headers: { 'User-Agent': UA } })
-    if (res.status === 429) {
-      const header = Number(res.headers.get('retry-after'))
-      const backoff = Number.isFinite(header) && header > 0 ? header * 1000 : 2000 * 2 ** attempt
-      await sleep(Math.min(backoff, 20_000))
-      continue
-    }
-    if (!res.ok) throw new Error(`PlanIt HTTP ${res.status} for postcode "${opts.postcode}"`)
-    const json = (await res.json()) as { records?: PlanItRecord[] }
-    return (json.records ?? [])
-      .map(mapRecord)
-      .filter((a): a is PlanItApplication => a !== null)
-  }
-  throw new Error(`PlanIt rate-limited (429) after ${MAX_ATTEMPTS} attempts`)
+  const res = await getWithBackoff(url)
+  if (!res.ok) throw new Error(`PlanIt HTTP ${res.status} for postcode "${opts.postcode}"`)
+  const json = (await res.json()) as { records?: PlanItRecord[] }
+  return (json.records ?? [])
+    .map(mapRecord)
+    .filter((a): a is PlanItApplication => a !== null)
+}
+
+// Applications for a named authority directly (PlanIt's `auth` filter) —
+// used by the national backfill, which has no postcode to search around.
+export async function fetchByAuthority(opts: {
+  authorityName: string
+  recentDays: number
+  pageSize?: number
+}): Promise<PlanItApplication[]> {
+  const params = new URLSearchParams({
+    auth: opts.authorityName,
+    recent: String(opts.recentDays),
+    pg_sz: String(opts.pageSize ?? 200),
+  })
+  const url = `${APPLICS_URL}?${params.toString()}`
+
+  const res = await getWithBackoff(url, BACKGROUND_BACKOFF)
+  if (!res.ok) throw new Error(`PlanIt HTTP ${res.status} for authority "${opts.authorityName}"`)
+  const json = (await res.json()) as { records?: PlanItRecord[] }
+  return (json.records ?? [])
+    .map(mapRecord)
+    .filter((a): a is PlanItApplication => a !== null)
+}
+
+// The full list of UK planning authorities PlanIt knows about (~421). Used to
+// seed councils we haven't encountered yet via the ordinary tracked-area flow,
+// so the national backfill has something to iterate over even for authorities
+// no user has ever searched near.
+export async function fetchAuthorityList(): Promise<string[]> {
+  const url = `${AREAS_URL}?area_type=planning&pg_sz=500&select=area_name`
+  const res = await getWithBackoff(url, BACKGROUND_BACKOFF)
+  if (!res.ok) throw new Error(`PlanIt HTTP ${res.status} fetching authority list`)
+  const json = (await res.json()) as { records?: { area_name?: string }[] }
+  return (json.records ?? [])
+    .map((r) => r.area_name?.trim())
+    .filter((n): n is string => !!n)
 }
 
 // Slug for a PlanIt authority we don't already have, e.g.
