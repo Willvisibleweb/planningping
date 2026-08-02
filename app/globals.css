@@ -16,3 +16,28 @@
   0%, 60% { background-color: #eff4ff; outline-color: #93b4f8; }
   100% { background-color: transparent; outline-color: transparent; }
 }
+
+/* Landing hero: rotating headline word + entrance fade-up. */
+@keyframes word-enter {
+  from { opacity: 0; transform: translateY(0.28em); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes word-leave {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-0.28em); }
+}
+@keyframes hero-fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Belt-and-braces: even if a component's JS motion-gating is ever bypassed,
+   this neutralises every hero entrance/rotation animation at the CSS layer
+   for anyone who has asked their OS to reduce motion. */
+@media (prefers-reduced-motion: reduce) {
+  .motion-safe-fade {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
