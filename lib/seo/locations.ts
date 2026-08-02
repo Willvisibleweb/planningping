@@ -12,8 +12,10 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 
+// Falls back to the real production domain, not the old *.vercel.app one —
+// safe even if NEXT_PUBLIC_SITE_URL is ever missing or stale on Vercel.
 export const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://planningping.vercel.app'
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://planningping.com'
 ).replace(/\/$/, '')
 
 export type LocationTier = 'council' | 'postcode' | 'town'
