@@ -20,10 +20,23 @@ export interface IngestApplication {
   raw_data: Record<string, unknown> | null
 }
 
+// Richer than new_refs — the alert fan-out (app/api/cron/ingest/route.ts)
+// needs enough of the row to filter by band and build an email without a
+// second round-trip to the DB.
+export interface NewApplication {
+  council_slug: string
+  reference: string
+  description: string | null
+  address: string | null
+  application_date: string | null
+  band: string | null
+}
+
 export interface UpsertResult {
   received: number
   changed: number
   new_refs: string[]
+  new_applications: NewApplication[]
 }
 
 // Only status + decision_date drive a "meaningful change" (matches the webhook).
@@ -46,6 +59,7 @@ export async function upsertApplications(
 
   const rows: Record<string, unknown>[] = []
   const new_refs: string[] = []
+  const new_applications: NewApplication[] = []
 
   for (const [council, list] of byCouncil) {
     const { data: existing } = await supabase
@@ -89,7 +103,17 @@ export async function upsertApplications(
         band,
         score_reasons: matchedReasons,
       })
-      if (isNew) new_refs.push(a.reference)
+      if (isNew) {
+        new_refs.push(a.reference)
+        new_applications.push({
+          council_slug: a.council_slug,
+          reference: a.reference,
+          description: a.description,
+          address: a.address,
+          application_date: a.application_date,
+          band,
+        })
+      }
     }
   }
 
@@ -100,5 +124,5 @@ export async function upsertApplications(
     if (error) throw new Error(`upsert failed: ${error.message}`)
   }
 
-  return { received: apps.length, changed: rows.length, new_refs }
+  return { received: apps.length, changed: rows.length, new_refs, new_applications }
 }
