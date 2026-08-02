@@ -1,4 +1,5 @@
 import { MapPin, Mail, CheckCircle, Check } from 'lucide-react'
+import RotatingWord from '@/components/landing/RotatingWord'
 
 // Small presentational helpers for the product mockups in the hero / inbox band.
 // These are pure markup (no real data) — a "screenshot" of the app rendered in
@@ -73,12 +74,14 @@ export default function HomePage() {
         <div className="relative max-w-6xl mx-auto px-6 py-20 w-full">
           <div className="grid items-center gap-14 lg:grid-cols-[1.02fr_1.18fr]">
             {/* Copy */}
-            <div>
+            <div className="motion-safe-fade" style={{ animation: 'hero-fade-up 600ms cubic-bezier(.2,.7,.3,1) 100ms both' }}>
               <p className="inline-flex items-center rounded-full border border-[#DCE7FF] bg-[#EFF4FF] px-3 py-1 text-xs font-semibold text-[#2563EB] mb-5 tracking-wide uppercase">
                 UK Planning Application Tracker
               </p>
               <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-[#111827] leading-[1.04] mb-5 text-balance">
-                Spot planning applications first.
+                Spot planning applications
+                <br />
+                for <RotatingWord /> first.
               </h1>
               <p className="text-lg text-[#6B7280] mb-7 leading-relaxed max-w-lg">
                 Track planning applications across any UK council area. Get a weekly digest every Monday — whether you&rsquo;re watching your own street or sourcing new opportunities.
@@ -86,7 +89,7 @@ export default function HomePage() {
               <div className="flex flex-wrap gap-3">
                 <a
                   href="/signup"
-                  className="inline-flex items-center px-5 py-2.5 rounded-md bg-gradient-to-b from-[#3B82F6] to-[#2563EB] text-sm font-medium text-white shadow-sm shadow-blue-600/25 hover:from-[#2563EB] hover:to-[#1D4ED8] transition-colors"
+                  className="inline-flex items-center px-5 py-2.5 rounded-md bg-gradient-to-b from-[#3B82F6] to-[#2563EB] text-sm font-medium text-white shadow-sm shadow-blue-600/25 transition-[transform,box-shadow,background] hover:from-[#2563EB] hover:to-[#1D4ED8] hover:-translate-y-px hover:shadow-md hover:shadow-blue-600/40"
                 >
                   Get started free
                 </a>
@@ -104,7 +107,10 @@ export default function HomePage() {
             </div>
 
             {/* Dashboard mockup */}
-            <div className="overflow-hidden rounded-2xl border border-[#DCE7FF] bg-white ring-1 ring-[#2563EB]/10 shadow-[0_1px_2px_rgba(16,24,40,.04),0_24px_48px_-16px_rgba(37,99,235,.28)]">
+            <div
+              className="motion-safe-fade overflow-hidden rounded-2xl border border-[#DCE7FF] bg-white ring-1 ring-[#2563EB]/10 shadow-[0_1px_2px_rgba(16,24,40,.04),0_24px_48px_-16px_rgba(37,99,235,.28)]"
+              style={{ animation: 'hero-fade-up 600ms cubic-bezier(.2,.7,.3,1) 250ms both' }}
+            >
               <div className="flex h-9 items-center gap-1.5 border-b border-[#E5E7EB] bg-[#F9FAFB] px-3.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-[#E5E7EB]" />
                 <span className="h-2.5 w-2.5 rounded-full bg-[#E5E7EB]" />
