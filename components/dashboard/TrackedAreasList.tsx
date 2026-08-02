@@ -43,13 +43,24 @@ export default function TrackedAreasList({ areas, applications, trackedIds, show
         <AreaCard
           key={area.id}
           area={area}
-          applications={appsByCouncil[area.council_slug] ?? []}
+          applications={filterByBand(appsByCouncil[area.council_slug] ?? [], area.min_band)}
           trackedSet={trackedSet}
           showTrackActions={showTrackActions}
         />
       ))}
     </div>
   )
+}
+
+// Applications are fetched per council, but min_band is a per-territory
+// preference (two areas can share a council with different filters) — so
+// this filters after grouping, not in the page's query. Same knob the alert
+// cron reads (app/api/cron/ingest/route.ts) — "what you see" and "what you
+// get emailed about" stay in sync.
+function filterByBand(apps: PlanningApplication[], minBand: TrackedArea['min_band']): PlanningApplication[] {
+  if (minBand === 'ALL') return apps
+  if (minBand === 'WARM_PLUS') return apps.filter((a) => a.band === 'HOT' || a.band === 'WARM')
+  return apps.filter((a) => a.band === 'HOT') // HOT_ONLY
 }
 
 function AreaCard({

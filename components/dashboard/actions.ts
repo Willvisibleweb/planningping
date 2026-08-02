@@ -5,6 +5,10 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { lookupPostcode } from '@/lib/postcodes'
 import { fetchAndIngestNearby } from '@/lib/ingest/fetchAndIngestNearby'
+import { getProfile, hasProAccess } from '@/lib/access'
+import type { MinBand } from '@/types/database'
+
+const VALID_MIN_BANDS: MinBand[] = ['ALL', 'WARM_PLUS', 'HOT_ONLY']
 
 const MIN_RADIUS_METRES = 250
 const MAX_RADIUS_METRES = 5000
@@ -112,6 +116,42 @@ export async function updateTrackedAreaRadius(areaId: string, radiusMetres: numb
 
   const admin = createAdminClient()
   await fetchAndIngestNearby(admin, updated.postcode, updated.radius_metres, updated.council_slug)
+
+  revalidatePath('/dashboard')
+  revalidatePath(`/dashboard/${areaId}`)
+  return {}
+}
+
+// Relevance filter (min_band) and email-alert opt-in for one territory. No
+// PlanIt re-fetch here (unlike radius) — this only changes what's shown /
+// alerted on, not what's fetched.
+export async function updateTrackedAreaSettings(
+  areaId: string,
+  settings: { minBand: MinBand; alertsEnabled: boolean },
+) {
+  if (!VALID_MIN_BANDS.includes(settings.minBand)) {
+    return { error: 'Invalid relevance filter.' }
+  }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated.' }
+
+  // Defense in depth: alerts are a professional-tier feature. The UI already
+  // hides/disables the toggle for non-pro accounts, but a direct call must be
+  // re-checked server-side rather than trusting the client — same pattern as
+  // app/api/outreach/route.ts's server-side hasProAccess() re-check.
+  const alertsEnabled = settings.alertsEnabled && hasProAccess(await getProfile())
+
+  const { error } = await supabase
+    .from('tracked_areas')
+    .update({ min_band: settings.minBand, alerts_enabled: alertsEnabled })
+    .eq('id', areaId)
+    .eq('user_id', user.id)
+
+  if (error) {
+    return { error: 'Could not update territory settings. Please try again.' }
+  }
 
   revalidatePath('/dashboard')
   revalidatePath(`/dashboard/${areaId}`)

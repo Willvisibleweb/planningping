@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getProfile, hasProAccess } from '@/lib/access'
 import { lookupPostcode, postcodeDistrict, distanceKm } from '@/lib/postcodes'
 import RadiusControl from '@/components/dashboard/RadiusControl'
+import TrackedAreaSettings from '@/components/dashboard/TrackedAreaSettings'
 import ApplicationSearchList from '@/components/dashboard/ApplicationSearchList'
 import TerritoryMap from '@/components/dashboard/TerritoryMapLoader'
 import type { TrackedArea, PlanningApplication } from '@/types/database'
@@ -33,13 +34,17 @@ export default async function TerritoryPage({
   if (!areaRow) notFound()
   const area = areaRow as TrackedArea
 
+  // min_band is the same stored preference the alert cron reads — one knob
+  // for both "what you see" and "what you get emailed about".
+  let applicationsQuery = supabase
+    .from('planning_applications')
+    .select('*')
+    .eq('council_slug', area.council_slug)
+  if (area.min_band === 'WARM_PLUS') applicationsQuery = applicationsQuery.in('band', ['HOT', 'WARM'])
+  else if (area.min_band === 'HOT_ONLY') applicationsQuery = applicationsQuery.eq('band', 'HOT')
+
   const [{ data: applications }, { data: councilRow }, { data: leads }, geo] = await Promise.all([
-    supabase
-      .from('planning_applications')
-      .select('*')
-      .eq('council_slug', area.council_slug)
-      .order('application_date', { ascending: false, nullsFirst: false })
-      .limit(200),
+    applicationsQuery.order('application_date', { ascending: false, nullsFirst: false }).limit(200),
     supabase.from('councils').select('name, portal_url').eq('slug', area.council_slug).maybeSingle(),
     supabase.from('tracked_leads').select('application_id'),
     lookupPostcode(area.postcode),
@@ -118,6 +123,12 @@ export default async function TerritoryPage({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <RadiusControl areaId={area.id} initialRadiusMetres={area.radius_metres} />
+        <TrackedAreaSettings
+          areaId={area.id}
+          initialMinBand={area.min_band}
+          initialAlertsEnabled={area.alerts_enabled}
+          hasProAccess={showTrackActions}
+        />
 
         {(councilRow?.portal_url || councilSeo || postcodeSeo) && (
           <div className="rounded-lg border border-[#D6E4FB] bg-white p-4">

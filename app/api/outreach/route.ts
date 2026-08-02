@@ -1,9 +1,10 @@
 // AI outreach draft generator (Task 4).
 //
-// Given a tracked lead, drafts a short, context-aware business-development email
-// a civil engineering firm could send about the development — "mission-first":
-// the angle is inferred from the application's description (e.g. an agricultural
-// conversion → Class Q civils scope).
+// Given a tracked lead, produces an opportunity brief (likely civils scope,
+// a rough value/complexity signal, and plain-English reasoning) plus 2-3
+// alternate outreach-email angles — "mission-first": everything is inferred
+// from the application's description (e.g. an agricultural conversion →
+// Class Q civils scope).
 //
 // Server-side only. The Anthropic API key never reaches the browser. Auth is the
 // Supabase session, and RLS guarantees the lead belongs to the caller.
@@ -11,9 +12,11 @@
 // Model: Claude Haiku 4.5 — fast and cheap, which suits short drafts generated
 // during customer validation. To swap models later, change MODEL below.
 //
-// LLM SEAM: this is a single, stateless generation. If outreach quality needs to
-// improve, raise the model (e.g. claude-opus-4-8) or enrich the prompt with more
-// lead context — no structural change required.
+// LLM SEAM: this is a single, stateless generation (one tool-forced call
+// returns brief + all angles together, so it stays one Anthropic request and
+// one daily-cap unit). If quality needs to improve, raise the model (e.g.
+// claude-opus-4-8) or enrich the prompt with more lead context — no
+// structural change required.
 
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
@@ -27,14 +30,49 @@ const MODEL = 'claude-haiku-4-5'
 // Counted per UTC day via outreach_log (migration 0007).
 const DAILY_LIMIT = 20
 
-const SYSTEM_PROMPT = `You are a business-development assistant for a UK civil engineering firm. You write short, specific, professional outreach emails to the applicant or agent behind a planning application, offering the firm's civil engineering services for that project.
+const SYSTEM_PROMPT = `You are a business-development analyst for a UK civil engineering firm, reviewing a planning application as a potential lead.
 
 Rules:
-- Infer the likely civils scope from the development described (e.g. drainage/SuDS, groundworks/earthworks, highways/S278, structural/retaining, flood mitigation, an agricultural Class Q conversion, etc.) and lead with that angle.
-- Keep it under ~150 words. Warm, direct, no waffle, no hype.
-- Include a subject line, then the body. Use [Your name] / [Firm] placeholders — do not invent contact details.
-- If the description is vague, keep the civils angle general rather than guessing specifics.
-- Output only the email (subject + body). No preamble, no commentary.`
+- Infer the likely civils scope from the development described (e.g. drainage/SuDS, groundworks/earthworks, highways/S278, structural/retaining, flood mitigation, an agricultural Class Q conversion, etc.). If the description is vague, keep it general rather than guessing specifics.
+- "value_signal" is a short, honest phrase on project size/complexity (e.g. "Small single dwelling — modest, one-off scope" or "Multi-unit residential — larger, multi-phase civils scope"). Don't invent figures; work from what the description and application type imply.
+- "reasoning" is 1-2 plain-English sentences a busy engineer can read in three seconds: why this is (or isn't strongly) worth pursuing.
+- Produce 2-3 distinct outreach angles (e.g. leading with drainage risk, leading with programme/timeline, leading with cost-saving) — each a short, warm, direct email under ~150 words, with a subject line and body. Use [Your name] / [Firm] placeholders — do not invent contact details.
+- Call the submit_outreach tool exactly once with your analysis. No commentary outside the tool call.`
+
+const OUTREACH_TOOL: Anthropic.Tool = {
+  name: 'submit_outreach',
+  description: 'Submit the opportunity brief and outreach email angles for this planning application lead.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      scope: { type: 'string', description: 'Likely civils scope in one short phrase, e.g. "Drainage & SuDS"' },
+      value_signal: { type: 'string', description: 'One short honest phrase on project size/complexity' },
+      reasoning: { type: 'string', description: '1-2 plain-English sentences on why this is worth pursuing' },
+      angles: {
+        type: 'array',
+        minItems: 2,
+        maxItems: 3,
+        items: {
+          type: 'object',
+          properties: {
+            label: { type: 'string', description: 'Short label for this angle, e.g. "Lead with drainage risk"' },
+            subject: { type: 'string' },
+            body: { type: 'string' },
+          },
+          required: ['label', 'subject', 'body'],
+        },
+      },
+    },
+    required: ['scope', 'value_signal', 'reasoning', 'angles'],
+  },
+}
+
+interface OutreachToolInput {
+  scope: string
+  value_signal: string
+  reasoning: string
+  angles: { label: string; subject: string; body: string }[]
+}
 
 export async function POST(request: NextRequest) {
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -114,27 +152,34 @@ export async function POST(request: NextRequest) {
     const anthropic = new Anthropic()  // reads ANTHROPIC_API_KEY from env
     const message = await anthropic.messages.create({
       model: MODEL,
-      max_tokens: 1024,
+      max_tokens: 1536,
       system: SYSTEM_PROMPT,
+      tools: [OUTREACH_TOOL],
+      tool_choice: { type: 'tool', name: 'submit_outreach' },
       messages: [
         {
           role: 'user',
-          content: `Draft an outreach email about this planning application:\n\n${context}`,
+          content: `Analyse this planning application as a lead and draft outreach angles:\n\n${context}`,
         },
       ],
     })
 
-    const draft = message.content
-      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-      .map((b) => b.text)
-      .join('')
-      .trim()
+    const toolUse = message.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use')
+    if (!toolUse) throw new Error('Model did not call submit_outreach')
+    const result = toolUse.input as OutreachToolInput
 
     // Record the successful generation against today's cap. Failures aren't
     // logged — a user shouldn't burn allowance on our errors.
     await supabase.from('outreach_log').insert({ user_id: user.id, lead_id: body.leadId })
 
-    return NextResponse.json({ draft })
+    return NextResponse.json({
+      brief: {
+        scope: result.scope,
+        valueSignal: result.value_signal,
+        reasoning: result.reasoning,
+      },
+      angles: result.angles,
+    })
   } catch (err) {
     console.error('Outreach generation failed:', err)
     return NextResponse.json({ error: 'Could not generate a draft. Please try again.' }, { status: 502 })

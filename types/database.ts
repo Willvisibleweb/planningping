@@ -4,6 +4,10 @@
 export type Plan = 'free' | 'pro'
 export type UserType = 'homeowner' | 'professional'
 export type DigestDay = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
+// 'ALL' shows everything; 'WARM_PLUS'/'HOT_ONLY' hide bands below the
+// threshold (reuses the civils scoring engine's band, see lib/scoring) — one
+// stored preference drives both the dashboard display and alert fan-out.
+export type MinBand = 'ALL' | 'WARM_PLUS' | 'HOT_ONLY'
 
 export interface Profile {
   id: string
@@ -29,6 +33,10 @@ export interface TrackedArea {
   council_slug: string
   radius_metres: number
   is_active: boolean
+  min_band: MinBand
+  // Professional-tier only — enforced server-side in updateTrackedAreaSettings,
+  // not by RLS. See app/api/cron/ingest/route.ts for the fan-out that reads it.
+  alerts_enabled: boolean
   created_at: string
 }
 
