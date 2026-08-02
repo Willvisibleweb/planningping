@@ -5,7 +5,7 @@
 
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getProfile, hasProAccess } from '@/lib/access'
+import { getProfile, hasProAccess, maxRadiusMetres } from '@/lib/access'
 import { lookupPostcode, postcodeDistrict, distanceKm } from '@/lib/postcodes'
 import RadiusControl from '@/components/dashboard/RadiusControl'
 import TrackedAreaSettings from '@/components/dashboard/TrackedAreaSettings'
@@ -54,6 +54,7 @@ export default async function TerritoryPage({
   const trackedIds = new Set((leads ?? []).map((l) => l.application_id as string))
   const profile = await getProfile()
   const showTrackActions = hasProAccess(profile)
+  const radiusCap = maxRadiusMetres(profile)
 
   // Pull lat/lng out of raw_data (PlanIt-sourced rows carry it) and compute
   // distance from the territory's center when we have both. Apps without
@@ -122,7 +123,7 @@ export default async function TerritoryPage({
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <RadiusControl areaId={area.id} initialRadiusMetres={area.radius_metres} />
+        <RadiusControl areaId={area.id} initialRadiusMetres={area.radius_metres} maxRadiusMetres={radiusCap} />
         <TrackedAreaSettings
           areaId={area.id}
           initialMinBand={area.min_band}

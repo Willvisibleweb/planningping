@@ -1,16 +1,18 @@
 'use client'
 
-// Billing — upgrade to Pro (monthly/annual) or manage an existing subscription.
-// Mounted with id="billing" so trial banners and ProGate CTAs can deep-link here.
-// Professional accounts only (the parent server component decides whether to render).
+// Billing — upgrade to Mid or Top (monthly/annual) or manage an existing
+// subscription. Mounted with id="billing" so trial banners and ProGate CTAs
+// can deep-link here. Professional accounts only (the parent server
+// component decides whether to render).
 
 import { useState, useTransition } from 'react'
+import { PRICING, type PaidTier, type Interval } from '@/lib/stripe'
 import type { Profile } from '@/types/database'
 
-const PRICING_DISPLAY = {
-  monthly: '£29/month',
-  annual: '£290/year (2 months free)',
-} as const
+const TIER_COPY: Record<PaidTier, { name: string; radius: string; areas: string }> = {
+  mid: { name: 'Mid', radius: `${PRICING.mid.radiusKm}km radius`, areas: `${PRICING.mid.maxAreas} tracked areas` },
+  top: { name: 'Top', radius: `${PRICING.top.radiusKm}km radius`, areas: 'Unlimited tracked areas' },
+}
 
 async function redirectTo(path: string, body?: object): Promise<string | null> {
   const res = await fetch(path, {
@@ -28,15 +30,16 @@ async function redirectTo(path: string, body?: object): Promise<string | null> {
 }
 
 export default function BillingSection({ profile }: { profile: Profile }) {
+  const [interval, setInterval] = useState<Interval>('monthly')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   const subscribed = profile.subscription_status === 'active'
 
-  function upgrade(interval: 'monthly' | 'annual') {
+  function upgrade(tier: PaidTier) {
     setError(null)
     startTransition(async () => {
-      setError(await redirectTo('/api/stripe/checkout', { interval }))
+      setError(await redirectTo('/api/stripe/checkout', { tier, interval }))
     })
   }
 
@@ -54,7 +57,8 @@ export default function BillingSection({ profile }: { profile: Profile }) {
       {subscribed ? (
         <>
           <p className="mt-1 text-sm text-[#6B6C70]">
-            You&rsquo;re on the professional plan. Manage or cancel your subscription any time.
+            You&rsquo;re on the {profile.pro_tier ? TIER_COPY[profile.pro_tier].name : 'professional'}{' '}
+            plan. Manage or cancel your subscription any time.
           </p>
           <button
             onClick={managePlan}
@@ -69,21 +73,44 @@ export default function BillingSection({ profile }: { profile: Profile }) {
           <p className="mt-1 text-sm text-[#6B6C70]">
             Upgrade to keep the pipeline, opportunity tracking and AI outreach after your trial.
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              onClick={() => upgrade('monthly')}
-              disabled={isPending}
-              className="rounded-md bg-[#2563EB] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#1D4ED8] disabled:opacity-50"
-            >
-              {isPending ? 'Opening…' : `Upgrade — ${PRICING_DISPLAY.monthly}`}
-            </button>
-            <button
-              onClick={() => upgrade('annual')}
-              disabled={isPending}
-              className="rounded-md border border-[#2563EB] px-3 py-1.5 text-sm font-medium text-[#2563EB] transition-colors hover:bg-blue-50 disabled:opacity-50"
-            >
-              {isPending ? 'Opening…' : PRICING_DISPLAY.annual}
-            </button>
+
+          <div className="mt-3 inline-flex rounded-md border border-[#D6E4FB] p-0.5 text-xs">
+            {(['monthly', 'annual'] as const).map((opt) => (
+              <button
+                key={opt}
+                onClick={() => setInterval(opt)}
+                className={`rounded px-2.5 py-1 font-medium transition-colors ${
+                  interval === opt ? 'bg-[#2563EB] text-white' : 'text-[#6B6C70] hover:text-[#202124]'
+                }`}
+              >
+                {opt === 'monthly' ? 'Monthly' : 'Annual'}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {(['mid', 'top'] as const).map((tier) => {
+              const price = PRICING[tier][interval]
+              return (
+                <div key={tier} className="rounded-md border border-[#D6E4FB] p-3">
+                  <p className="text-sm font-semibold text-[#202124]">{TIER_COPY[tier].name}</p>
+                  <p className="mt-1 text-lg font-semibold text-[#202124]">{price.label}</p>
+                  {'note' in price && <p className="text-[11px] text-[#A0A1A6]">{price.note}</p>}
+                  <ul className="mt-2 space-y-0.5 text-xs text-[#6B6C70]">
+                    <li>{TIER_COPY[tier].radius}</li>
+                    <li>{TIER_COPY[tier].areas}</li>
+                    <li>{PRICING[tier].support}</li>
+                  </ul>
+                  <button
+                    onClick={() => upgrade(tier)}
+                    disabled={isPending}
+                    className="mt-3 w-full rounded-md bg-[#2563EB] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#1D4ED8] disabled:opacity-50"
+                  >
+                    {isPending ? 'Opening…' : `Upgrade to ${TIER_COPY[tier].name}`}
+                  </button>
+                </div>
+              )
+            })}
           </div>
         </>
       )}

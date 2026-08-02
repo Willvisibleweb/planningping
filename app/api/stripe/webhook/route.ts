@@ -14,7 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type Stripe from 'stripe'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { getStripe } from '@/lib/stripe'
+import { getStripe, tierForPriceId, type PaidTier } from '@/lib/stripe'
 
 export async function POST(request: NextRequest) {
   const stripe = getStripe()
@@ -41,6 +41,9 @@ export async function POST(request: NextRequest) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session
       if (session.mode !== 'subscription' || !session.client_reference_id) break
+      // Fresh from checkout, so session metadata is reliable here (unlike in
+      // the subscription events below, which prefer the price id instead).
+      const tier = session.metadata?.tier as PaidTier | undefined
       await admin
         .from('profiles')
         .update({
@@ -48,6 +51,7 @@ export async function POST(request: NextRequest) {
           subscription_status: 'active',
           stripe_customer_id: (session.customer as string) ?? null,
           stripe_subscription_id: (session.subscription as string) ?? null,
+          ...(tier === 'mid' || tier === 'top' ? { pro_tier: tier } : {}),
         })
         .eq('id', session.client_reference_id)
       break
@@ -58,11 +62,20 @@ export async function POST(request: NextRequest) {
     case 'customer.subscription.deleted': {
       const sub = event.data.object as Stripe.Subscription
       const active = sub.status === 'active' || sub.status === 'trialing'
+      // Resolve tier from the subscription's actual current price, not
+      // stored metadata — metadata is only ever set at checkout time and
+      // goes stale if the plan is later changed via the Stripe Customer
+      // Portal (which updates price, not metadata). Only overwrite pro_tier
+      // when a tier actually resolves — don't null out a known-good value
+      // on an unrecognized price id.
+      const priceId = sub.items.data[0]?.price?.id
+      const resolvedTier = (priceId && tierForPriceId(priceId)) || (sub.metadata?.tier as PaidTier | undefined)
       await admin
         .from('profiles')
         .update({
           subscription_status: sub.status,
           plan: active ? 'pro' : 'free',
+          ...(resolvedTier === 'mid' || resolvedTier === 'top' ? { pro_tier: resolvedTier } : {}),
         })
         .eq('stripe_customer_id', sub.customer as string)
       break
