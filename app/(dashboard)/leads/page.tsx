@@ -46,7 +46,11 @@ export default async function LeadsPage({
   // Deliberately visible to homeowners as a read-only teaser — tracking these
   // as opportunities (pipeline/outreach) is the professional feature.
   const profile = await getProfile()
-  const teaser = !hasProAccess(profile)
+  const showTrackActions = hasProAccess(profile)
+  const teaser = !showTrackActions
+
+  const { data: leads } = await supabase.from('tracked_leads').select('application_id')
+  const trackedIds = (leads ?? []).map((l) => l.application_id as string)
 
   return (
     <div className="space-y-6">
@@ -77,7 +81,12 @@ export default async function LeadsPage({
         </p>
       </div>
 
-      <LeadsList applications={applications} activeBand={activeBand} />
+      <LeadsList
+        applications={applications}
+        activeBand={activeBand}
+        trackedIds={trackedIds}
+        showTrackActions={showTrackActions}
+      />
     </div>
   )
 }
