@@ -4,6 +4,8 @@
 // Plain and functional — this is the demo surface for prospects, not polished
 // production UI. The filter is just links that set ?band= on the URL.
 
+import { useState, useTransition } from 'react'
+import { trackOpportunity } from './leadActions'
 import type { PlanningApplication } from '@/types/database'
 
 type BandFilter = 'HOT' | 'WARM' | 'COLD' | 'ALL'
@@ -23,10 +25,16 @@ const SCORE_DISCLAIMER =
 export default function LeadsList({
   applications,
   activeBand,
+  trackedIds,
+  showTrackActions,
 }: {
   applications: PlanningApplication[]
   activeBand: BandFilter
+  trackedIds: string[]
+  showTrackActions: boolean
 }) {
+  const trackedSet = new Set(trackedIds)
+
   return (
     <div className="space-y-4">
       {/* Score disclaimer — visible at the point scores are read. */}
@@ -63,7 +71,12 @@ export default function LeadsList({
       ) : (
         <div className="space-y-3">
           {applications.map((app) => (
-            <LeadCard key={app.id} app={app} />
+            <LeadCard
+              key={app.id}
+              app={app}
+              isTracked={trackedSet.has(app.id)}
+              showTrackActions={showTrackActions}
+            />
           ))}
         </div>
       )}
@@ -71,8 +84,29 @@ export default function LeadsList({
   )
 }
 
-function LeadCard({ app }: { app: PlanningApplication }) {
+function LeadCard({
+  app,
+  isTracked,
+  showTrackActions,
+}: {
+  app: PlanningApplication
+  isTracked: boolean
+  showTrackActions: boolean
+}) {
   const band = app.band ?? 'COLD'
+
+  // Local optimistic flag so the button flips to "Tracked ✓" without a reload.
+  const [tracked, setTracked] = useState(isTracked)
+  const [isPending, startTransition] = useTransition()
+
+  function handleTrack() {
+    startTransition(async () => {
+      const result = await trackOpportunity(app.id)
+      // Treat "already tracking" as success too — the row is tracked either way.
+      if (!result?.error || result.error.startsWith('Already')) setTracked(true)
+    })
+  }
+
   return (
     <div className="rounded-lg border border-[#D6E4FB] bg-white p-4">
       <div className="flex items-start justify-between gap-3">
@@ -93,6 +127,24 @@ function LeadCard({ app }: { app: PlanningApplication }) {
           <p className="text-sm text-[#202124]">{app.description ?? 'No description'}</p>
           {app.address && <p className="text-xs text-[#A0A1A6] mt-0.5">{app.address}</p>}
         </div>
+
+        {showTrackActions && (
+          <div className="shrink-0">
+            {tracked ? (
+              <span className="rounded border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
+                Tracked ✓
+              </span>
+            ) : (
+              <button
+                onClick={handleTrack}
+                disabled={isPending}
+                className="rounded border border-[#2563EB] px-2 py-0.5 text-xs font-medium text-[#2563EB] hover:bg-[#2563EB] hover:text-white transition-colors disabled:opacity-40"
+              >
+                {isPending ? 'Tracking…' : 'Track Opportunity'}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Why it scored — the demo payload */}
