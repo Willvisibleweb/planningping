@@ -5,13 +5,12 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { lookupPostcode } from '@/lib/postcodes'
 import { fetchAndIngestNearby } from '@/lib/ingest/fetchAndIngestNearby'
-import { getProfile, hasProAccess } from '@/lib/access'
+import { getProfile, hasProAccess, maxRadiusMetres as getMaxRadiusMetres, maxTrackedAreas } from '@/lib/access'
 import type { MinBand } from '@/types/database'
 
 const VALID_MIN_BANDS: MinBand[] = ['ALL', 'WARM_PLUS', 'HOT_ONLY']
 
 const MIN_RADIUS_METRES = 250
-const MAX_RADIUS_METRES = 5000
 
 export async function addTrackedArea(formData: FormData) {
   const postcode = (formData.get('postcode') as string)?.trim().toUpperCase()
@@ -27,14 +26,29 @@ export async function addTrackedArea(formData: FormData) {
     return { error: 'Please enter a valid UK postcode.' }
   }
 
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated.' }
+
+  // Check the tier's area cap before the postcode lookup (external API call)
+  // so an over-cap request fails fast.
+  const profile = await getProfile()
+  const max = maxTrackedAreas(profile)
+  const { count } = await supabase
+    .from('tracked_areas')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+  if ((count ?? 0) >= max) {
+    return {
+      error: `Your plan supports up to ${max} tracked area${max === 1 ? '' : 's'} — you have ${count}. Remove one, or upgrade for more.`,
+    }
+  }
+
   const council = await lookupPostcode(postcode)
   if (!council) {
     return { error: 'Could not identify the planning authority for that postcode. Please check it and try again.' }
   }
-
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated.' }
 
   // Coverage is now PlanIt-backed (~420 UK authorities), so there's no need to
   // gate on a pre-seeded councils row — auto-provision it instead, matching
@@ -94,13 +108,14 @@ export async function deleteTrackedArea(areaId: string) {
 // territory) so the change is reflected right away rather than waiting for
 // tomorrow's cron run.
 export async function updateTrackedAreaRadius(areaId: string, radiusMetres: number) {
-  if (!Number.isFinite(radiusMetres) || radiusMetres < MIN_RADIUS_METRES || radiusMetres > MAX_RADIUS_METRES) {
-    return { error: `Radius must be between ${MIN_RADIUS_METRES}m and ${MAX_RADIUS_METRES / 1000}km.` }
-  }
-
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+
+  const maxRadius = getMaxRadiusMetres(await getProfile())
+  if (!Number.isFinite(radiusMetres) || radiusMetres < MIN_RADIUS_METRES || radiusMetres > maxRadius) {
+    return { error: `Your plan supports up to ${maxRadius / 1000}km (minimum ${MIN_RADIUS_METRES}m).` }
+  }
 
   const { data: updated, error } = await supabase
     .from('tracked_areas')

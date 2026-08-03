@@ -4,7 +4,6 @@ import { useState, useTransition } from 'react'
 import { updateTrackedAreaRadius } from './actions'
 
 const MIN = 250
-const MAX = 5000
 const STEP = 250
 
 function formatMetres(m: number): string {
@@ -14,12 +13,19 @@ function formatMetres(m: number): string {
 export default function RadiusControl({
   areaId,
   initialRadiusMetres,
+  maxRadiusMetres,
 }: {
   areaId: string
   initialRadiusMetres: number
+  // Tier-dependent cap (lib/access.ts). If the stored radius exceeds it
+  // (e.g. set during a Top-tier trial, now on Mid), the slider clamps to the
+  // cap for interaction but nothing is saved/reduced until the user actually
+  // moves it and hits Save — existing over-cap data is never touched silently.
+  maxRadiusMetres: number
 }) {
-  const [radius, setRadius] = useState(initialRadiusMetres)
-  const [saved, setSaved] = useState(initialRadiusMetres)
+  const overCap = initialRadiusMetres > maxRadiusMetres
+  const [radius, setRadius] = useState(Math.min(initialRadiusMetres, maxRadiusMetres))
+  const [saved, setSaved] = useState(radius)
   const [error, setError] = useState<string | null>(null)
   const [justSaved, setJustSaved] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -50,10 +56,16 @@ export default function RadiusControl({
       <p className="mt-1 text-xs text-[#A0A1A6]">
         How far from the postcode to pull planning applications from.
       </p>
+      {overCap && (
+        <p className="mt-1 text-xs text-amber-700">
+          Currently set to {formatMetres(initialRadiusMetres)} from a previous plan. Moving this
+          slider will reduce it to fit your current plan (up to {formatMetres(maxRadiusMetres)}).
+        </p>
+      )}
       <input
         type="range"
         min={MIN}
-        max={MAX}
+        max={maxRadiusMetres}
         step={STEP}
         value={radius}
         onChange={(e) => setRadius(Number(e.target.value))}
@@ -62,7 +74,7 @@ export default function RadiusControl({
       />
       <div className="mt-1 flex justify-between text-[10px] text-[#A0A1A6]">
         <span>{formatMetres(MIN)}</span>
-        <span>{formatMetres(MAX)}</span>
+        <span>{formatMetres(maxRadiusMetres)}</span>
       </div>
 
       {dirty && (

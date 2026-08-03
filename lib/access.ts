@@ -48,3 +48,32 @@ export function trialDaysLeft(profile: Profile | null): number | null {
   if (ms <= 0) return 0
   return Math.ceil(ms / (24 * 60 * 60 * 1000))
 }
+
+// Radius/tracked-area quotas — a separate dimension from hasProAccess()'s
+// on/off feature gate. Both paid tiers get identical feature access; this
+// only controls how much of it. 'top' Infinity is server-side comparison
+// only, never serialized to a client component.
+export type ProTier = 'free' | 'mid' | 'top'
+
+const TIER_LIMITS: Record<ProTier, { maxRadiusMetres: number; maxTrackedAreas: number }> = {
+  free: { maxRadiusMetres: 1000, maxTrackedAreas: 1 },
+  mid: { maxRadiusMetres: 3000, maxTrackedAreas: 3 },
+  top: { maxRadiusMetres: 5000, maxTrackedAreas: Infinity },
+}
+
+// While trialing (hasProAccess but no completed checkout yet), default to
+// 'top' limits — best showcase, encourages the higher tier. Once a checkout
+// completes, profile.pro_tier is the source of truth.
+export function effectiveTier(profile: Profile | null): ProTier {
+  if (!hasProAccess(profile)) return 'free'
+  if (profile!.subscription_status === 'active' && profile!.pro_tier) return profile!.pro_tier
+  return 'top'
+}
+
+export function maxRadiusMetres(profile: Profile | null): number {
+  return TIER_LIMITS[effectiveTier(profile)].maxRadiusMetres
+}
+
+export function maxTrackedAreas(profile: Profile | null): number {
+  return TIER_LIMITS[effectiveTier(profile)].maxTrackedAreas
+}

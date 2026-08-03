@@ -21,6 +21,10 @@ export interface Profile {
   stripe_customer_id: string | null
   stripe_subscription_id: string | null
   subscription_status: string | null
+  // Which paid tier ('mid'|'top') once professional+hasProAccess is true.
+  // Null = free tier, or trialing without a completed checkout yet — see
+  // lib/access.ts's effectiveTier() for how the null case is resolved.
+  pro_tier: 'mid' | 'top' | null
   digest_day: DigestDay
   created_at: string
 }

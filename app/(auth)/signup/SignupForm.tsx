@@ -13,7 +13,7 @@ const USER_TYPES = [
     value: 'professional',
     title: "I'm a professional",
     description:
-      'CRM pipeline, lead scoring and AI outreach for civil engineers, agents and architects. 14-day free trial, no card required — then £29/mo.',
+      'CRM pipeline, lead scoring and AI outreach for civil engineers, agents and architects. 14-day free trial, no card required — then from £29/mo.',
   },
 ] as const
 

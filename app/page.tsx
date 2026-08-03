@@ -1,5 +1,6 @@
 import { MapPin, Mail, CheckCircle, Check } from 'lucide-react'
 import RotatingWord from '@/components/landing/RotatingWord'
+import { PRICING } from '@/lib/stripe'
 
 // Small presentational helpers for the product mockups in the hero / inbox band.
 // These are pure markup (no real data) — a "screenshot" of the app rendered in
@@ -274,15 +275,15 @@ export default function HomePage() {
           <p className="mt-1 text-center text-sm text-[#6B7280]">
             Free for homeowners. Built to pay for itself for professionals.
           </p>
-          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 max-w-3xl mx-auto">
+          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-3 max-w-5xl mx-auto">
             <div className="rounded-lg border border-[#E5E7EB] bg-white p-6 shadow-sm">
-              <h3 className="text-sm font-semibold text-[#111827]">Homeowner</h3>
+              <h3 className="text-sm font-semibold text-[#111827]">Free</h3>
               <p className="mt-2 text-2xl font-semibold text-[#111827]">Free</p>
               <p className="mt-1 text-xs text-[#9CA3AF]">forever</p>
               <ul className="mt-4 space-y-2 text-sm text-[#6B7280]">
                 <li>Track planning applications near you</li>
+                <li>{PRICING.free.radiusKm}km radius, {PRICING.free.maxAreas} tracked area</li>
                 <li>Weekly email digest</li>
-                <li>Status change alerts</li>
               </ul>
               <a
                 href="/signup"
@@ -291,18 +292,34 @@ export default function HomePage() {
                 Start free
               </a>
             </div>
+            <div className="rounded-lg border border-[#E5E7EB] bg-white p-6 shadow-sm">
+              <h3 className="text-sm font-semibold text-[#111827]">Mid</h3>
+              <p className="mt-2 text-2xl font-semibold text-[#111827]">£{PRICING.mid.monthly.amount}<span className="text-sm font-normal text-[#6B7280]">/month</span></p>
+              <p className="mt-1 text-xs text-[#9CA3AF]">or £{PRICING.mid.annual.amount}/year ({PRICING.mid.annual.note}) · 14-day free trial, no card required</p>
+              <ul className="mt-4 space-y-2 text-sm text-[#6B7280]">
+                <li>Everything in Free</li>
+                <li>Lead scoring, pipeline (CRM), AI outreach</li>
+                <li>{PRICING.mid.radiusKm}km radius, {PRICING.mid.maxAreas} tracked areas</li>
+                <li>{PRICING.mid.support}</li>
+              </ul>
+              <a
+                href="/signup?type=professional"
+                className="mt-6 block rounded-md border border-[#2563EB] px-4 py-2 text-center text-sm font-medium text-[#2563EB] transition-colors hover:bg-blue-50"
+              >
+                Start free trial
+              </a>
+            </div>
             <div className="relative rounded-lg border-2 border-[#2563EB] bg-white p-6 shadow-sm">
               <span className="absolute -top-2.5 right-5 rounded-full bg-[#2563EB] px-2.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-white">
                 14-day trial
               </span>
-              <h3 className="text-sm font-semibold text-[#111827]">Professional</h3>
-              <p className="mt-2 text-2xl font-semibold text-[#111827]">£29<span className="text-sm font-normal text-[#6B7280]">/month</span></p>
-              <p className="mt-1 text-xs text-[#9CA3AF]">or £290/year (2 months free) · 14-day free trial, no card required</p>
+              <h3 className="text-sm font-semibold text-[#111827]">Top</h3>
+              <p className="mt-2 text-2xl font-semibold text-[#111827]">£{PRICING.top.monthly.amount}<span className="text-sm font-normal text-[#6B7280]">/month</span></p>
+              <p className="mt-1 text-xs text-[#9CA3AF]">or £{PRICING.top.annual.amount}/year ({PRICING.top.annual.note}) · 14-day free trial, no card required</p>
               <ul className="mt-4 space-y-2 text-sm text-[#6B7280]">
-                <li>Everything in Homeowner</li>
-                <li>Lead scoring across your councils</li>
-                <li>Opportunity pipeline (CRM)</li>
-                <li>AI outreach drafts</li>
+                <li>Everything in Mid</li>
+                <li>{PRICING.top.radiusKm}km radius, unlimited tracked areas</li>
+                <li>{PRICING.top.support}</li>
               </ul>
               <a
                 href="/signup?type=professional"

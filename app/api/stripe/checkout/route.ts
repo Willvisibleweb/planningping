@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getProfile, isProfessional } from '@/lib/access'
-import { getStripe, priceIdFor } from '@/lib/stripe'
+import { getStripe, priceIdFor, type PaidTier } from '@/lib/stripe'
 
 export async function POST(request: NextRequest) {
   const stripe = getStripe()
@@ -31,14 +31,18 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  let body: { interval?: string }
+  let body: { interval?: string; tier?: string }
   try {
     body = await request.json()
   } catch {
     body = {}
   }
+  if (body.tier !== 'mid' && body.tier !== 'top') {
+    return NextResponse.json({ error: 'A plan tier is required.' }, { status: 400 })
+  }
+  const tier: PaidTier = body.tier
   const interval = body.interval === 'annual' ? 'annual' : 'monthly'
-  const priceId = priceIdFor(interval)
+  const priceId = priceIdFor(tier, interval)
   if (!priceId) {
     return NextResponse.json({ error: 'Billing is not configured yet.' }, { status: 503 })
   }
@@ -61,6 +65,13 @@ export async function POST(request: NextRequest) {
     customer: customerId,
     client_reference_id: user.id, // webhook fallback lookup
     line_items: [{ price: priceId, quantity: 1 }],
+    // Set on both: session-level metadata is what checkout.session.completed
+    // can read without an extra API call; subscription_data.metadata
+    // propagates onto the Subscription object for later
+    // customer.subscription.updated/deleted events. Neither back-fills the
+    // other automatically.
+    metadata: { tier },
+    subscription_data: { metadata: { tier } },
     success_url: `${site}/settings?checkout=success`,
     cancel_url: `${site}/settings?checkout=cancelled`,
   })
