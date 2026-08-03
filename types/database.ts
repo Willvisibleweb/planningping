@@ -74,6 +74,22 @@ export interface Digest {
   summary: string | null
 }
 
+// Letterhead identity for the formal-letter outreach mode. Own table, not
+// profiles columns — profiles is locked down to a single user-writable
+// column (migration 0006). logo_path is a private storage object path
+// ("firm-logos" bucket), never a public URL.
+export interface FirmProfile {
+  id: string
+  user_id: string
+  business_name: string | null
+  address: string | null
+  phone: string | null
+  contact_email: string | null
+  logo_path: string | null
+  created_at: string
+  updated_at: string
+}
+
 // Pipeline stages for the civils CRM. Order matters for display.
 export type PipelineStage = 'Identified' | 'Contacted' | 'Negotiating' | 'Won' | 'Lost'
 
