@@ -293,7 +293,7 @@ export default function HomePage() {
               </a>
             </div>
             <div className="rounded-lg border border-[#E5E7EB] bg-white p-6 shadow-sm">
-              <h3 className="text-sm font-semibold text-[#111827]">Mid</h3>
+              <h3 className="text-sm font-semibold text-[#111827]">Pro</h3>
               <p className="mt-2 text-2xl font-semibold text-[#111827]">£{PRICING.mid.monthly.amount}<span className="text-sm font-normal text-[#6B7280]">/month</span></p>
               <p className="mt-1 text-xs text-[#9CA3AF]">or £{PRICING.mid.annual.amount}/year ({PRICING.mid.annual.note}) · 14-day free trial, no card required</p>
               <ul className="mt-4 space-y-2 text-sm text-[#6B7280]">
@@ -313,11 +313,11 @@ export default function HomePage() {
               <span className="absolute -top-2.5 right-5 rounded-full bg-[#2563EB] px-2.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-white">
                 14-day trial
               </span>
-              <h3 className="text-sm font-semibold text-[#111827]">Top</h3>
+              <h3 className="text-sm font-semibold text-[#111827]">Max</h3>
               <p className="mt-2 text-2xl font-semibold text-[#111827]">£{PRICING.top.monthly.amount}<span className="text-sm font-normal text-[#6B7280]">/month</span></p>
               <p className="mt-1 text-xs text-[#9CA3AF]">or £{PRICING.top.annual.amount}/year ({PRICING.top.annual.note}) · 14-day free trial, no card required</p>
               <ul className="mt-4 space-y-2 text-sm text-[#6B7280]">
-                <li>Everything in Mid</li>
+                <li>Everything in Pro</li>
                 <li>{PRICING.top.radiusKm}km radius, unlimited tracked areas</li>
                 <li>{PRICING.top.support}</li>
               </ul>

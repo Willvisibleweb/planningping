@@ -1,6 +1,6 @@
 'use client'
 
-// Billing — upgrade to Mid or Top (monthly/annual) or manage an existing
+// Billing — upgrade to Pro or Max (monthly/annual) or manage an existing
 // subscription. Mounted with id="billing" so trial banners and ProGate CTAs
 // can deep-link here. Professional accounts only (the parent server
 // component decides whether to render).
@@ -9,9 +9,12 @@ import { useState, useTransition } from 'react'
 import { PRICING, type PaidTier, type Interval } from '@/lib/stripe'
 import type { Profile } from '@/types/database'
 
+// Display names only — 'mid'/'top' stay as the internal tier identifiers
+// throughout the codebase (DB column, types, env vars); only what the
+// customer actually sees changes here, to match the Stripe product names.
 const TIER_COPY: Record<PaidTier, { name: string; radius: string; areas: string }> = {
-  mid: { name: 'Mid', radius: `${PRICING.mid.radiusKm}km radius`, areas: `${PRICING.mid.maxAreas} tracked areas` },
-  top: { name: 'Top', radius: `${PRICING.top.radiusKm}km radius`, areas: 'Unlimited tracked areas' },
+  mid: { name: 'Pro', radius: `${PRICING.mid.radiusKm}km radius`, areas: `${PRICING.mid.maxAreas} tracked areas` },
+  top: { name: 'Max', radius: `${PRICING.top.radiusKm}km radius`, areas: 'Unlimited tracked areas' },
 }
 
 async function redirectTo(path: string, body?: object): Promise<string | null> {
