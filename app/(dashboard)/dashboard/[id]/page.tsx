@@ -21,14 +21,17 @@ export default async function TerritoryPage({
 }) {
   const { id } = await params
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) notFound()
+  // getProfile() is already deduped for free against the layout's call via
+  // React's cache() — a separate supabase.auth.getUser() here would be a
+  // second, non-deduped round trip to Supabase Auth.
+  const profile = await getProfile()
+  if (!profile) notFound()
 
   const { data: areaRow } = await supabase
     .from('tracked_areas')
     .select('*')
     .eq('id', id)
-    .eq('user_id', user.id)
+    .eq('user_id', profile.id)
     .maybeSingle()
 
   if (!areaRow) notFound()
@@ -52,7 +55,6 @@ export default async function TerritoryPage({
 
   const apps = (applications ?? []) as PlanningApplication[]
   const trackedIds = new Set((leads ?? []).map((l) => l.application_id as string))
-  const profile = await getProfile()
   const showTrackActions = hasProAccess(profile)
   const radiusCap = maxRadiusMetres(profile)
 

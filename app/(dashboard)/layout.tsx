@@ -3,7 +3,6 @@
 // session before rendering any protected content.
 
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import { getProfile, isProfessional, hasProAccess, trialDaysLeft } from '@/lib/access'
 import Sidebar from '@/components/dashboard/Sidebar'
 
@@ -12,15 +11,18 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  // getProfile() does its own auth.getUser() check internally — calling
+  // supabase.auth.getUser() again here would be a second, redundant round
+  // trip to Supabase Auth on every single dashboard page load. profile.email
+  // covers what the separate user object was used for below.
+  const profile = await getProfile()
 
-  // Hard redirect — no session means no access, full stop.
-  if (!user) redirect('/login')
+  // Hard redirect — no session (or no profile row, which shouldn't happen for
+  // a real authenticated user) means no access, full stop.
+  if (!profile) redirect('/login')
 
   // Nav is tailored by account type. This is display only — every pro page
   // and server action re-checks access itself (see lib/access.ts).
-  const profile = await getProfile()
   const professional = isProfessional(profile)
   const daysLeft = trialDaysLeft(profile)
   const onTrial = professional && hasProAccess(profile) && daysLeft !== null
@@ -28,7 +30,7 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen bg-white lg:flex">
       <Sidebar
-        userEmail={user.email ?? ''}
+        userEmail={profile.email}
         professional={professional}
         onTrial={onTrial}
         daysLeft={daysLeft}
