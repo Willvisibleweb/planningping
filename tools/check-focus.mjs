@@ -21,7 +21,7 @@ const problems = []
 for (const file of files) {
   const src = readFileSync(`/Users/williamkelsall/Desktop/planning ping/${file}`, 'utf8')
   for (const m of src.matchAll(TAG)) {
-    const [full, tag, attrs] = m
+    const [, tag, attrs] = m
     total++
     const killsOutline = /outline-none/.test(attrs)
     const hasRing = /focus-visible:ring|focus:ring|has-\[:focus-visible\]:ring/.test(attrs)

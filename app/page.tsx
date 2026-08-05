@@ -114,9 +114,14 @@ export default function HomePage() {
                   Sign in
                 </Link>
               </div>
+              {/* "400+" rather than a live figure: 410 authorities are
+                  supported and any UK postcode auto-provisions its council on
+                  first use (see addTrackedArea), so this stays true without
+                  needing a query on a static page — and without going stale
+                  the way "20+ councils" did. */}
               <div className="mt-6 flex items-center gap-2 text-xs text-neutral-500">
                 <span className="h-[5px] w-[5px] rounded-full bg-success-600 ring-4 ring-success-50" />
-                Covering 20+ councils · new applications every week
+                Covering 400+ UK planning authorities · new applications every week
               </div>
             </div>
 
@@ -308,7 +313,7 @@ export default function HomePage() {
             <div className="rounded-md border border-border bg-surface p-5 sm:p-7 shadow-sm">
               <h3 className="text-sm font-semibold text-ink">Pro</h3>
               <p className="mt-2 text-2xl font-semibold text-ink">£{PRICING.mid.monthly.amount}<span className="text-sm font-normal text-ink-muted">/month</span></p>
-              <p className="mt-1 text-xs text-neutral-500">or £{PRICING.mid.annual.amount}/year ({PRICING.mid.annual.note}) · 14-day free trial, no card required</p>
+              <p className="mt-1 text-xs text-neutral-500">or £{PRICING.mid.annual.amount}/year ({PRICING.mid.annual.note}) · {PRICING.trialDays}-day free trial, no card required</p>
               <ul className="mt-4 space-y-2 text-sm text-ink-muted">
                 <li>Everything in Free</li>
                 <li>Lead scoring, pipeline (CRM), AI outreach</li>
@@ -324,11 +329,11 @@ export default function HomePage() {
             </div>
             <div className="relative rounded-md border-2 border-primary-500 bg-surface p-5 sm:p-6 shadow-sm">
               <span className="absolute -top-2.5 right-5 rounded-full bg-primary-500 px-2.5 py-0.5 text-2xs font-bold uppercase tracking-wide text-white">
-                14-day trial
+                {PRICING.trialDays}-day trial
               </span>
               <h3 className="text-sm font-semibold text-ink">Max</h3>
               <p className="mt-2 text-2xl font-semibold text-ink">£{PRICING.top.monthly.amount}<span className="text-sm font-normal text-ink-muted">/month</span></p>
-              <p className="mt-1 text-xs text-neutral-500">or £{PRICING.top.annual.amount}/year ({PRICING.top.annual.note}) · 14-day free trial, no card required</p>
+              <p className="mt-1 text-xs text-neutral-500">or £{PRICING.top.annual.amount}/year ({PRICING.top.annual.note}) · {PRICING.trialDays}-day free trial, no card required</p>
               <ul className="mt-4 space-y-2 text-sm text-ink-muted">
                 <li>Everything in Pro</li>
                 <li>{PRICING.top.radiusKm}km radius, unlimited tracked areas</li>

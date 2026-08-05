@@ -3,11 +3,15 @@
 import { useState, useTransition } from 'react'
 import { MailCheck } from 'lucide-react'
 import { signup } from './actions'
+import { PRICING } from '@/lib/stripe'
 import Button from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Input'
 import { Alert } from '@/components/ui/ErrorState'
 import Link from 'next/link'
 
+// Trial length and price read from lib/stripe's PRICING rather than being
+// retyped here. Hardcoding these is how "20+ councils" ended up on the landing
+// page long after it stopped being true.
 const USER_TYPES = [
   {
     value: 'homeowner',
@@ -18,7 +22,7 @@ const USER_TYPES = [
     value: 'professional',
     title: "I'm a professional",
     description:
-      'CRM pipeline, lead scoring and AI outreach for civil engineers, agents and architects. 14-day free trial, no card required — then from £29/mo.',
+      `CRM pipeline, lead scoring and AI outreach for civil engineers, agents and architects. ${PRICING.trialDays}-day free trial, no card required — then from £${PRICING.mid.monthly.amount}/mo.`,
   },
 ] as const
 

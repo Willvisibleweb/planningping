@@ -1,3 +1,4 @@
+import { PRICING } from '@/lib/stripe'
 // How it works — a plain explainer of the real pipeline: what happens between
 // adding a postcode and generating outreach. No invented steps; every claim
 // here maps to an actual part of the system (ingest cron, scoring engine,
@@ -55,7 +56,7 @@ export default function HowItWorksPage() {
         <h3 className="text-sm font-semibold text-ink">Homeowner vs. professional</h3>
         <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
           Homeowner accounts get territory tracking and Leads (read-only) for free, forever.
-          Professional accounts unlock Pipeline and AI outreach, with a 14-day free trial and
+          Professional accounts unlock Pipeline and AI outreach, with a {PRICING.trialDays}-day free trial and
           no card required to start.
         </p>
       </div>

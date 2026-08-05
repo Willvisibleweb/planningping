@@ -4,10 +4,12 @@
 //   homeowner — the user signed up as a homeowner and this feature isn't for them
 //   expired   — a professional whose trial ended without a subscription
 
+import { PRICING } from '@/lib/stripe'
+
 const COPY = {
   homeowner: {
     heading: 'This is a professional feature',
-    body: 'The pipeline, opportunity tracking and AI outreach are built for civil engineering firms doing business development — pursuing planning applications as opportunities across drainage, highways, flood risk, SuDS, groundworks/geotechnical and structural scope. Your account is set up as a homeowner — you can switch to a professional account (with a 14-day free trial) in Settings.',
+    body: `The pipeline, opportunity tracking and AI outreach are built for civil engineering firms doing business development — pursuing planning applications as opportunities across drainage, highways, flood risk, SuDS, groundworks/geotechnical and structural scope. Your account is set up as a homeowner — you can switch to a professional account (with a ${PRICING.trialDays}-day free trial) in Settings.`,
     cta: 'View account settings',
     href: '/settings',
   },

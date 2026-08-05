@@ -10,6 +10,7 @@ import { getProfile, isProfessional, hasProAccess } from '@/lib/access'
 import LeadsList from '@/components/dashboard/LeadsList'
 import type { PlanningApplication } from '@/types/database'
 import Link from 'next/link'
+import { PRICING } from '@/lib/stripe'
 
 type BandFilter = 'HOT' | 'WARM' | 'COLD' | 'ALL'
 
@@ -70,7 +71,7 @@ export default async function LeadsPage({
             <>
               Lead scoring is a professional feature. Switch to a professional account in{' '}
               <Link href="/settings" className="font-medium underline">Settings</Link>{' '}
-              (14-day free trial) to track these as opportunities.
+              ({PRICING.trialDays}-day free trial) to track these as opportunities.
             </>
           )}
         </div>

@@ -8,6 +8,7 @@ import { switchToProfessional } from './actions'
 import Button from '@/components/ui/Button'
 import { Alert } from '@/components/ui/ErrorState'
 import type { Profile } from '@/types/database'
+import { PRICING } from '@/lib/stripe'
 
 function planLabel(profile: Profile): string {
   if (profile.user_type === 'homeowner') return 'Homeowner — free'
@@ -54,7 +55,8 @@ export default function AccountSection({ profile }: { profile: Profile }) {
           <p className="mt-2.5 text-xs leading-relaxed text-ink-muted">
             Unlocks the pipeline, opportunity tracking and AI outreach for pursuing
             planning-application leads.
-            {profile.trial_ends_at === null && ' Includes a 14-day free trial — no card required.'}
+            {profile.trial_ends_at === null &&
+              ` Includes a ${PRICING.trialDays}-day free trial — no card required.`}
           </p>
         </div>
       )}
