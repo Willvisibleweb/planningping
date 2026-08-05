@@ -6,8 +6,9 @@
 // already fetched server-side — no extra query.
 
 import { useMemo, useState } from 'react'
-import { Search } from 'lucide-react'
+import { Search, SearchX, Inbox } from 'lucide-react'
 import ApplicationRow from './ApplicationRow'
+import EmptyState from '@/components/ui/EmptyState'
 import type { PlanningApplication } from '@/types/database'
 
 export interface SearchableApplication {
@@ -36,7 +37,14 @@ export default function ApplicationSearchList({
   }, [items, query])
 
   if (items.length === 0) {
-    return <p className="text-xs text-ink-muted">No planning applications found in this territory yet.</p>
+    return (
+      <EmptyState
+        size="sm"
+        icon={Inbox}
+        title="Nothing here yet"
+        description="No applications have been published in this territory since we started monitoring it. New ones appear here as the council releases them."
+      />
+    )
   }
 
   return (
@@ -58,7 +66,12 @@ export default function ApplicationSearchList({
       </div>
 
       {filtered.length === 0 ? (
-        <p className="text-xs text-ink-muted">No applications match &ldquo;{query}&rdquo;.</p>
+        <EmptyState
+          size="sm"
+          icon={SearchX}
+          title={`No matches for “${query}”`}
+          description="Search covers the reference, address and description. Try a shorter term or part of a postcode."
+        />
       ) : (
         <div className="divide-y divide-border">
           {filtered.map(({ app, distanceKm, isTracked }) => (

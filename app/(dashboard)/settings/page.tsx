@@ -31,7 +31,7 @@ export default async function SettingsPage() {
   }
 
   return (
-    <div className="space-y-8 max-w-lg">
+    <div className="pp-stagger max-w-lg space-y-8">
       <div>
         <h2 className="text-xl font-semibold text-ink">Settings</h2>
         <p className="text-sm text-ink-muted mt-1">Manage your account and digest preferences.</p>

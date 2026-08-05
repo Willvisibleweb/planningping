@@ -56,7 +56,7 @@ export default async function LeadsPage({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="pp-stagger space-y-6">
       {teaser && (
         <div className="rounded-md border border-primary-200 bg-primary-50 px-4 py-3 text-sm text-primary-900">
           {isProfessional(profile) ? (

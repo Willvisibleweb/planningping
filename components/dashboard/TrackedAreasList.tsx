@@ -4,6 +4,8 @@ import { useState, useTransition } from 'react'
 import { MapPin, Inbox, ArrowRight } from 'lucide-react'
 import { deleteTrackedArea } from './actions'
 import ApplicationRow from './ApplicationRow'
+import EmptyState from '@/components/ui/EmptyState'
+import { useToast } from '@/components/ui/Toast'
 import type { TrackedArea, PlanningApplication } from '@/types/database'
 
 interface Props {
@@ -20,12 +22,12 @@ export default function TrackedAreasList({ areas, applications, trackedIds, show
 
   if (areas.length === 0) {
     return (
-      <div className="rounded-md border border-dashed border-border">
-        <div className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-full bg-primary-100 text-primary-500">
-          <MapPin size={20} />
-        </div>
-        <p className="text-sm font-medium text-ink">No territory tracked yet</p>
-        <p className="mt-1 text-sm text-ink-muted">Add a postcode above and we&rsquo;ll start monitoring that planning authority for you.</p>
+      <div className="rounded-md border border-dashed border-border bg-surface">
+        <EmptyState
+          icon={MapPin}
+          title="No territory tracked yet"
+          description="Add a postcode above and PlanningPing starts monitoring every application that authority publishes within your radius. First results usually land within the hour."
+        />
       </div>
     )
   }
@@ -76,9 +78,28 @@ function AreaCard({
 }) {
   const [isPending, startTransition] = useTransition()
   const [showAll, setShowAll] = useState(false)
+  const { toast } = useToast()
 
   function handleDelete() {
-    startTransition(() => { void deleteTrackedArea(area.id) })
+    startTransition(async () => {
+      // Previously fire-and-forget: the card vanished with no confirmation,
+      // and a failure was silent — the row simply stayed put with no
+      // explanation.
+      const result = await deleteTrackedArea(area.id)
+      if (result?.error) {
+        toast({
+          title: 'Couldn’t remove that territory',
+          description: result.error,
+          variant: 'error',
+        })
+        return
+      }
+      toast({
+        title: `${area.label} removed`,
+        description: 'We’ve stopped monitoring that area.',
+        variant: 'success',
+      })
+    })
   }
 
   const visible = showAll ? applications : applications.slice(0, 5)
@@ -143,10 +164,12 @@ function AreaCard({
           )}
         </div>
       ) : (
-        <div className="mt-3 flex items-center gap-2 text-xs text-ink-muted">
-          <Inbox size={14} className="shrink-0" />
-          No planning applications found in this territory yet.
-        </div>
+        <EmptyState
+          size="sm"
+          icon={Inbox}
+          title="Nothing here yet"
+          description="No applications published in this territory since monitoring began. New ones appear as the council releases them."
+        />
       )}
     </div>
   )

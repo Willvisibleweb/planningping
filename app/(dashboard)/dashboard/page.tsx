@@ -75,7 +75,7 @@ export default async function DashboardPage() {
   const councilCount = councilSlugs.length
 
   return (
-    <div className="space-y-8">
+    <div className="pp-stagger space-y-8">
       <div>
         <h2 className="text-xl font-semibold text-ink mb-1">Your territory</h2>
         <p className="text-sm text-ink-muted">

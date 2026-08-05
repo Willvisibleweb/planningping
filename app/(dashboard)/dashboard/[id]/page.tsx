@@ -99,7 +99,7 @@ export default async function TerritoryPage({
   ])
 
   return (
-    <div className="space-y-6">
+    <div className="pp-stagger space-y-6">
       <div>
         <a href="/dashboard" className="text-xs font-medium text-primary-500 hover:underline">
           &larr; Back to territory

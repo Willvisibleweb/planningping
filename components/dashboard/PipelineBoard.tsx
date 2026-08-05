@@ -5,10 +5,14 @@
 // mobile-friendly). Each card can generate an AI outreach draft.
 
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
+import { KanbanSquare } from 'lucide-react'
 import { setStage, untrackLead } from './leadActions'
 import OutreachModal from './OutreachModal'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
+import EmptyState from '@/components/ui/EmptyState'
+import { useToast } from '@/components/ui/Toast'
 import { PIPELINE_STAGES, type PipelineStage, type TrackedLead } from '@/types/database'
 
 export default function PipelineBoard({ leads }: { leads: TrackedLead[] }) {
@@ -16,11 +20,20 @@ export default function PipelineBoard({ leads }: { leads: TrackedLead[] }) {
 
   if (leads.length === 0) {
     return (
-      <div className="rounded-md border border-dashed border-border">
-        <p className="text-sm text-ink-muted">
-          No tracked opportunities yet. Hit &ldquo;Track Opportunity&rdquo; on an application
-          in your territory to add it here.
-        </p>
+      <div className="rounded-md border border-dashed border-border bg-surface">
+        <EmptyState
+          icon={KanbanSquare}
+          title="Your pipeline is empty"
+          description="Track an opportunity from your territory or leads list and it lands here at the Identified stage, ready to move through to Won."
+          action={
+            <Link
+              href="/leads"
+              className="pp-lift inline-flex h-9 items-center rounded-sm bg-primary-500 px-3.5 text-sm font-medium text-white shadow-sm transition-[background-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:bg-primary-600 hover:shadow-primary active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
+            >
+              Browse your leads
+            </Link>
+          }
+        />
       </div>
     )
   }
@@ -56,13 +69,28 @@ export default function PipelineBoard({ leads }: { leads: TrackedLead[] }) {
 
 function LeadCard({ lead, onOutreach }: { lead: TrackedLead; onOutreach: () => void }) {
   const [isPending, startTransition] = useTransition()
+  const { toast } = useToast()
 
   function handleStageChange(stage: PipelineStage) {
-    startTransition(() => { void setStage(lead.id, stage) })
+    startTransition(async () => {
+      const result = await setStage(lead.id, stage)
+      if (result?.error) {
+        toast({ title: 'Couldn’t move that lead', description: result.error, variant: 'error' })
+        return
+      }
+      toast({ title: `Moved to ${stage}`, description: lead.reference, variant: 'success' })
+    })
   }
 
   function handleUntrack() {
-    startTransition(() => { void untrackLead(lead.id) })
+    startTransition(async () => {
+      const result = await untrackLead(lead.id)
+      if (result?.error) {
+        toast({ title: 'Couldn’t remove that lead', description: result.error, variant: 'error' })
+        return
+      }
+      toast({ title: 'Removed from pipeline', description: lead.reference, variant: 'success' })
+    })
   }
 
   return (

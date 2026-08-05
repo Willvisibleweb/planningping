@@ -153,7 +153,11 @@ export default function FirmProfileSection({
       <Button size="sm" className="mt-5" onClick={handleSave} loading={isPending} loadingLabel="Saving firm details">
         Save firm details
       </Button>
-      {saved && <p className="mt-2.5 text-xs font-medium text-success-600">Saved.</p>}
+      {saved && (
+        <p className="mt-2.5 text-xs font-medium text-success-600">
+          Saved — new letters will use these details.
+        </p>
+      )}
       {error && (
         <Alert tone="danger" className="mt-3">
           {error}

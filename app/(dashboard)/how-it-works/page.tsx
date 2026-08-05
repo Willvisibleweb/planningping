@@ -28,7 +28,7 @@ const STEPS = [
 
 export default function HowItWorksPage() {
   return (
-    <div className="max-w-2xl space-y-8">
+    <div className="pp-stagger max-w-2xl space-y-8">
       <div>
         <h2 className="text-xl font-semibold text-ink mb-1">How it works</h2>
         <p className="text-sm text-ink-muted">

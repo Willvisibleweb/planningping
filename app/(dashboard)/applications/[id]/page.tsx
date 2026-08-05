@@ -59,7 +59,7 @@ export default async function ApplicationDetailPage({
   const isDischarge = app.application_type === 'discharge_of_condition'
 
   return (
-    <div className="space-y-6">
+    <div className="pp-stagger space-y-6">
       <div>
         <div className="flex items-center gap-2 mb-1">
           <p className="tabular-data text-sm text-ink-muted">{app.reference}</p>

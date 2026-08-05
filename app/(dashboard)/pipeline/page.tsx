@@ -23,7 +23,7 @@ export default async function PipelinePage() {
     .order('created_at', { ascending: false })
 
   return (
-    <div className="space-y-6">
+    <div className="pp-stagger space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-ink mb-1">Pipeline</h2>
         <p className="text-sm text-ink-muted">

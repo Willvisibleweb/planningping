@@ -9,7 +9,7 @@ const CONTACT_EMAIL = 'william.kelwave@gmail.com'
 
 export default function ContactPage() {
   return (
-    <div className="max-w-lg space-y-6">
+    <div className="pp-stagger max-w-lg space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-ink mb-1">Contact us</h2>
         <p className="text-sm text-ink-muted">

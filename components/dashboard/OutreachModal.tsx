@@ -16,6 +16,7 @@ import { X } from 'lucide-react'
 import { markAsSent } from './leadActions'
 import Button from '@/components/ui/Button'
 import Pill from '@/components/ui/Pill'
+import { useToast } from '@/components/ui/Toast'
 import type { TrackedLead } from '@/types/database'
 
 type Mode = 'email' | 'letter'
@@ -57,6 +58,7 @@ export default function OutreachModal({
   const [error, setError] = useState<string | null>(null)
 
   const [sent, setSent] = useState(false)
+  const { toast } = useToast()
   const [isPending, startTransition] = useTransition()
 
   const [isDownloading, setIsDownloading] = useState(false)
@@ -105,10 +107,20 @@ export default function OutreachModal({
   function handleMarkSent() {
     startTransition(async () => {
       const result = await markAsSent(lead.id)
-      if (!result?.error) {
-        setSent(true)
-        setTimeout(onClose, 800)
+      if (result?.error) {
+        // Previously silent: the modal simply stayed open with the button
+        // still saying "Mark as Sent", so a failure was indistinguishable
+        // from a mis-click.
+        toast({ title: 'Couldn’t log that contact', description: result.error, variant: 'error' })
+        return
       }
+      setSent(true)
+      toast({
+        title: 'Logged as contacted',
+        description: `${lead.reference} moved to Contacted, dated today.`,
+        variant: 'success',
+      })
+      setTimeout(onClose, 800)
     })
   }
 

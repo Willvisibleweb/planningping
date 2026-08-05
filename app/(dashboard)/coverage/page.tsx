@@ -39,7 +39,7 @@ export default async function CoveragePage() {
   const totalApplications = rows.reduce((sum, r) => sum + r.applicationCount, 0)
 
   return (
-    <div className="space-y-6">
+    <div className="pp-stagger space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-ink mb-1">Coverage</h2>
         <p className="text-sm text-ink-muted max-w-2xl">

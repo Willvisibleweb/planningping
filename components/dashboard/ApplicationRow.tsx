@@ -12,6 +12,7 @@ import { trackOpportunity } from './leadActions'
 import { statusStyle } from '@/lib/statusStyle'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
+import { useToast } from '@/components/ui/Toast'
 import type { PlanningApplication } from '@/types/database'
 
 export default function ApplicationRow({
@@ -38,12 +39,28 @@ export default function ApplicationRow({
   // Local optimistic flag so the button flips to "Tracked ✓" without a reload.
   const [tracked, setTracked] = useState(isTracked)
   const [isPending, startTransition] = useTransition()
+  const { toast } = useToast()
 
   function handleTrack() {
     startTransition(async () => {
       const result = await trackOpportunity(app.id)
       // Treat "already tracking" as success too — the row is tracked either way.
-      if (!result?.error || result.error.startsWith('Already')) setTracked(true)
+      if (!result?.error || result.error.startsWith('Already')) {
+        setTracked(true)
+        toast({
+          title: 'Added to your pipeline',
+          description: `${app.reference} is now tracked at the Identified stage.`,
+          variant: 'success',
+        })
+        return
+      }
+      // Previously this failed silently: the button just went back to its
+      // resting state and the user had no idea why nothing happened.
+      toast({
+        title: 'Couldn’t track that opportunity',
+        description: result.error,
+        variant: 'error',
+      })
     })
   }
 
