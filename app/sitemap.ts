@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { getLocationsByTier, SITE_URL } from '@/lib/seo/locations'
+import { getAllPosts } from '@/lib/blog/posts'
 
 // Regenerate on the same 6h cadence as the pages, so new locations enter the
 // sitemap as scraper coverage grows.
@@ -15,7 +16,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()
   const entries: MetadataRoute.Sitemap = [
     { url: `${SITE_URL}/`, lastModified: now, changeFrequency: 'weekly', priority: 1 },
+    { url: `${SITE_URL}/blog`, lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
   ]
+
+  for (const post of getAllPosts()) {
+    entries.push({
+      url: `${SITE_URL}/blog/${post.slug}`,
+      lastModified: new Date(post.date),
+      changeFrequency: 'monthly',
+      priority: 0.5,
+    })
+  }
 
   for (const c of councils) {
     entries.push({

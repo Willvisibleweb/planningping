@@ -59,12 +59,20 @@ export default function HomePage() {
           <span className="text-sm font-semibold tracking-tight text-[#111827]">
             Planning<span className="text-[#2563EB]">Ping</span>
           </span>
-          <a
-            href="/login"
-            className="text-sm font-medium text-[#6B7280] hover:text-[#111827] transition-colors"
-          >
-            Sign in
-          </a>
+          <div className="flex items-center gap-5">
+            <a
+              href="/blog"
+              className="text-sm font-medium text-[#6B7280] hover:text-[#111827] transition-colors"
+            >
+              Blog
+            </a>
+            <a
+              href="/login"
+              className="text-sm font-medium text-[#6B7280] hover:text-[#111827] transition-colors"
+            >
+              Sign in
+            </a>
+          </div>
         </div>
       </header>
 
