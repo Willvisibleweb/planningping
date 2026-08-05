@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google'
+import { ToastProvider } from '@/components/ui/Toast'
 import './globals.css'
 
 // IBM Plex Sans is a variable font, so no weight list is needed — the whole
@@ -38,7 +39,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${plexSans.variable} ${plexMono.variable} h-full`}>
       <body className="min-h-full bg-surface font-sans text-ink antialiased">
-        {children}
+        {/* Client provider rendered from a server component — children stay
+            server-rendered, so this costs no page a server/client boundary it
+            didn't already have. Mounted at the root so any route can confirm a
+            mutation without wiring up its own provider. */}
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   )

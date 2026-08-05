@@ -160,6 +160,24 @@
 }
 
 /* ---------------------------------------------------------------------------
+   Custom utilities
+
+   Tailwind v4 has no `--duration-*` theme namespace — duration utilities take
+   bare values (duration-150), which would put raw numbers back in components
+   and defeat the point of tokenising motion. These two map the tokens to real
+   utilities so `duration-fast` / `duration-slow` are the only durations any
+   component ever names.
+--------------------------------------------------------------------------- */
+
+@utility duration-fast {
+  transition-duration: var(--duration-fast);
+}
+
+@utility duration-slow {
+  transition-duration: var(--duration-slow);
+}
+
+/* ---------------------------------------------------------------------------
    Base
 --------------------------------------------------------------------------- */
 
@@ -270,6 +288,13 @@
   .pp-lift:hover,
   .pp-lift:active {
     transform: none !important;
+  }
+
+  /* Deliberate exception. Reduced motion means "don't decorate with movement",
+     not "hide whether the app is working". Forced to 0.01ms the spinner would
+     read as a static smear, so it keeps turning — just calmly. */
+  .pp-spinner {
+    animation-duration: 900ms !important;
   }
 }
 
