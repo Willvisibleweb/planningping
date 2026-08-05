@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { loginWithPassword, loginWithMagicLink } from './actions'
+import Button from '@/components/ui/Button'
 
 export default function AuthForm() {
   const [mode, setMode] = useState<'password' | 'magic'>('password')
@@ -56,7 +57,7 @@ export default function AuthForm() {
               <label htmlFor="password" className="block text-sm font-medium text-[#374151]">
                 Password
               </label>
-              <a href="/reset-password" className="text-xs text-[#2563EB] hover:underline">
+              <a href="/reset-password" className="pp-link text-xs">
                 Forgot password?
               </a>
             </div>
@@ -75,31 +76,30 @@ export default function AuthForm() {
           <p className="text-sm text-red-600">{error}</p>
         )}
 
-        <button
+        {/* The label swaps between modes, so the button is sized to the widest
+            of them — switching mode can't nudge the card's height or width. */}
+        <Button
           type="submit"
-          disabled={isPending}
-          className="w-full rounded-md bg-[#2563EB] px-4 py-2 text-sm font-medium text-white hover:bg-[#1D4ED8] transition-colors disabled:opacity-50"
+          fullWidth
+          loading={isPending}
+          loadingLabel={mode === 'password' ? 'Signing in' : 'Sending magic link'}
         >
-          {isPending
-            ? 'Signing in…'
-            : mode === 'password'
-              ? 'Sign in'
-              : 'Send magic link'}
-        </button>
+          {mode === 'password' ? 'Sign in' : 'Send magic link'}
+        </Button>
       </form>
 
-      <div className="mt-4 text-center">
+      <div className="mt-5 text-center">
         <button
           onClick={() => { setMode(mode === 'password' ? 'magic' : 'password'); setError(null) }}
-          className="text-xs text-[#6B7280] hover:text-[#111827] transition-colors"
+          className="rounded-sm text-xs text-ink-muted transition-colors duration-fast ease-standard hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
         >
           {mode === 'password' ? 'Sign in with magic link instead' : 'Sign in with password instead'}
         </button>
       </div>
 
-      <p className="mt-4 text-center text-xs text-[#6B7280]">
+      <p className="mt-4 text-center text-xs text-ink-muted">
         No account?{' '}
-        <a href="/signup" className="text-[#2563EB] hover:underline">
+        <a href="/signup" className="pp-link">
           Sign up
         </a>
       </p>

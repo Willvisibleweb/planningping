@@ -204,6 +204,43 @@
     letter-spacing: var(--tracking-tighter);
   }
 
+  /* Text links. A class rather than a component because most links here sit
+     inside prose, and wrapping every one in a component would be noisier than
+     the problem. The underline is present but faint by default and solidifies
+     on hover — links stay discoverable without the page looking stitched
+     together, which matters on pages that are largely body copy. */
+  .pp-link {
+    color: var(--color-primary-600);
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--color-primary-600) 28%, transparent);
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+    transition:
+      color var(--duration-fast) var(--ease-standard),
+      text-decoration-color var(--duration-fast) var(--ease-standard);
+  }
+  .pp-link:hover {
+    color: var(--color-primary-700);
+    text-decoration-color: currentColor;
+  }
+
+  /* Quieter variant for links in muted/footer text, where a blue link would
+     shout louder than the content around it. */
+  .pp-link-muted {
+    color: var(--color-ink-muted);
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--color-ink-muted) 25%, transparent);
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+    transition:
+      color var(--duration-fast) var(--ease-standard),
+      text-decoration-color var(--duration-fast) var(--ease-standard);
+  }
+  .pp-link-muted:hover {
+    color: var(--color-ink);
+    text-decoration-color: currentColor;
+  }
+
   /* Planning references, dates and counts should line up in columns. */
   .tabular-data {
     font-family: var(--font-mono);

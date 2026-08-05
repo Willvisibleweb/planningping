@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from 'react'
 import { addTrackedArea } from './actions'
+import Button from '@/components/ui/Button'
+import { Alert } from '@/components/ui/ErrorState'
 
 export default function AddAreaForm() {
   const [error, setError] = useState<string | null>(null)
@@ -37,16 +39,16 @@ export default function AddAreaForm() {
             className="w-full rounded-md border border-[#D6E4FB] px-3 py-2 text-sm text-[#202124] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/40"
           />
         </div>
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded-md bg-[#2563EB] px-4 py-2 text-sm font-medium text-white hover:bg-[#1D4ED8] disabled:opacity-50 whitespace-nowrap"
-        >
-          {isPending ? 'Adding…' : 'Add territory'}
-        </button>
+        <Button type="submit" loading={isPending} loadingLabel="Adding territory">
+          Add territory
+        </Button>
       </form>
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-      <p className="mt-2 text-xs text-[#A0A1A6]">
+      {error && (
+        <Alert tone="danger" className="mt-3">
+          {error}
+        </Alert>
+      )}
+      <p className="mt-3 text-xs text-ink-muted">
         We&rsquo;ll identify the planning authority for this postcode automatically.
       </p>
     </div>

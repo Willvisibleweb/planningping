@@ -7,6 +7,8 @@
 
 import { useRef, useState, useTransition } from 'react'
 import { saveFirmProfile, uploadFirmLogo, removeFirmLogo } from './firmProfileActions'
+import Button from '@/components/ui/Button'
+import { Alert } from '@/components/ui/ErrorState'
 import type { FirmProfile } from '@/types/database'
 
 export default function FirmProfileSection({
@@ -105,7 +107,7 @@ export default function FirmProfileSection({
             <button
               onClick={handleRemoveLogo}
               disabled={isLogoPending}
-              className="ml-2 text-xs text-red-500 hover:text-red-700 disabled:opacity-40"
+              className="ml-2 rounded-sm text-xs text-ink-muted transition-colors duration-fast ease-standard hover:text-danger-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2 disabled:opacity-40"
             >
               Remove
             </button>
@@ -152,15 +154,15 @@ export default function FirmProfileSection({
         </div>
       </div>
 
-      <button
-        onClick={handleSave}
-        disabled={isPending}
-        className="mt-4 rounded-md bg-[#2563EB] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#1D4ED8] disabled:opacity-50"
-      >
-        {isPending ? 'Saving…' : 'Save firm details'}
-      </button>
-      {saved && <p className="mt-2 text-xs font-medium text-green-700">Saved.</p>}
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      <Button size="sm" className="mt-5" onClick={handleSave} loading={isPending} loadingLabel="Saving firm details">
+        Save firm details
+      </Button>
+      {saved && <p className="mt-2.5 text-xs font-medium text-success-600">Saved.</p>}
+      {error && (
+        <Alert tone="danger" className="mt-3">
+          {error}
+        </Alert>
+      )}
     </div>
   )
 }

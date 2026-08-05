@@ -7,9 +7,11 @@
 // only the territory page passes `distanceKm`.
 
 import { useState, useTransition } from 'react'
-import { HelpCircle } from 'lucide-react'
+import { HelpCircle, Check } from 'lucide-react'
 import { trackOpportunity } from './leadActions'
 import { statusStyle } from '@/lib/statusStyle'
+import Button from '@/components/ui/Button'
+import Badge from '@/components/ui/Badge'
 import type { PlanningApplication } from '@/types/database'
 
 export default function ApplicationRow({
@@ -31,7 +33,7 @@ export default function ApplicationRow({
   // per page) passes this.
   anchorId?: string
 }) {
-  const { cls: badgeClass, Icon: StatusIcon } = statusStyle(app.status)
+  const { tone: statusTone, Icon: StatusIcon } = statusStyle(app.status)
 
   // Local optimistic flag so the button flips to "Tracked ✓" without a reload.
   const [tracked, setTracked] = useState(isTracked)
@@ -49,7 +51,10 @@ export default function ApplicationRow({
     <div id={anchorId} className="py-3 flex items-start justify-between gap-3 scroll-mt-4">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 mb-0.5">
-          <a href={`/applications/${app.id}`} className="text-xs font-mono text-[#6B6C70] hover:text-[#2563EB] hover:underline">
+          <a
+            href={`/applications/${app.id}`}
+            className="tabular-data rounded-sm text-xs text-ink-muted transition-colors duration-fast ease-standard hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
+          >
             {app.reference}
           </a>
           {app.application_date && (
@@ -70,41 +75,40 @@ export default function ApplicationRow({
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1">
         {app.status ? (
-          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${badgeClass}`}>
-            <StatusIcon size={12} className="shrink-0" />
+          <Badge tone={statusTone} icon={StatusIcon}>
             {app.status}
-          </span>
+          </Badge>
         ) : (
           // Some source records (e.g. certain PlanIt-covered councils) don't
           // carry a status — show that honestly instead of an empty gap, and
           // link out to the council record when we have one (raw_data.url).
-          <span className="inline-flex items-center gap-1 rounded-full bg-[#F7F7F8] px-2 py-0.5 text-xs font-medium text-[#A0A1A6]">
-            <HelpCircle size={12} className="shrink-0" />
+          <Badge tone="neutral" icon={HelpCircle}>
             Status not available
-          </span>
+          </Badge>
         )}
         {!app.status && typeof app.raw_data?.url === 'string' && (
           <a
             href={app.raw_data.url}
             target="_blank"
             rel="noopener noreferrer nofollow"
-            className="text-[11px] font-medium text-[#2563EB] hover:underline"
+            className="pp-link text-2xs font-medium"
           >
             Check council portal &rarr;
           </a>
         )}
         {showTrackActions && (tracked ? (
-          <span className="rounded border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
-            Tracked ✓
-          </span>
+          <Badge tone="success" icon={Check}>Tracked</Badge>
         ) : (
-          <button
+          <Button
+            size="sm"
+            variant="secondary"
             onClick={handleTrack}
-            disabled={isPending}
-            className="rounded border border-[#2563EB] px-2 py-0.5 text-xs font-medium text-[#2563EB] hover:bg-[#2563EB] hover:text-white transition-colors disabled:opacity-40"
+            loading={isPending}
+            loadingLabel="Tracking opportunity"
+            className="h-7 px-2.5 text-2xs"
           >
-            {isPending ? 'Tracking…' : 'Track Opportunity'}
-          </button>
+            Track Opportunity
+          </Button>
         ))}
       </div>
     </div>

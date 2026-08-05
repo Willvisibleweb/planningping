@@ -3,6 +3,7 @@
 import { useTransition } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import Button from '@/components/ui/Button'
 
 export default function LogoutButton() {
   const [isPending, startTransition] = useTransition()
@@ -17,12 +18,14 @@ export default function LogoutButton() {
   }
 
   return (
-    <button
+    <Button
+      variant="ghost"
+      size="sm"
       onClick={handleLogout}
-      disabled={isPending}
-      className="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
+      loading={isPending}
+      loadingLabel="Signing out"
     >
-      {isPending ? 'Signing out…' : 'Sign out'}
-    </button>
+      Sign out
+    </Button>
   )
 }

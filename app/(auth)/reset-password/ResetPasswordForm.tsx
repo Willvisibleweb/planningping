@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { sendResetEmail } from './actions'
+import Button from '@/components/ui/Button'
 
 export default function ResetPasswordForm() {
   const [error, setError] = useState<string | null>(null)
@@ -48,17 +49,13 @@ export default function ResetPasswordForm() {
           <p className="text-sm text-red-600">{error}</p>
         )}
 
-        <button
-          type="submit"
-          disabled={isPending}
-          className="w-full rounded-md bg-[#2563EB] px-4 py-2 text-sm font-medium text-white hover:bg-[#1D4ED8] transition-colors disabled:opacity-50"
-        >
-          {isPending ? 'Sending…' : 'Send reset link'}
-        </button>
+        <Button type="submit" fullWidth loading={isPending} loadingLabel="Sending reset link">
+          Send reset link
+        </Button>
       </form>
 
-      <p className="mt-4 text-center text-xs text-[#6B7280]">
-        <a href="/login" className="text-[#2563EB] hover:underline">
+      <p className="mt-5 text-center text-xs text-ink-muted">
+        <a href="/login" className="pp-link">
           Back to sign in
         </a>
       </p>

@@ -7,6 +7,8 @@
 import { useState, useTransition } from 'react'
 import { setStage, untrackLead } from './leadActions'
 import OutreachModal from './OutreachModal'
+import Button from '@/components/ui/Button'
+import Badge from '@/components/ui/Badge'
 import { PIPELINE_STAGES, type PipelineStage, type TrackedLead } from '@/types/database'
 
 export default function PipelineBoard({ leads }: { leads: TrackedLead[] }) {
@@ -66,11 +68,11 @@ function LeadCard({ lead, onOutreach }: { lead: TrackedLead; onOutreach: () => v
   return (
     <div className="rounded-lg border border-[#D6E4FB] bg-white p-3">
       <div className="mb-1 flex items-center gap-2">
-        <span className="font-mono text-xs text-[#6B6C70]">{lead.reference}</span>
+        <span className="tabular-data text-xs text-ink-muted">{lead.reference}</span>
         {lead.priority_follow_up && (
-          <span className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">
-            PRIORITY
-          </span>
+          <Badge tone="danger" className="font-semibold uppercase tracking-wide">
+            Priority
+          </Badge>
         )}
       </div>
 
@@ -98,18 +100,15 @@ function LeadCard({ lead, onOutreach }: { lead: TrackedLead; onOutreach: () => v
             <option key={s} value={s}>{s}</option>
           ))}
         </select>
-        <button
-          onClick={onOutreach}
-          className="rounded border border-[#2563EB] px-2 py-1 text-xs font-medium text-[#2563EB] hover:bg-[#2563EB] hover:text-white transition-colors"
-        >
+        <Button size="sm" variant="secondary" className="h-7 px-2.5 text-2xs" onClick={onOutreach}>
           Outreach
-        </button>
+        </Button>
       </div>
 
       <button
         onClick={handleUntrack}
         disabled={isPending}
-        className="mt-2 text-[11px] text-[#A0A1A6] hover:text-red-600 disabled:opacity-40"
+        className="mt-2.5 rounded-sm text-2xs text-ink-muted transition-colors duration-fast ease-standard hover:text-danger-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2 disabled:opacity-40"
       >
         Remove
       </button>

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { signup } from './actions'
+import Button from '@/components/ui/Button'
 
 const USER_TYPES = [
   {
@@ -55,12 +56,15 @@ export default function SignupForm({
           </legend>
           <div className="space-y-2">
             {USER_TYPES.map((t) => (
+              // The radio itself is sr-only, so without has-[:focus-visible]
+              // the keyboard focus indicator for this control was invisible —
+              // you could tab onto it with nothing on screen to show it.
               <label
                 key={t.value}
-                className={`block cursor-pointer rounded-md border p-3 transition-colors ${
+                className={`block cursor-pointer rounded-sm border p-4 transition-[background-color,border-color,box-shadow] duration-fast ease-standard has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary-500/45 has-[:focus-visible]:ring-offset-2 ${
                   userType === t.value
-                    ? 'border-[#2563EB] bg-[#EFF6FF] ring-1 ring-[#2563EB]'
-                    : 'border-[#E5E7EB] hover:border-[#9CA3AF]'
+                    ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-500'
+                    : 'border-border hover:border-primary-300 hover:bg-primary-50/40'
                 }`}
               >
                 <input
@@ -71,8 +75,8 @@ export default function SignupForm({
                   onChange={() => setUserType(t.value)}
                   className="sr-only"
                 />
-                <span className="block text-sm font-medium text-[#111827]">{t.title}</span>
-                <span className="mt-0.5 block text-xs leading-relaxed text-[#6B7280]">
+                <span className="block text-sm font-medium text-ink">{t.title}</span>
+                <span className="mt-1 block text-xs leading-relaxed text-ink-muted">
                   {t.description}
                 </span>
               </label>
@@ -114,13 +118,13 @@ export default function SignupForm({
           <p className="text-sm text-red-600">{error}</p>
         )}
 
-        <p className="text-xs leading-relaxed text-[#6B7280]">
+        <p className="text-xs leading-relaxed text-ink-muted">
           By creating an account you agree to our{' '}
           <a
             href="/terms"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#2563EB] hover:underline"
+            className="pp-link"
           >
             Terms of Service
           </a>{' '}
@@ -129,7 +133,7 @@ export default function SignupForm({
             href="/privacy"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#2563EB] hover:underline"
+            className="pp-link"
           >
             Privacy Policy
           </a>
@@ -138,18 +142,14 @@ export default function SignupForm({
           official sources.
         </p>
 
-        <button
-          type="submit"
-          disabled={isPending}
-          className="w-full rounded-md bg-[#2563EB] px-4 py-2 text-sm font-medium text-white hover:bg-[#1D4ED8] transition-colors disabled:opacity-50"
-        >
-          {isPending ? 'Creating account…' : 'Create account'}
-        </button>
+        <Button type="submit" fullWidth loading={isPending} loadingLabel="Creating account">
+          Create account
+        </Button>
       </form>
 
-      <p className="mt-4 text-center text-xs text-[#6B7280]">
+      <p className="mt-5 text-center text-xs text-ink-muted">
         Already have an account?{' '}
-        <a href="/login" className="text-[#2563EB] hover:underline">
+        <a href="/login" className="pp-link">
           Sign in
         </a>
       </p>

@@ -87,25 +87,34 @@ function AreaCard({
     <div className="rounded-lg border border-[#D6E4FB] bg-white p-5 shadow-[0_1px_2px_rgba(32,33,36,.04)]">
       <div className="flex items-start justify-between">
         <div>
-          <a href={`/dashboard/${area.id}`} className="font-medium text-[#202124] hover:text-[#2563EB] hover:underline">
+          <a
+            href={`/dashboard/${area.id}`}
+            className="rounded-sm font-medium text-ink transition-colors duration-fast ease-standard hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
+          >
             {area.label}
           </a>
-          <p className="text-sm text-[#6B6C70] mt-0.5">
+          <p className="mt-1 text-sm text-ink-muted">
             {area.postcode} — {area.council_slug}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-3">
+          {/* A link styled as a button — the Button component renders a
+              <button>, and this navigates, so it stays an anchor and borrows
+              the secondary variant's look instead. */}
           <a
             href={`/dashboard/${area.id}`}
-            className="inline-flex items-center gap-1.5 rounded-md border border-[#D6E4FB] px-3 py-1.5 text-sm font-medium text-[#2563EB] transition-colors hover:border-[#2563EB] hover:bg-[#EAF0FF]"
+            className="pp-lift group inline-flex h-9 items-center gap-1.5 rounded-sm border border-border bg-surface px-3.5 text-sm font-medium text-primary-600 shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:border-primary-300 hover:bg-primary-50 hover:shadow-md active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
           >
             View territory
-            <ArrowRight size={14} className="shrink-0" />
+            <ArrowRight
+              size={14}
+              className="shrink-0 transition-transform duration-fast ease-standard group-hover:translate-x-0.5"
+            />
           </a>
           <button
             onClick={handleDelete}
             disabled={isPending}
-            className="text-xs text-red-500 hover:text-red-700 disabled:opacity-40"
+            className="rounded-sm text-xs text-ink-muted transition-colors duration-fast ease-standard hover:text-danger-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2 disabled:opacity-40"
           >
             {isPending ? 'Removing…' : 'Remove'}
           </button>
@@ -125,7 +134,7 @@ function AreaCard({
           {applications.length > 5 && (
             <button
               onClick={() => setShowAll((v) => !v)}
-              className="pt-2 text-xs font-medium text-[#2563EB] hover:underline"
+              className="mt-1 w-full rounded-sm py-2.5 text-xs font-medium text-primary-600 transition-colors duration-fast ease-standard hover:bg-primary-50 hover:text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45"
             >
               {showAll
                 ? 'Show less'

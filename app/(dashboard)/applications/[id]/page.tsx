@@ -11,6 +11,7 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { statusStyle } from '@/lib/statusStyle'
+import Badge from '@/components/ui/Badge'
 import type { PlanningApplication } from '@/types/database'
 
 type ChildRow = Pick<PlanningApplication, 'id' | 'reference' | 'status' | 'application_date' | 'is_stale'>
@@ -54,7 +55,7 @@ export default async function ApplicationDetailPage({
   const childRows = (children ?? []) as ChildRow[]
   const parent = parentResult.data as ParentRow | null
 
-  const { cls: badgeClass, Icon: StatusIcon } = statusStyle(app.status)
+  const { tone: statusTone, Icon: StatusIcon } = statusStyle(app.status)
   const isDischarge = app.application_type === 'discharge_of_condition'
 
   return (
@@ -69,24 +70,23 @@ export default async function ApplicationDetailPage({
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {app.status ? (
-            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${badgeClass}`}>
-              <StatusIcon size={13} className="shrink-0" />
+            <Badge tone={statusTone} icon={StatusIcon} className="px-2.5 py-1 text-xs">
               {app.status}
-            </span>
+            </Badge>
           ) : (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#F7F7F8] px-2.5 py-1 text-xs font-medium text-[#A0A1A6]">
+            <Badge tone="neutral" className="px-2.5 py-1 text-xs">
               Status not available
-            </span>
+            </Badge>
           )}
           {isDischarge && (
-            <span className="rounded-full bg-[#EFF4FF] px-2.5 py-1 text-xs font-medium text-[#2563EB]">
+            <Badge tone="primary" className="px-2.5 py-1 text-xs">
               Discharge of condition
-            </span>
+            </Badge>
           )}
           {app.is_stale && (
-            <span className="rounded-full bg-[#FFFBEB] px-2.5 py-1 text-xs font-medium text-[#B45309]">
+            <Badge tone="warning" className="px-2.5 py-1 text-xs">
               Stale — no decision yet
-            </span>
+            </Badge>
           )}
         </div>
       </div>
@@ -97,11 +97,11 @@ export default async function ApplicationDetailPage({
           {parent ? (
             <a
               href={`/applications/${parent.id}`}
-              className="mt-2 block rounded-md border border-[#D6E4FB] p-3 hover:border-[#2563EB]"
+              className="pp-lift mt-3 block rounded-sm border border-border p-4 transition-[border-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:border-primary-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
             >
-              <p className="font-mono text-xs text-[#6B6C70]">{parent.reference}</p>
-              <p className="mt-1 text-sm text-[#202124]">{parent.description ?? 'No description'}</p>
-              {parent.address && <p className="mt-0.5 text-xs text-[#A0A1A6]">{parent.address}</p>}
+              <p className="tabular-data text-xs text-ink-muted">{parent.reference}</p>
+              <p className="mt-1.5 text-sm text-ink">{parent.description ?? 'No description'}</p>
+              {parent.address && <p className="mt-1 text-xs text-ink-muted">{parent.address}</p>}
             </a>
           ) : app.parent_application_reference ? (
             <p className="mt-2 text-sm text-[#6B6C70]">

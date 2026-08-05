@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, type FormEvent } from 'react'
+import Button from '@/components/ui/Button'
+import { Alert } from '@/components/ui/ErrorState'
 
 interface Props {
   locationSlug: string
@@ -63,15 +65,20 @@ export default function AlertForm({ locationSlug, locationType, placeName }: Pro
           disabled={state === 'submitting'}
           className="w-full rounded-md border border-[#D1D5DB] bg-white px-3 py-2 text-sm text-[#111827] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 disabled:opacity-60"
         />
-        <button
+        <Button
           type="submit"
-          disabled={state === 'submitting'}
-          className="shrink-0 rounded-md bg-[#2563EB] px-5 py-2 text-sm font-medium text-white hover:bg-[#1D4ED8] transition-colors disabled:opacity-60"
+          className="shrink-0"
+          loading={state === 'submitting'}
+          loadingLabel="Signing you up"
         >
-          {state === 'submitting' ? 'Signing up…' : 'Get alerts'}
-        </button>
+          Get alerts
+        </Button>
       </div>
-      {state === 'error' && <p className="mt-2 text-sm text-[#B91C1C]">{message}</p>}
+      {state === 'error' && (
+        <Alert tone="danger" className="mt-3">
+          {message}
+        </Alert>
+      )}
     </form>
   )
 }

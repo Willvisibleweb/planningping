@@ -12,7 +12,10 @@
 // shared daily generation cap on repeat generations of the same lead.
 
 import { useEffect, useRef, useState, useTransition } from 'react'
+import { X } from 'lucide-react'
 import { markAsSent } from './leadActions'
+import Button from '@/components/ui/Button'
+import Pill from '@/components/ui/Pill'
 import type { TrackedLead } from '@/types/database'
 
 type Mode = 'email' | 'letter'
@@ -157,24 +160,20 @@ export default function OutreachModal({
             <h3 className="text-base font-semibold text-[#202124]">Opportunity brief</h3>
             <p className="font-mono text-xs text-[#A0A1A6]">{lead.reference}</p>
           </div>
-          <button onClick={onClose} className="text-sm text-[#A0A1A6] hover:text-[#202124]">
-            ✕
+          <button
+            onClick={onClose}
+            aria-label="Close opportunity brief"
+            className="-m-1 rounded-sm p-1 text-neutral-400 transition-colors duration-fast ease-standard hover:bg-neutral-100 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45"
+          >
+            <X size={16} />
           </button>
         </div>
 
         <div className="mb-3 flex gap-1.5">
           {(['email', 'letter'] as const).map((m) => (
-            <button
-              key={m}
-              onClick={() => handleModeChange(m)}
-              className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                m === mode
-                  ? 'border-[#2563EB] bg-[#2563EB] text-white'
-                  : 'border-[#D6E4FB] bg-white text-[#6B6C70] hover:border-[#2563EB]'
-              }`}
-            >
+            <Pill key={m} selected={m === mode} onClick={() => handleModeChange(m)}>
               {m === 'email' ? 'Email' : 'Formal letter'}
-            </button>
+            </Pill>
           ))}
         </div>
 
@@ -203,17 +202,9 @@ export default function OutreachModal({
                 {angles.length > 1 && (
                   <div className="mb-3 flex flex-wrap gap-1.5">
                     {angles.map((angle, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setSelected(i)}
-                        className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                          i === selected
-                            ? 'border-[#2563EB] bg-[#2563EB] text-white'
-                            : 'border-[#D6E4FB] bg-white text-[#6B6C70] hover:border-[#2563EB]'
-                        }`}
-                      >
+                      <Pill key={i} selected={i === selected} onClick={() => setSelected(i)}>
                         {angle.label}
-                      </button>
+                      </Pill>
                     ))}
                   </div>
                 )}
@@ -239,7 +230,7 @@ export default function OutreachModal({
                 <p className="mt-1 text-xs text-[#A0A1A6]">
                   Edit freely, then download as a PDF to print and post. Uses the firm
                   letterhead saved in{' '}
-                  <a href="/settings" className="font-medium text-[#2563EB] hover:underline">
+                  <a href="/settings" className="pp-link font-medium">
                     Settings
                   </a>{' '}
                   — optional, the letter still downloads fine without one.
@@ -248,29 +239,30 @@ export default function OutreachModal({
               </>
             )}
 
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                onClick={onClose}
-                className="rounded-md px-3 py-1.5 text-sm text-[#6B6C70] hover:text-[#202124]"
-              >
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={onClose}>
                 Close
-              </button>
+              </Button>
               {mode === 'letter' && (
-                <button
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={handleDownloadPdf}
-                  disabled={isDownloading}
-                  className="rounded-md border border-[#2563EB] px-3 py-1.5 text-sm font-medium text-[#2563EB] transition-colors hover:bg-[#2563EB] hover:text-white disabled:opacity-50"
+                  loading={isDownloading}
+                  loadingLabel="Preparing PDF"
                 >
-                  {isDownloading ? 'Preparing…' : 'Download PDF'}
-                </button>
+                  Download PDF
+                </Button>
               )}
-              <button
+              <Button
+                size="sm"
                 onClick={handleMarkSent}
-                disabled={isPending || sent}
-                className="rounded-md bg-[#2563EB] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#1D4ED8] transition-colors disabled:opacity-50"
+                disabled={sent}
+                loading={isPending}
+                loadingLabel="Marking as sent"
               >
-                {sent ? 'Marked ✓' : isPending ? 'Saving…' : 'Mark as Sent'}
-              </button>
+                {sent ? 'Marked ✓' : 'Mark as Sent'}
+              </Button>
             </div>
           </>
         )}

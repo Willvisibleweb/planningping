@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from 'react'
 import { updateTrackedAreaRadius } from './actions'
+import Button from '@/components/ui/Button'
+import { Alert } from '@/components/ui/ErrorState'
 
 const MIN = 250
 const STEP = 250
@@ -57,7 +59,7 @@ export default function RadiusControl({
         How far from the postcode to pull planning applications from.
       </p>
       {overCap && (
-        <p className="mt-1 text-xs text-amber-700">
+        <p className="mt-1 text-xs text-warning-600">
           Currently set to {formatMetres(initialRadiusMetres)} from a previous plan. Moving this
           slider will reduce it to fit your current plan (up to {formatMetres(maxRadiusMetres)}).
         </p>
@@ -78,18 +80,18 @@ export default function RadiusControl({
       </div>
 
       {dirty && (
-        <button
-          onClick={handleSave}
-          disabled={isPending}
-          className="mt-3 rounded-md bg-[#2563EB] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#1D4ED8] disabled:opacity-50"
-        >
-          {isPending ? 'Saving…' : 'Save radius'}
-        </button>
+        <Button size="sm" className="mt-4" onClick={handleSave} loading={isPending} loadingLabel="Saving radius">
+          Save radius
+        </Button>
       )}
       {justSaved && !dirty && (
-        <p className="mt-3 text-xs font-medium text-green-700">Saved — territory re-fetched.</p>
+        <p className="mt-4 text-xs font-medium text-success-600">Saved — territory re-fetched.</p>
       )}
-      {error && <p className="mt-3 text-xs text-red-600">{error}</p>}
+      {error && (
+        <Alert tone="danger" className="mt-4 text-xs">
+          {error}
+        </Alert>
+      )}
     </div>
   )
 }

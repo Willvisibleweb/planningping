@@ -68,11 +68,8 @@ const DURATION_MS = 5000
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([])
-  const [mounted, setMounted] = useState(false)
   const nextId = useRef(0)
   const timers = useRef(new Map<number, ReturnType<typeof setTimeout>>())
-
-  useEffect(() => setMounted(true), [])
 
   const dismiss = useCallback((id: number) => {
     setItems((cur) => cur.filter((t) => t.id !== id))
@@ -109,7 +106,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      {mounted &&
+      {/* No isMounted effect: a toast can only exist after a user interaction,
+          so `items` is empty on the server and on the hydrating client alike.
+          Gating on length means document is only touched once we're
+          definitively client-side, and server and client markup still match. */}
+      {items.length > 0 &&
         createPortal(
           <div
             // polite, not assertive: a success confirmation shouldn't interrupt
