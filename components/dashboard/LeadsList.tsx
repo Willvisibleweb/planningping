@@ -119,7 +119,9 @@ function LeadCard({
               {band}
             </span>
             <span className="text-xs text-[#A0A1A6]">score {app.score ?? 0}</span>
-            <span className="font-mono text-xs text-[#6B6C70]">{app.reference}</span>
+            <a href={`/applications/${app.id}`} className="font-mono text-xs text-[#6B6C70] hover:text-[#2563EB] hover:underline">
+              {app.reference}
+            </a>
             {app.application_date && (
               <span className="text-xs text-[#A0A1A6]">{app.application_date}</span>
             )}

@@ -5,6 +5,7 @@
 
 import { createHash } from 'crypto'
 import { scoreApplication } from '@/lib/scoring/scoreApplication'
+import { classifyApplication } from '@/lib/classification/classifyApplication'
 import type { createAdminClient } from '@/lib/supabase/admin'
 
 type AdminClient = ReturnType<typeof createAdminClient>
@@ -22,14 +23,18 @@ export interface IngestApplication {
 
 // Richer than new_refs — the alert fan-out (app/api/cron/ingest/route.ts)
 // needs enough of the row to filter by band and build an email without a
-// second round-trip to the DB.
+// second round-trip to the DB. id is attached after the upsert (see below) —
+// the discharge alert path needs it to query children/parents by id.
 export interface NewApplication {
+  id: string | null
   council_slug: string
   reference: string
   description: string | null
   address: string | null
   application_date: string | null
   band: string | null
+  application_type: string | null
+  parent_application_reference: string | null
 }
 
 export interface UpsertResult {
@@ -87,6 +92,11 @@ export async function upsertApplications(
         description: a.description,
         address: a.address,
       })
+      const appType = (a.raw_data as { app_type?: unknown } | null)?.app_type
+      const { applicationType, parentReferenceRaw, needsReview } = classifyApplication({
+        description: a.description,
+        appType: typeof appType === 'string' ? appType : null,
+      })
 
       rows.push({
         council_slug: a.council_slug,
@@ -102,26 +112,46 @@ export async function upsertApplications(
         score,
         band,
         score_reasons: matchedReasons,
+        application_type: applicationType,
+        parent_application_reference: parentReferenceRaw,
+        parent_reference_needs_review: needsReview,
       })
       if (isNew) {
         new_refs.push(a.reference)
         new_applications.push({
+          id: null, // attached below, once the upsert returns real ids
           council_slug: a.council_slug,
           reference: a.reference,
           description: a.description,
           address: a.address,
           application_date: a.application_date,
           band,
+          application_type: applicationType,
+          parent_application_reference: parentReferenceRaw,
         })
       }
     }
   }
 
   if (rows.length > 0) {
-    const { error } = await supabase
+    const { data: upserted, error } = await supabase
       .from('planning_applications')
       .upsert(rows, { onConflict: 'council_slug,reference', ignoreDuplicates: false })
+      .select('id, council_slug, reference')
     if (error) throw new Error(`upsert failed: ${error.message}`)
+
+    // Attach real ids to the new-application list — same round trip, no
+    // extra query. The discharge alert path needs these to look up
+    // children/parents by id.
+    const idByKey = new Map(
+      ((upserted ?? []) as { id: string; council_slug: string; reference: string }[]).map((r) => [
+        `${r.council_slug}|${r.reference}`,
+        r.id,
+      ]),
+    )
+    for (const na of new_applications) {
+      na.id = idByKey.get(`${na.council_slug}|${na.reference}`) ?? null
+    }
   }
 
   return { received: apps.length, changed: rows.length, new_refs, new_applications }

@@ -28,6 +28,13 @@ export interface AlertItem {
   description: string | null
   address: string | null
   councilSlug: string
+  // Optional — used by the discharge-of-condition alert path (kept in this
+  // same AlertItem/sendAlertEmail rather than a parallel email type). kind
+  // is informational only; note, when set, renders as a one-line callout
+  // above the description (e.g. "Discharge of condition submitted against
+  // your tracked application 25/00759/PFUL3").
+  kind?: 'match' | 'discharge_match' | 'discharge_stale'
+  note?: string | null
 }
 
 let client: Resend | null = null
@@ -47,9 +54,13 @@ function renderItem(item: AlertItem): string {
   const colors = BAND_COLOR[band] ?? BAND_COLOR.COLD
   const desc = item.description ? escapeHtml(item.description) : 'No description'
   const address = item.address ? `<p style="margin:2px 0 0;font-size:12px;color:#6B6C70;">${escapeHtml(item.address)}</p>` : ''
+  const note = item.note
+    ? `<p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#2563EB;">${escapeHtml(item.note)}</p>`
+    : ''
   return `
     <tr>
       <td style="padding:12px 0;border-bottom:1px solid #E9F0FD;">
+        ${note}
         <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;color:${colors.text};background:${colors.bg};border:1px solid ${colors.border};">${band}</span>
         <span style="font-size:12px;color:#A0A1A6;margin-left:6px;">${escapeHtml(item.areaLabel)}</span>
         <p style="margin:6px 0 0;font-size:14px;color:#202124;">${desc}</p>

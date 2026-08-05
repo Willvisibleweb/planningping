@@ -14,6 +14,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { fetchNearby, slugifyAuthority } from '@/lib/planit'
 import { upsertApplications, type IngestApplication } from '@/lib/ingest/upsertApplications'
+import { resolveDischargeParents } from '@/lib/ingest/resolveDischargeParents'
+import { flagStaleDischarges } from '@/lib/ingest/flagStaleDischarges'
+import { sendDischargeAlerts } from '@/lib/alerts/dischargeAlerts'
 import { hasProAccess } from '@/lib/access'
 import { sendAlertEmail, type AlertItem } from '@/lib/email'
 import type { Profile, MinBand } from '@/types/database'
@@ -142,6 +145,18 @@ export async function GET(request: NextRequest) {
     newApplications: result.new_applications,
   })
 
+  // Discharge-of-condition: a separate, independent fan-out (tracked_leads,
+  // not tracked_areas — see lib/alerts/dischargeAlerts.ts). Parent-ID
+  // resolution runs every tick (a discharge row's parent is often ingested
+  // on a later run), then stale-flagging, then the alert itself reads both.
+  const resolvedParents = await resolveDischargeParents(supabase)
+  const newlyStaleDischarges = await flagStaleDischarges(supabase)
+  const dischargeAlertsSent = await sendDischargeAlerts(supabase, {
+    newApplications: result.new_applications,
+    staleRows: newlyStaleDischarges,
+    siteUrl: SITE_URL,
+  })
+
   return NextResponse.json({
     ran_at: new Date().toISOString(),
     source: 'planit',
@@ -150,6 +165,9 @@ export async function GET(request: NextRequest) {
     changed: result.changed,
     new: result.new_refs.length,
     alerts_sent: alertsSent,
+    discharge_parents_resolved: resolvedParents,
+    discharge_newly_stale: newlyStaleDischarges.length,
+    discharge_alerts_sent: dischargeAlertsSent,
     per_area: perArea,
   })
 }

@@ -49,7 +49,9 @@ export default function ApplicationRow({
     <div id={anchorId} className="py-3 flex items-start justify-between gap-3 scroll-mt-4">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 mb-0.5">
-          <p className="text-xs font-mono text-[#6B6C70]">{app.reference}</p>
+          <a href={`/applications/${app.id}`} className="text-xs font-mono text-[#6B6C70] hover:text-[#2563EB] hover:underline">
+            {app.reference}
+          </a>
           {app.application_date && (
             <p className="text-xs text-[#A0A1A6]">{app.application_date}</p>
           )}
