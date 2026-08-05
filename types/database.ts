@@ -62,6 +62,13 @@ export interface PlanningApplication {
   score: number | null
   band: 'HOT' | 'WARM' | 'COLD' | null
   score_reasons: string[] | null
+  // Discharge-of-condition tracking (see lib/classification). Null unless
+  // this row was classified as a discharge application.
+  application_type: 'discharge_of_condition' | null
+  parent_application_reference: string | null
+  parent_application_id: string | null
+  parent_reference_needs_review: boolean
+  is_stale: boolean
 }
 
 export interface Digest {

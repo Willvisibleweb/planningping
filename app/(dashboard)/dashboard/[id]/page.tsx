@@ -78,8 +78,14 @@ export default async function TerritoryPage({
       })
     : withDistance
 
+  // The full list intentionally shows every application in the council
+  // (broader context, sorted by distance) — but map pins sitting outside the
+  // drawn radius circle look like a bug, so the map itself stays scoped to
+  // apps actually within the tracked radius.
+  const radiusKm = area.radius_metres / 1000
   const mapApplications: MapApplication[] = sorted
-    .filter((x): x is typeof x & { lat: number; lng: number } => x.lat !== null && x.lng !== null)
+    .filter((x): x is typeof x & { lat: number; lng: number } =>
+      x.lat !== null && x.lng !== null && x.distance !== null && x.distance <= radiusKm)
     .map((x) => ({ id: x.app.id, lat: x.lat, lng: x.lng, reference: x.app.reference, address: x.app.address, status: x.app.status }))
 
   // Outbound links — only shown when we know they resolve to something real,

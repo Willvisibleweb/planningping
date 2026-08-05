@@ -68,6 +68,14 @@ export default function TerritoryMap({
         <MapContainer
           center={[centerLat, centerLng]}
           zoom={14}
+          // Leaflet defaults to zoomSnap=1 (whole-integer zoom levels), which
+          // is what makes scroll-zoom feel like it jumps in chunks rather
+          // than gliding smoothly. Fractional snap/delta + a higher
+          // wheelPxPerZoomLevel gives much finer, smoother increments —
+          // core Leaflet options, no extra dependency needed.
+          zoomSnap={0.25}
+          zoomDelta={0.5}
+          wheelPxPerZoomLevel={90}
           scrollWheelZoom
           touchZoom
           doubleClickZoom
@@ -112,7 +120,8 @@ export default function TerritoryMap({
       {totalApplicationsCount > applications.length && (
         <p className="mt-1.5 text-xs text-[#A0A1A6]">
           Showing {applications.length} of {totalApplicationsCount} applications on the map — only ones
-          with known coordinates from the source can be pinned. All {totalApplicationsCount} are listed below.
+          within the tracking radius with known coordinates from the source can be pinned. All{' '}
+          {totalApplicationsCount} are listed below.
         </p>
       )}
     </div>
