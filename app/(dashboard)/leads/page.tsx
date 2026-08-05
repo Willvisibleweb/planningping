@@ -22,12 +22,24 @@ export default async function LeadsPage({
   const activeBand: BandFilter =
     band === 'HOT' || band === 'WARM' || band === 'COLD' ? band : 'ALL'
 
-  // Councils the user tracks (RLS also enforces this on the apps query).
-  const { data: areas } = await supabase
-    .from('tracked_areas')
-    .select('council_slug')
+  // These three don't depend on each other — fire them concurrently rather
+  // than waterfalling. getProfile() is already deduped for free against the
+  // layout's call via React's cache(), but the two table queries were
+  // previously serialized needlessly.
+  const [{ data: areas }, { data: leads }, profile] = await Promise.all([
+    supabase.from('tracked_areas').select('council_slug'),
+    supabase.from('tracked_leads').select('application_id'),
+    getProfile(),
+  ])
   const councilSlugs = [...new Set((areas ?? []).map((a) => a.council_slug))]
+  const trackedIds = (leads ?? []).map((l) => l.application_id as string)
 
+  // Deliberately visible to homeowners as a read-only teaser — tracking these
+  // as opportunities (pipeline/outreach) is the professional feature.
+  const showTrackActions = hasProAccess(profile)
+  const teaser = !showTrackActions
+
+  // Depends on councilSlugs above, so this one has to run after.
   let applications: PlanningApplication[] = []
   if (councilSlugs.length > 0) {
     let query = supabase
@@ -42,15 +54,6 @@ export default async function LeadsPage({
     const { data } = await query
     applications = data ?? []
   }
-
-  // Deliberately visible to homeowners as a read-only teaser — tracking these
-  // as opportunities (pipeline/outreach) is the professional feature.
-  const profile = await getProfile()
-  const showTrackActions = hasProAccess(profile)
-  const teaser = !showTrackActions
-
-  const { data: leads } = await supabase.from('tracked_leads').select('application_id')
-  const trackedIds = (leads ?? []).map((l) => l.application_id as string)
 
   return (
     <div className="space-y-6">

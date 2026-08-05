@@ -124,7 +124,9 @@ function LeadCard({
               <span className="text-xs text-[#A0A1A6]">{app.application_date}</span>
             )}
           </div>
-          <p className="text-sm text-[#202124]">{app.description ?? 'No description'}</p>
+          <p className="text-sm text-[#202124] line-clamp-2" title={app.description ?? undefined}>
+            {app.description ?? 'No description'}
+          </p>
           {app.address && <p className="text-xs text-[#A0A1A6] mt-0.5">{app.address}</p>}
         </div>
 

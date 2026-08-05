@@ -74,7 +74,9 @@ function LeadCard({ lead, onOutreach }: { lead: TrackedLead; onOutreach: () => v
         )}
       </div>
 
-      <p className="text-sm text-[#202124]">{lead.description ?? 'No description'}</p>
+      <p className="text-sm text-[#202124] line-clamp-2" title={lead.description ?? undefined}>
+        {lead.description ?? 'No description'}
+      </p>
       {lead.address && <p className="mt-0.5 text-xs text-[#A0A1A6]">{lead.address}</p>}
       {lead.cached_status && (
         <p className="mt-1 text-xs text-[#6B6C70]">Status: {lead.cached_status}</p>

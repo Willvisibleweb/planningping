@@ -20,57 +20,55 @@ function StatTile({ label, value, sub }: { label: string; value: number; sub: st
 export default async function DashboardPage() {
   const supabase = await createClient()
 
-  // Fetch the user's tracked areas.
-  const { data: areas, error: areasError } = await supabase
-    .from('tracked_areas')
-    .select('*')
-    .order('created_at', { ascending: false })
+  // These three don't depend on each other — fire them concurrently rather
+  // than waterfalling. getProfile() is already deduped for free against the
+  // layout's call via React's cache().
+  const [{ data: areas, error: areasError }, { data: leads }, profile] = await Promise.all([
+    supabase.from('tracked_areas').select('*').order('created_at', { ascending: false }),
+    // Which applications is the user already tracking as a lead? Used to show
+    // "Tracked ✓" instead of the Track button. RLS scopes this to the user.
+    supabase.from('tracked_leads').select('application_id'),
+    getProfile(),
+  ])
 
-  // Fetch recent planning applications for all councils the user tracks.
-  // We get the unique council slugs first, then fetch applications.
   const councilSlugs = [...new Set((areas ?? []).map((a: TrackedArea) => a.council_slug))]
-
-  // Fetch per-council (in parallel) rather than one combined query with a global
-  // limit. A single .in(...).limit(50) lets a busy borough (e.g. Southwark, 100+)
-  // fill every slot and starve quieter councils, so their cards render empty even
-  // though rows exist. A per-council cap guarantees each tracked area shows its
-  // own recent applications. nullsFirst:false keeps undated rows from sorting on top.
-  const perCouncil = await Promise.all(
-    councilSlugs.map((slug) =>
-      supabase
-        .from('planning_applications')
-        .select('*')
-        .eq('council_slug', slug)
-        .order('application_date', { ascending: false, nullsFirst: false })
-        .limit(30),
-    ),
-  )
-  const applications = perCouncil.flatMap((r) => r.data ?? [])
-
-  // Which of these applications is the user already tracking as a lead? Used to
-  // show "Tracked ✓" instead of the Track button. RLS scopes this to the user.
-  const { data: leads } = await supabase
-    .from('tracked_leads')
-    .select('application_id')
   const trackedIds = new Set((leads ?? []).map((l) => l.application_id as string))
-
   // Track Opportunity is a professional feature — homeowners just watch.
-  const profile = await getProfile()
   const showTrackActions = hasProAccess(profile)
 
-  // Stat strip — a real accurate count (not the per-council-capped list above),
-  // plus HOT-lead and pipeline counts for professional accounts.
-  const [{ count: totalApplications }, hotCount, pipelineCount] = await Promise.all([
-    councilSlugs.length > 0
-      ? supabase.from('planning_applications').select('*', { count: 'exact', head: true }).in('council_slug', councilSlugs)
-      : Promise.resolve({ count: 0 }),
-    showTrackActions && councilSlugs.length > 0
-      ? supabase.from('planning_applications').select('*', { count: 'exact', head: true }).in('council_slug', councilSlugs).eq('band', 'HOT')
-      : Promise.resolve({ count: null }),
-    showTrackActions
-      ? supabase.from('tracked_leads').select('*', { count: 'exact', head: true })
-      : Promise.resolve({ count: null }),
+  // Both of these only depend on the batch above (councilSlugs/showTrackActions),
+  // not on each other — run them concurrently too.
+  const [perCouncil, [{ count: totalApplications }, hotCount, pipelineCount]] = await Promise.all([
+    // Fetch per-council (in parallel) rather than one combined query with a global
+    // limit. A single .in(...).limit(50) lets a busy borough (e.g. Southwark, 100+)
+    // fill every slot and starve quieter councils, so their cards render empty even
+    // though rows exist. A per-council cap guarantees each tracked area shows its
+    // own recent applications. nullsFirst:false keeps undated rows from sorting on top.
+    Promise.all(
+      councilSlugs.map((slug) =>
+        supabase
+          .from('planning_applications')
+          .select('*')
+          .eq('council_slug', slug)
+          .order('application_date', { ascending: false, nullsFirst: false })
+          .limit(30),
+      ),
+    ),
+    // Stat strip — a real accurate count (not the per-council-capped list above),
+    // plus HOT-lead and pipeline counts for professional accounts.
+    Promise.all([
+      councilSlugs.length > 0
+        ? supabase.from('planning_applications').select('*', { count: 'exact', head: true }).in('council_slug', councilSlugs)
+        : Promise.resolve({ count: 0 }),
+      showTrackActions && councilSlugs.length > 0
+        ? supabase.from('planning_applications').select('*', { count: 'exact', head: true }).in('council_slug', councilSlugs).eq('band', 'HOT')
+        : Promise.resolve({ count: null }),
+      showTrackActions
+        ? supabase.from('tracked_leads').select('*', { count: 'exact', head: true })
+        : Promise.resolve({ count: null }),
+    ]),
   ])
+  const applications = perCouncil.flatMap((r) => r.data ?? [])
 
   const councilCount = councilSlugs.length
 
