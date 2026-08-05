@@ -42,7 +42,7 @@ export default function LeadsList({
   return (
     <div className="space-y-4">
       {/* Score disclaimer — visible at the point scores are read. */}
-      <p className="text-xs leading-relaxed text-[#A0A1A6]">{SCORE_DISCLAIMER}</p>
+      <p className="text-xs leading-relaxed text-ink-muted">{SCORE_DISCLAIMER}</p>
 
       {/* Band filter */}
       <div className="flex gap-2">
@@ -67,10 +67,10 @@ export default function LeadsList({
       </div>
 
       {applications.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-[#D6E4FB] p-10 text-center">
-          <p className="text-sm text-[#6B6C70]">
+        <div className="rounded-md border border-dashed border-border">
+          <p className="text-sm text-ink-muted">
             No scored applications{activeBand !== 'ALL' ? ` in ${activeBand}` : ''} yet.
-            Run <code className="font-mono text-xs">/api/score</code> after the scraper has stored data.
+            Run <code className="tabular-data text-xs">/api/score</code> after the scraper has stored data.
           </p>
         </div>
       ) : (
@@ -113,7 +113,7 @@ function LeadCard({
   }
 
   return (
-    <div className="rounded-lg border border-[#D6E4FB] bg-white p-4">
+    <div className="rounded-md border border-border bg-surface p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-0.5">
@@ -132,13 +132,13 @@ function LeadCard({
               {app.reference}
             </a>
             {app.application_date && (
-              <span className="text-xs text-[#A0A1A6]">{app.application_date}</span>
+              <span className="text-xs text-ink-muted">{app.application_date}</span>
             )}
           </div>
-          <p className="text-sm text-[#202124] line-clamp-2" title={app.description ?? undefined}>
+          <p className="text-sm text-ink line-clamp-2" title={app.description ?? undefined}>
             {app.description ?? 'No description'}
           </p>
-          {app.address && <p className="text-xs text-[#A0A1A6] mt-0.5">{app.address}</p>}
+          {app.address && <p className="text-xs text-ink-muted mt-0.5">{app.address}</p>}
         </div>
 
         {showTrackActions && (

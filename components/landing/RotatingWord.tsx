@@ -46,7 +46,7 @@ export default function RotatingWord() {
         <span
           key={`leave-${leaving}`}
           aria-hidden="true"
-          className="motion-safe-fade absolute left-0 top-0 whitespace-nowrap text-[#2563EB]"
+          className="motion-safe-fade absolute left-0 top-0 whitespace-nowrap text-primary-500"
           style={{ animation: `word-leave ${TRANSITION_MS}ms cubic-bezier(.2,.7,.3,1) forwards` }}
         >
           {WORDS[leaving]}
@@ -54,7 +54,7 @@ export default function RotatingWord() {
       )}
       <span
         key={`current-${current}`}
-        className="motion-safe-fade absolute left-0 top-0 whitespace-nowrap text-[#2563EB]"
+        className="motion-safe-fade absolute left-0 top-0 whitespace-nowrap text-primary-500"
         style={{ animation: `word-enter ${TRANSITION_MS}ms cubic-bezier(.2,.7,.3,1) forwards` }}
       >
         {WORDS[current]}

@@ -16,8 +16,8 @@ export default function PipelineBoard({ leads }: { leads: TrackedLead[] }) {
 
   if (leads.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-[#D6E4FB] p-10 text-center">
-        <p className="text-sm text-[#6B6C70]">
+      <div className="rounded-md border border-dashed border-border">
+        <p className="text-sm text-ink-muted">
           No tracked opportunities yet. Hit &ldquo;Track Opportunity&rdquo; on an application
           in your territory to add it here.
         </p>
@@ -37,8 +37,8 @@ export default function PipelineBoard({ leads }: { leads: TrackedLead[] }) {
         {PIPELINE_STAGES.map((stage) => (
           <div key={stage} className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-[#202124]">{stage}</h3>
-              <span className="text-xs text-[#A0A1A6]">{byStage[stage].length}</span>
+              <h3 className="text-sm font-semibold text-ink">{stage}</h3>
+              <span className="text-xs text-ink-muted">{byStage[stage].length}</span>
             </div>
             {byStage[stage].map((lead) => (
               <LeadCard key={lead.id} lead={lead} onOutreach={() => setOutreachLead(lead)} />
@@ -66,7 +66,7 @@ function LeadCard({ lead, onOutreach }: { lead: TrackedLead; onOutreach: () => v
   }
 
   return (
-    <div className="rounded-lg border border-[#D6E4FB] bg-white p-3">
+    <div className="rounded-md border border-border bg-surface p-4 shadow-sm">
       <div className="mb-1 flex items-center gap-2">
         <span className="tabular-data text-xs text-ink-muted">{lead.reference}</span>
         {lead.priority_follow_up && (
@@ -76,15 +76,15 @@ function LeadCard({ lead, onOutreach }: { lead: TrackedLead; onOutreach: () => v
         )}
       </div>
 
-      <p className="text-sm text-[#202124] line-clamp-2" title={lead.description ?? undefined}>
+      <p className="text-sm text-ink line-clamp-2" title={lead.description ?? undefined}>
         {lead.description ?? 'No description'}
       </p>
-      {lead.address && <p className="mt-0.5 text-xs text-[#A0A1A6]">{lead.address}</p>}
+      {lead.address && <p className="mt-0.5 text-xs text-ink-muted">{lead.address}</p>}
       {lead.cached_status && (
-        <p className="mt-1 text-xs text-[#6B6C70]">Status: {lead.cached_status}</p>
+        <p className="mt-1 text-xs text-ink-muted">Status: {lead.cached_status}</p>
       )}
       {lead.last_contacted_at && (
-        <p className="mt-0.5 text-xs text-[#A0A1A6]">
+        <p className="mt-0.5 text-xs text-ink-muted">
           Contacted {new Date(lead.last_contacted_at).toLocaleDateString('en-GB')}
         </p>
       )}
@@ -94,7 +94,7 @@ function LeadCard({ lead, onOutreach }: { lead: TrackedLead; onOutreach: () => v
           value={lead.pipeline_stage}
           onChange={(e) => handleStageChange(e.target.value as PipelineStage)}
           disabled={isPending}
-          className="flex-1 rounded border border-[#D6E4FB] px-1.5 py-1 text-xs text-[#202124] disabled:opacity-50"
+          className="flex-1 rounded-sm border border-border px-1.5 py-1 text-xs text-ink disabled:opacity-50"
         >
           {PIPELINE_STAGES.map((s) => (
             <option key={s} value={s}>{s}</option>

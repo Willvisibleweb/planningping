@@ -101,16 +101,16 @@ export default async function TerritoryPage({
   return (
     <div className="space-y-6">
       <div>
-        <a href="/dashboard" className="text-xs font-medium text-[#2563EB] hover:underline">
+        <a href="/dashboard" className="text-xs font-medium text-primary-500 hover:underline">
           &larr; Back to territory
         </a>
         <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-xl font-semibold text-[#202124]">{area.label}</h2>
-          <span className="text-sm text-[#6B6C70]">
+          <h2 className="text-xl font-semibold text-ink">{area.label}</h2>
+          <span className="text-sm text-ink-muted">
             {apps.length} application{apps.length === 1 ? '' : 's'}
           </span>
         </div>
-        <p className="text-sm text-[#6B6C70] mt-0.5">
+        <p className="text-sm text-ink-muted mt-0.5">
           {area.postcode} — {councilRow?.name ?? area.council_slug}
         </p>
       </div>
@@ -125,7 +125,7 @@ export default async function TerritoryPage({
           totalApplicationsCount={apps.length}
         />
       ) : (
-        <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-[#D6E4FB] text-sm text-[#A0A1A6]">
+        <div className="flex h-40 items-center justify-center rounded-md border border-dashed border-border text-sm text-ink-muted">
           Could not locate this postcode on the map.
         </div>
       )}
@@ -140,8 +140,8 @@ export default async function TerritoryPage({
         />
 
         {(councilRow?.portal_url || councilSeo || postcodeSeo) && (
-          <div className="rounded-lg border border-[#D6E4FB] bg-white p-4">
-            <h3 className="text-sm font-medium text-[#202124]">Links</h3>
+          <div className="rounded-md border border-border bg-surface p-5 shadow-sm">
+            <h3 className="text-sm font-medium text-ink">Links</h3>
             <ul className="mt-2 space-y-1.5">
               {councilRow?.portal_url && (
                 <li>
@@ -149,7 +149,7 @@ export default async function TerritoryPage({
                     href={councilRow.portal_url}
                     target="_blank"
                     rel="noopener noreferrer nofollow"
-                    className="text-xs font-medium text-[#2563EB] hover:underline"
+                    className="text-xs font-medium text-primary-500 hover:underline"
                   >
                     {councilRow.name ?? area.council_slug} planning portal &rarr;
                   </a>
@@ -157,14 +157,14 @@ export default async function TerritoryPage({
               )}
               {councilSeo && (
                 <li>
-                  <a href={`/planning-applications/${area.council_slug}`} className="text-xs font-medium text-[#2563EB] hover:underline">
+                  <a href={`/planning-applications/${area.council_slug}`} className="text-xs font-medium text-primary-500 hover:underline">
                     Public {councilRow?.name ?? area.council_slug} applications page &rarr;
                   </a>
                 </li>
               )}
               {postcodeSeo && district && (
                 <li>
-                  <a href={`/planning-applications/postcode/${district}`} className="text-xs font-medium text-[#2563EB] hover:underline">
+                  <a href={`/planning-applications/postcode/${district}`} className="text-xs font-medium text-primary-500 hover:underline">
                     Public {district.toUpperCase()} postcode page &rarr;
                   </a>
                 </li>
@@ -174,8 +174,8 @@ export default async function TerritoryPage({
         )}
       </div>
 
-      <div className="rounded-lg border border-[#D6E4FB] bg-white p-5">
-        <h3 className="text-sm font-medium text-[#202124] mb-3">Applications</h3>
+      <div className="rounded-md border border-border bg-surface p-6 shadow-sm">
+        <h3 className="text-sm font-medium text-ink mb-3">Applications</h3>
         <ApplicationSearchList
           items={sorted.map(({ app, distance }) => ({
             app,

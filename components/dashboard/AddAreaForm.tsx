@@ -18,8 +18,8 @@ export default function AddAreaForm() {
   }
 
   return (
-    <div className="rounded-lg border border-[#D6E4FB] bg-white p-5 shadow-[0_1px_2px_rgba(32,33,36,.04)]">
-      <h3 className="text-sm font-medium text-[#202124] mb-3">Add a territory to track</h3>
+    <div className="rounded-md border border-border bg-surface p-6 shadow-sm">
+      <h3 className="text-sm font-medium text-ink mb-3">Add a territory to track</h3>
       <form action={handleSubmit} className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1">
           <input
@@ -27,7 +27,7 @@ export default function AddAreaForm() {
             type="text"
             placeholder="Postcode, e.g. SW1A 1AA"
             required
-            className="w-full rounded-md border border-[#D6E4FB] px-3 py-2 text-sm text-[#202124] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/40"
+            className="w-full rounded-md border border-border px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-[#2563EB]/40"
           />
         </div>
         <div className="flex-1">
@@ -36,7 +36,7 @@ export default function AddAreaForm() {
             type="text"
             placeholder="Label, e.g. Midlands Patch, Client Site A"
             required
-            className="w-full rounded-md border border-[#D6E4FB] px-3 py-2 text-sm text-[#202124] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/40"
+            className="w-full rounded-md border border-border px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-[#2563EB]/40"
           />
         </div>
         <Button type="submit" loading={isPending} loadingLabel="Adding territory">

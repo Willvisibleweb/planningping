@@ -88,15 +88,15 @@ export default function Sidebar({ userEmail, professional, onTrial, daysLeft }: 
     return (
       <div className="flex h-full flex-col">
         {/* Brand + collapse toggle */}
-        <div className={`flex h-14 items-center border-b border-[#D6E4FB] ${showLabels ? 'justify-between px-4' : 'justify-center px-2'}`}>
+        <div className={`flex h-14 items-center border-b border-border ${showLabels ? 'justify-between px-4' : 'justify-center px-2'}`}>
           {showLabels && (
-            <a href="/dashboard" className="text-base font-semibold tracking-tight text-[#202124]">
-              Planning<span className="text-[#2563EB]">Ping</span>
+            <a href="/dashboard" className="text-base font-semibold tracking-tight text-ink">
+              Planning<span className="text-primary-500">Ping</span>
             </a>
           )}
           <button
             onClick={toggleCollapsed}
-            className="hidden rounded-md p-1.5 text-[#A0A1A6] hover:bg-[#F7F7F8] hover:text-[#202124] lg:block"
+            className="hidden rounded-md p-1.5 text-ink-muted hover:bg-surface-sunken hover:text-ink lg:block"
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             title={collapsed ? 'Expand' : 'Collapse'}
           >
@@ -114,11 +114,11 @@ export default function Sidebar({ userEmail, professional, onTrial, daysLeft }: 
                 href={href}
                 title={!showLabels ? label : undefined}
                 className={[
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                  'flex items-center gap-3 rounded-sm px-3 py-2 text-sm font-medium transition-colors',
                   !showLabels && 'justify-center px-0',
                   active
-                    ? 'bg-[#EAF0FF] text-[#2563EB]'
-                    : 'text-[#6B6C70] hover:bg-[#F7F7F8] hover:text-[#202124]',
+                    ? 'bg-primary-100 text-primary-500'
+                    : 'text-ink-muted hover:bg-surface-sunken hover:text-ink',
                 ].filter(Boolean).join(' ')}
               >
                 <Icon size={18} className="shrink-0" />
@@ -128,11 +128,11 @@ export default function Sidebar({ userEmail, professional, onTrial, daysLeft }: 
           })}
 
           {showLabels && (
-            <p className="mb-1 mt-4 px-3 text-[10.5px] font-semibold uppercase tracking-wider text-[#A0A1A6]">
+            <p className="mb-1 mt-4 px-3 text-2xs font-semibold uppercase tracking-wider text-ink-muted">
               Resources
             </p>
           )}
-          {!showLabels && <div className="my-2 border-t border-[#D6E4FB]" />}
+          {!showLabels && <div className="my-2 border-t border-border" />}
           {RESOURCE_NAV.map(({ href, label, icon: Icon }) => {
             const active = isActive(href)
             return (
@@ -141,11 +141,11 @@ export default function Sidebar({ userEmail, professional, onTrial, daysLeft }: 
                 href={href}
                 title={!showLabels ? label : undefined}
                 className={[
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                  'flex items-center gap-3 rounded-sm px-3 py-2 text-sm font-medium transition-colors',
                   !showLabels && 'justify-center px-0',
                   active
-                    ? 'bg-[#EAF0FF] text-[#2563EB]'
-                    : 'text-[#6B6C70] hover:bg-[#F7F7F8] hover:text-[#202124]',
+                    ? 'bg-primary-100 text-primary-500'
+                    : 'text-ink-muted hover:bg-surface-sunken hover:text-ink',
                 ].filter(Boolean).join(' ')}
               >
                 <Icon size={18} className="shrink-0" />
@@ -156,27 +156,27 @@ export default function Sidebar({ userEmail, professional, onTrial, daysLeft }: 
         </nav>
 
         {/* Footer: trial, account, sign out */}
-        <div className="border-t border-[#D6E4FB] p-3">
+        <div className="border-t border-border p-3">
           {onTrial && showLabels && (
             <a
               href="/settings#billing"
-              className="mb-3 block rounded-lg bg-[#EAF0FF] px-3 py-2 text-xs font-medium text-[#2563EB] hover:bg-[#DCE7FF]"
+              className="mb-3 block rounded-sm bg-primary-100 px-3 py-2 text-xs font-medium text-primary-500 hover:bg-primary-200"
             >
               Trial: {daysLeft} day{daysLeft === 1 ? '' : 's'} left
             </a>
           )}
           {showLabels ? (
             <div className="flex items-center gap-2">
-              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#F7F7F8] text-xs font-semibold uppercase text-[#6B6C70]">
+              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-surface-sunken text-xs font-semibold uppercase text-ink-muted">
                 {userEmail.charAt(0)}
               </div>
-              <span className="min-w-0 flex-1 truncate text-xs text-[#6B6C70]" title={userEmail}>
+              <span className="min-w-0 flex-1 truncate text-xs text-ink-muted" title={userEmail}>
                 {userEmail}
               </span>
               <button
                 onClick={handleLogout}
                 disabled={isPending}
-                className="rounded-md p-1.5 text-[#A0A1A6] hover:bg-[#F7F7F8] hover:text-[#202124] disabled:opacity-50"
+                className="rounded-md p-1.5 text-ink-muted hover:bg-surface-sunken hover:text-ink disabled:opacity-50"
                 aria-label="Sign out"
                 title="Sign out"
               >
@@ -187,7 +187,7 @@ export default function Sidebar({ userEmail, professional, onTrial, daysLeft }: 
             <button
               onClick={handleLogout}
               disabled={isPending}
-              className="flex w-full justify-center rounded-md p-2 text-[#A0A1A6] hover:bg-[#F7F7F8] hover:text-[#202124] disabled:opacity-50"
+              className="flex w-full justify-center rounded-md p-2 text-ink-muted hover:bg-surface-sunken hover:text-ink disabled:opacity-50"
               aria-label="Sign out"
               title="Sign out"
             >
@@ -202,22 +202,22 @@ export default function Sidebar({ userEmail, professional, onTrial, daysLeft }: 
   return (
     <>
       {/* Mobile top bar */}
-      <div className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-[#D6E4FB] bg-white px-4 lg:hidden">
+      <div className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-surface px-4 lg:hidden">
         <button
           onClick={() => setMobileOpen(true)}
-          className="rounded-md p-1.5 text-[#6B6C70] hover:bg-[#F7F7F8]"
+          className="rounded-md p-1.5 text-ink-muted hover:bg-surface-sunken"
           aria-label="Open menu"
         >
           <Menu size={20} />
         </button>
-        <a href="/dashboard" className="text-base font-semibold tracking-tight text-[#202124]">
-          Planning<span className="text-[#2563EB]">Ping</span>
+        <a href="/dashboard" className="text-base font-semibold tracking-tight text-ink">
+          Planning<span className="text-primary-500">Ping</span>
         </a>
       </div>
 
       {/* Desktop rail */}
       <aside
-        className={`sticky top-0 hidden h-screen shrink-0 border-r border-[#D6E4FB] bg-white transition-[width] duration-200 ease-out lg:block ${collapsed ? 'w-16' : 'w-60'}`}
+        className={`sticky top-0 hidden h-screen shrink-0 border-r border-border bg-surface transition-[width] duration-200 ease-out lg:block ${collapsed ? 'w-16' : 'w-60'}`}
       >
         <Inner showLabels={!collapsed} />
       </aside>
@@ -226,14 +226,14 @@ export default function Sidebar({ userEmail, professional, onTrial, daysLeft }: 
       {mobileOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div
-            className="absolute inset-0 bg-gray-900/40"
+            className="absolute inset-0 bg-neutral-900/40"
             onClick={() => setMobileOpen(false)}
             aria-hidden="true"
           />
-          <div className="absolute inset-y-0 left-0 w-64 bg-white shadow-xl">
+          <div className="absolute inset-y-0 left-0 w-64 bg-surface shadow-lg">
             <button
               onClick={() => setMobileOpen(false)}
-              className="absolute right-3 top-3 rounded-md p-1.5 text-[#A0A1A6] hover:bg-[#F7F7F8] hover:text-[#202124]"
+              className="absolute right-3 top-3 rounded-md p-1.5 text-ink-muted hover:bg-surface-sunken hover:text-ink"
               aria-label="Close menu"
             >
               <X size={18} />

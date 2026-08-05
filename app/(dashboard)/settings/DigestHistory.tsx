@@ -2,23 +2,23 @@ import type { Digest } from '@/types/database'
 
 export default function DigestHistory({ digests }: { digests: Digest[] }) {
   return (
-    <div className="rounded-lg border border-[#D6E4FB] bg-white p-5">
-      <h3 className="text-sm font-medium text-[#202124] mb-4">Digest history</h3>
+    <div className="rounded-md border border-border bg-surface p-6 shadow-sm">
+      <h3 className="text-sm font-medium text-ink mb-4">Digest history</h3>
       {digests.length === 0 ? (
-        <p className="text-sm text-[#A0A1A6]">No digests sent yet.</p>
+        <p className="text-sm text-ink-muted">No digests sent yet.</p>
       ) : (
-        <div className="divide-y divide-[#E9F0FD]">
+        <div className="divide-y divide-border">
           {digests.map((digest) => (
-            <div key={digest.id} className="py-2 flex items-center justify-between">
+            <div key={digest.id} className="-mx-2 flex items-center justify-between rounded-sm px-2 py-3 transition-colors duration-fast ease-standard hover:bg-primary-50/60">
               <div>
-                <p className="text-sm text-[#202124]">
+                <p className="text-sm text-ink">
                   {digest.application_count} application{digest.application_count !== 1 ? 's' : ''}
                 </p>
-                <p className="text-xs text-[#A0A1A6]">
+                <p className="text-xs text-ink-muted">
                   {digest.period_start} → {digest.period_end}
                 </p>
               </div>
-              <p className="text-xs text-[#A0A1A6]">
+              <p className="text-xs text-ink-muted">
                 {new Date(digest.sent_at).toLocaleDateString('en-GB')}
               </p>
             </div>

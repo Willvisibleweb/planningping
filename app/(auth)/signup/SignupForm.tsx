@@ -39,8 +39,8 @@ export default function SignupForm({
 
   if (success) {
     return (
-      <div className="rounded-lg border border-[#E5E7EB] bg-white p-6 text-center shadow-sm">
-        <p className="text-sm text-[#374151]">
+      <div className="rounded-md border border-border bg-surface p-7 text-center shadow-sm">
+        <p className="text-sm text-ink">
           Account created. Check your email to confirm your address before signing in.
         </p>
       </div>
@@ -48,10 +48,10 @@ export default function SignupForm({
   }
 
   return (
-    <div className="rounded-lg border border-[#E5E7EB] bg-white p-6 shadow-sm">
+    <div className="rounded-md border border-border bg-surface p-7 shadow-sm">
       <form action={handleSubmit} className="space-y-4">
         <fieldset>
-          <legend className="block text-sm font-medium text-[#374151] mb-2">
+          <legend className="block text-sm font-medium text-ink mb-2">
             How will you use PlanningPing?
           </legend>
           <div className="space-y-2">
@@ -85,7 +85,7 @@ export default function SignupForm({
         </fieldset>
 
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-[#374151] mb-1">
+          <label htmlFor="email" className="block text-sm font-medium text-ink mb-1">
             Email
           </label>
           <input
@@ -94,12 +94,12 @@ export default function SignupForm({
             type="email"
             required
             autoComplete="email"
-            className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+            className="w-full rounded-md border border-border px-3 py-2 text-sm text-ink placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
           />
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-[#374151] mb-1">
+          <label htmlFor="password" className="block text-sm font-medium text-ink mb-1">
             Password
           </label>
           <input
@@ -109,13 +109,13 @@ export default function SignupForm({
             required
             autoComplete="new-password"
             minLength={8}
-            className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+            className="w-full rounded-md border border-border px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
           />
-          <p className="mt-1 text-xs text-[#9CA3AF]">Minimum 8 characters</p>
+          <p className="mt-1 text-xs text-neutral-500">Minimum 8 characters</p>
         </div>
 
         {error && (
-          <p className="text-sm text-red-600">{error}</p>
+          <p className="text-sm text-danger-600">{error}</p>
         )}
 
         <p className="text-xs leading-relaxed text-ink-muted">

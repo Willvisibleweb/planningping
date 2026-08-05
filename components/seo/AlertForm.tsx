@@ -42,18 +42,18 @@ export default function AlertForm({ locationSlug, locationType, placeName }: Pro
 
   if (state === 'done') {
     return (
-      <div className="rounded-xl border border-[#DCE7FF] bg-[#EFF4FF] px-5 py-4 text-sm text-[#1D4ED8]">
+      <div className="rounded-md border border-border bg-primary-100 px-5 py-4 text-sm text-primary-600">
         {message}
       </div>
     )
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-xl border border-[#DCE7FF] bg-[#F5F8FF] px-5 py-5">
-      <label htmlFor="alert-email" className="block text-sm font-semibold text-[#111827]">
+    <form onSubmit={handleSubmit} className="rounded-md border border-border bg-primary-50 px-5 py-5">
+      <label htmlFor="alert-email" className="block text-sm font-semibold text-ink">
         Get alerted when a new application is submitted near {placeName}
       </label>
-      <p className="mt-1 text-sm text-[#6B7280]">Free weekly email. No spam, unsubscribe anytime.</p>
+      <p className="mt-1 text-sm text-ink-muted">Free weekly email. No spam, unsubscribe anytime.</p>
       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
         <input
           id="alert-email"
@@ -63,7 +63,7 @@ export default function AlertForm({ locationSlug, locationType, placeName }: Pro
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
           disabled={state === 'submitting'}
-          className="w-full rounded-md border border-[#D1D5DB] bg-white px-3 py-2 text-sm text-[#111827] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 disabled:opacity-60"
+          className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 disabled:opacity-60"
         />
         <Button
           type="submit"

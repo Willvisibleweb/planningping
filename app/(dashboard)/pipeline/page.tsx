@@ -25,8 +25,8 @@ export default async function PipelinePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-[#202124] mb-1">Pipeline</h2>
-        <p className="text-sm text-[#6B6C70]">
+        <h2 className="text-xl font-semibold text-ink mb-1">Pipeline</h2>
+        <p className="text-sm text-ink-muted">
           Opportunities you&rsquo;re pursuing, by stage. Generate a tailored outreach draft
           for any opportunity, then mark it sent to log the contact date.
         </p>

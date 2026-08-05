@@ -20,8 +20,8 @@ export default function ResetPasswordForm() {
 
   if (sent) {
     return (
-      <div className="rounded-lg border border-[#E5E7EB] bg-white p-6 text-center shadow-sm">
-        <p className="text-sm text-[#374151]">
+      <div className="rounded-md border border-border bg-surface p-7 text-center shadow-sm">
+        <p className="text-sm text-ink">
           If that address is registered, you'll receive a reset link shortly.
         </p>
       </div>
@@ -29,10 +29,10 @@ export default function ResetPasswordForm() {
   }
 
   return (
-    <div className="rounded-lg border border-[#E5E7EB] bg-white p-6 shadow-sm">
+    <div className="rounded-md border border-border bg-surface p-7 shadow-sm">
       <form action={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-[#374151] mb-1">
+          <label htmlFor="email" className="block text-sm font-medium text-ink mb-1">
             Email
           </label>
           <input
@@ -41,12 +41,12 @@ export default function ResetPasswordForm() {
             type="email"
             required
             autoComplete="email"
-            className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+            className="w-full rounded-md border border-border px-3 py-2 text-sm text-ink placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
           />
         </div>
 
         {error && (
-          <p className="text-sm text-red-600">{error}</p>
+          <p className="text-sm text-danger-600">{error}</p>
         )}
 
         <Button type="submit" fullWidth loading={isPending} loadingLabel="Sending reset link">

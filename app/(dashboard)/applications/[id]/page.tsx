@@ -62,11 +62,11 @@ export default async function ApplicationDetailPage({
     <div className="space-y-6">
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <p className="font-mono text-sm text-[#6B6C70]">{app.reference}</p>
-          {app.application_date && <p className="text-xs text-[#A0A1A6]">{niceDate(app.application_date)}</p>}
+          <p className="tabular-data text-sm text-ink-muted">{app.reference}</p>
+          {app.application_date && <p className="text-xs text-ink-muted">{niceDate(app.application_date)}</p>}
         </div>
-        <h2 className="text-xl font-semibold text-[#202124]">{app.description ?? 'No description'}</h2>
-        {app.address && <p className="mt-1 text-sm text-[#6B6C70]">{app.address}</p>}
+        <h2 className="text-xl font-semibold text-ink">{app.description ?? 'No description'}</h2>
+        {app.address && <p className="mt-1 text-sm text-ink-muted">{app.address}</p>}
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {app.status ? (
@@ -92,8 +92,8 @@ export default async function ApplicationDetailPage({
       </div>
 
       {isDischarge && (
-        <div className="rounded-lg border border-[#D6E4FB] bg-white p-4">
-          <h3 className="text-sm font-medium text-[#202124]">Parent application</h3>
+        <div className="rounded-md border border-border bg-surface p-5 shadow-sm">
+          <h3 className="text-sm font-medium text-ink">Parent application</h3>
           {parent ? (
             <a
               href={`/applications/${parent.id}`}
@@ -104,12 +104,12 @@ export default async function ApplicationDetailPage({
               {parent.address && <p className="mt-1 text-xs text-ink-muted">{parent.address}</p>}
             </a>
           ) : app.parent_application_reference ? (
-            <p className="mt-2 text-sm text-[#6B6C70]">
-              Parent application <span className="font-mono">{app.parent_application_reference}</span> not
+            <p className="mt-2 text-sm text-ink-muted">
+              Parent application <span className="tabular-data">{app.parent_application_reference}</span> not
               found in our records yet — it may not have been tracked, or hasn&rsquo;t been ingested.
             </p>
           ) : (
-            <p className="mt-2 text-sm text-[#6B6C70]">
+            <p className="mt-2 text-sm text-ink-muted">
               The parent application reference could not be automatically identified from this
               application&rsquo;s description.
             </p>
@@ -118,30 +118,30 @@ export default async function ApplicationDetailPage({
       )}
 
       {childRows.length > 0 && (
-        <div className="rounded-lg border border-[#D6E4FB] bg-white p-4">
-          <h3 className="text-sm font-medium text-[#202124]">
+        <div className="rounded-md border border-border bg-surface p-5 shadow-sm">
+          <h3 className="text-sm font-medium text-ink">
             Linked discharge application{childRows.length === 1 ? '' : 's'}
           </h3>
-          <div className="mt-2 divide-y divide-[#E9F0FD]">
+          <div className="mt-2 divide-y divide-border">
             {childRows.map((child) => (
               <a
                 key={child.id}
                 href={`/applications/${child.id}`}
-                className="flex items-center justify-between gap-3 py-2.5 hover:bg-[#F7F9FF]"
+                className="flex items-center justify-between gap-3 py-2.5 hover:bg-primary-50"
               >
                 <div className="min-w-0">
-                  <p className="font-mono text-xs text-[#6B6C70]">{child.reference}</p>
+                  <p className="tabular-data text-xs text-ink-muted">{child.reference}</p>
                   {child.application_date && (
-                    <p className="text-xs text-[#A0A1A6]">Submitted {niceDate(child.application_date)}</p>
+                    <p className="text-xs text-ink-muted">Submitted {niceDate(child.application_date)}</p>
                   )}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {child.is_stale && (
-                    <span className="rounded-full bg-[#FFFBEB] px-2 py-0.5 text-[11px] font-medium text-[#B45309]">
+                    <span className="rounded-full bg-warning-50 px-2 py-0.5 text-2xs font-medium text-warning-600">
                       Stale
                     </span>
                   )}
-                  <span className="text-xs text-[#6B6C70]">{child.status ?? 'Status not available'}</span>
+                  <span className="text-xs text-ink-muted">{child.status ?? 'Status not available'}</span>
                 </div>
               </a>
             ))}

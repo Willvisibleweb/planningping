@@ -20,12 +20,12 @@ export default function TrackedAreasList({ areas, applications, trackedIds, show
 
   if (areas.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-[#D6E4FB] p-10 text-center">
-        <div className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-full bg-[#EAF0FF] text-[#2563EB]">
+      <div className="rounded-md border border-dashed border-border">
+        <div className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-full bg-primary-100 text-primary-500">
           <MapPin size={20} />
         </div>
-        <p className="text-sm font-medium text-[#202124]">No territory tracked yet</p>
-        <p className="mt-1 text-sm text-[#6B6C70]">Add a postcode above and we&rsquo;ll start monitoring that planning authority for you.</p>
+        <p className="text-sm font-medium text-ink">No territory tracked yet</p>
+        <p className="mt-1 text-sm text-ink-muted">Add a postcode above and we&rsquo;ll start monitoring that planning authority for you.</p>
       </div>
     )
   }
@@ -84,7 +84,7 @@ function AreaCard({
   const visible = showAll ? applications : applications.slice(0, 5)
 
   return (
-    <div className="rounded-lg border border-[#D6E4FB] bg-white p-5 shadow-[0_1px_2px_rgba(32,33,36,.04)]">
+    <div className="rounded-md border border-border bg-surface p-6 shadow-sm">
       <div className="flex items-start justify-between">
         <div>
           <a
@@ -122,7 +122,7 @@ function AreaCard({
       </div>
 
       {applications.length > 0 ? (
-        <div className="mt-4 divide-y divide-[#E9F0FD]">
+        <div className="mt-4 divide-y divide-border">
           {visible.map((app) => (
             <ApplicationRow
               key={app.id}
@@ -143,7 +143,7 @@ function AreaCard({
           )}
         </div>
       ) : (
-        <div className="mt-3 flex items-center gap-2 text-xs text-[#A0A1A6]">
+        <div className="mt-3 flex items-center gap-2 text-xs text-ink-muted">
           <Inbox size={14} className="shrink-0" />
           No planning applications found in this territory yet.
         </div>

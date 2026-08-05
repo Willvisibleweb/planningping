@@ -152,13 +152,13 @@ export default function OutreachModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-xl rounded-lg bg-white p-5 shadow-xl"
+        className="w-full max-w-xl rounded-lg bg-surface p-6 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-start justify-between">
           <div>
-            <h3 className="text-base font-semibold text-[#202124]">Opportunity brief</h3>
-            <p className="font-mono text-xs text-[#A0A1A6]">{lead.reference}</p>
+            <h3 className="text-base font-semibold text-ink">Opportunity brief</h3>
+            <p className="tabular-data text-xs text-ink-muted">{lead.reference}</p>
           </div>
           <button
             onClick={onClose}
@@ -178,22 +178,22 @@ export default function OutreachModal({
         </div>
 
         {loading ? (
-          <div className="py-12 text-center text-sm text-[#6B6C70]">Analysing…</div>
+          <div className="py-12 text-center text-sm text-ink-muted">Analysing…</div>
         ) : error ? (
-          <p className="py-8 text-center text-sm text-red-600">{error}</p>
+          <p className="py-8 text-center text-sm text-danger-600">{error}</p>
         ) : (
           <>
             {activeBrief && (
-              <div className="mb-4 rounded-md border border-[#D6E4FB] bg-[#F7F9FF] p-3">
+              <div className="mb-4 rounded-md border border-border bg-primary-50 p-3">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="rounded bg-[#2563EB] px-2 py-0.5 text-xs font-semibold text-white">
+                  <span className="rounded-sm bg-primary-500 px-2 py-0.5 text-xs font-semibold text-white">
                     {activeBrief.scope}
                   </span>
-                  <span className="rounded bg-[#F7F7F8] px-2 py-0.5 text-xs text-[#6B6C70]">
+                  <span className="rounded-sm bg-surface-sunken px-2 py-0.5 text-xs text-ink-muted">
                     {activeBrief.valueSignal}
                   </span>
                 </div>
-                <p className="mt-2 text-sm text-[#202124]">{activeBrief.reasoning}</p>
+                <p className="mt-2 text-sm text-ink">{activeBrief.reasoning}</p>
               </div>
             )}
 
@@ -212,9 +212,9 @@ export default function OutreachModal({
                   value={emailDraftText}
                   onChange={(e) => setEdits((prev) => ({ ...prev, [selected]: e.target.value }))}
                   rows={11}
-                  className="w-full rounded-md border border-[#D6E4FB] p-3 text-sm text-[#202124] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+                  className="w-full rounded-md border border-border p-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
                 />
-                <p className="mt-1 text-xs text-[#A0A1A6]">
+                <p className="mt-1 text-xs text-ink-muted">
                   Edit freely, then copy into your email client. Marking as sent logs today
                   as the contact date.
                 </p>
@@ -225,9 +225,9 @@ export default function OutreachModal({
                   value={letterEdit}
                   onChange={(e) => setLetterEdit(e.target.value)}
                   rows={11}
-                  className="w-full rounded-md border border-[#D6E4FB] p-3 text-sm text-[#202124] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+                  className="w-full rounded-md border border-border p-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
                 />
-                <p className="mt-1 text-xs text-[#A0A1A6]">
+                <p className="mt-1 text-xs text-ink-muted">
                   Edit freely, then download as a PDF to print and post. Uses the firm
                   letterhead saved in{' '}
                   <a href="/settings" className="pp-link font-medium">
@@ -235,7 +235,7 @@ export default function OutreachModal({
                   </a>{' '}
                   — optional, the letter still downloads fine without one.
                 </p>
-                {downloadError && <p className="mt-1 text-xs text-red-600">{downloadError}</p>}
+                {downloadError && <p className="mt-1 text-xs text-danger-600">{downloadError}</p>}
               </>
             )}
 

@@ -26,8 +26,8 @@ export default function AuthForm() {
 
   if (magicSent) {
     return (
-      <div className="rounded-lg border border-[#E5E7EB] bg-white p-6 text-center shadow-sm">
-        <p className="text-sm text-[#374151]">
+      <div className="rounded-md border border-border bg-surface p-7 text-center shadow-sm">
+        <p className="text-sm text-ink">
           Check your email — we sent a sign-in link.
         </p>
       </div>
@@ -35,10 +35,10 @@ export default function AuthForm() {
   }
 
   return (
-    <div className="rounded-lg border border-[#E5E7EB] bg-white p-6 shadow-sm">
+    <div className="rounded-md border border-border bg-surface p-7 shadow-sm">
       <form action={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-[#374151] mb-1">
+          <label htmlFor="email" className="block text-sm font-medium text-ink mb-1">
             Email
           </label>
           <input
@@ -47,14 +47,14 @@ export default function AuthForm() {
             type="email"
             required
             autoComplete="email"
-            className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+            className="w-full rounded-md border border-border px-3 py-2 text-sm text-ink placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
           />
         </div>
 
         {mode === 'password' && (
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label htmlFor="password" className="block text-sm font-medium text-[#374151]">
+              <label htmlFor="password" className="block text-sm font-medium text-ink">
                 Password
               </label>
               <a href="/reset-password" className="pp-link text-xs">
@@ -67,13 +67,13 @@ export default function AuthForm() {
               type="password"
               required
               autoComplete="current-password"
-              className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+              className="w-full rounded-md border border-border px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
             />
           </div>
         )}
 
         {error && (
-          <p className="text-sm text-red-600">{error}</p>
+          <p className="text-sm text-danger-600">{error}</p>
         )}
 
         {/* The label swaps between modes, so the button is sized to the widest

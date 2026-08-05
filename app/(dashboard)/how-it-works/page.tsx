@@ -30,8 +30,8 @@ export default function HowItWorksPage() {
   return (
     <div className="max-w-2xl space-y-8">
       <div>
-        <h2 className="text-xl font-semibold text-[#202124] mb-1">How it works</h2>
-        <p className="text-sm text-[#6B6C70]">
+        <h2 className="text-xl font-semibold text-ink mb-1">How it works</h2>
+        <p className="text-sm text-ink-muted">
           Planning applications, turned into a working list of leads for your business
           development.
         </p>
@@ -40,20 +40,20 @@ export default function HowItWorksPage() {
       <ol className="space-y-5">
         {STEPS.map((step, i) => (
           <li key={step.title} className="flex gap-4">
-            <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#D6E4FB] bg-[#EAF0FF] text-xs font-semibold tabular-nums text-[#2563EB]">
+            <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border bg-primary-100 text-xs font-semibold tabular-nums text-primary-500">
               {i + 1}
             </span>
             <div>
-              <h3 className="text-sm font-semibold text-[#202124]">{step.title}</h3>
-              <p className="mt-0.5 text-sm leading-relaxed text-[#6B6C70]">{step.body}</p>
+              <h3 className="text-sm font-semibold text-ink">{step.title}</h3>
+              <p className="mt-0.5 text-sm leading-relaxed text-ink-muted">{step.body}</p>
             </div>
           </li>
         ))}
       </ol>
 
-      <div className="rounded-lg border border-[#D6E4FB] bg-white p-5">
-        <h3 className="text-sm font-semibold text-[#202124]">Homeowner vs. professional</h3>
-        <p className="mt-1.5 text-sm leading-relaxed text-[#6B6C70]">
+      <div className="rounded-md border border-border bg-surface p-6 shadow-sm">
+        <h3 className="text-sm font-semibold text-ink">Homeowner vs. professional</h3>
+        <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
           Homeowner accounts get territory tracking and Leads (read-only) for free, forever.
           Professional accounts unlock Pipeline and AI outreach, with a 14-day free trial and
           no card required to start.

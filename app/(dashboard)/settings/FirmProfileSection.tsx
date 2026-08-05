@@ -71,9 +71,9 @@ export default function FirmProfileSection({
   }
 
   return (
-    <div className="rounded-lg border border-[#D6E4FB] bg-white p-5">
-      <h3 className="text-sm font-semibold text-[#202124]">Firm letterhead</h3>
-      <p className="mt-1 text-xs text-[#A0A1A6]">
+    <div className="rounded-md border border-border bg-surface p-6 shadow-sm">
+      <h3 className="text-sm font-semibold text-ink">Firm letterhead</h3>
+      <p className="mt-1 text-xs text-ink-muted">
         Used on formal letters drafted from a tracked lead — business name, address and logo
         appear on the printed letterhead. Optional: letters still generate fine without this.
       </p>
@@ -84,15 +84,15 @@ export default function FirmProfileSection({
           <img
             src={logoDataUri}
             alt="Firm logo"
-            className="h-12 w-auto max-w-[96px] rounded border border-[#D6E4FB] object-contain"
+            className="h-12 w-auto max-w-[96px] rounded-sm border border-border object-contain"
           />
         ) : (
-          <div className="flex h-12 w-12 items-center justify-center rounded border border-dashed border-[#D6E4FB] text-[9px] text-[#A0A1A6]">
+          <div className="flex h-12 w-12 items-center justify-center rounded-sm border border-dashed border-border text-2xs text-ink-muted">
             No logo
           </div>
         )}
         <div>
-          <label className="cursor-pointer rounded-md border border-[#D6E4FB] px-3 py-1.5 text-xs font-medium text-[#202124] hover:bg-[#F7F7F8]">
+          <label className="cursor-pointer rounded-md border border-border px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-sunken">
             {isLogoPending ? 'Uploading…' : logoDataUri ? 'Replace logo' : 'Upload logo'}
             <input
               ref={fileInputRef}
@@ -114,42 +114,42 @@ export default function FirmProfileSection({
           )}
         </div>
       </div>
-      {logoError && <p className="mt-1 text-xs text-red-600">{logoError}</p>}
+      {logoError && <p className="mt-1 text-xs text-danger-600">{logoError}</p>}
 
       <div className="mt-4 space-y-3">
         <div>
-          <label className="block text-xs font-medium text-[#6B6C70]">Business name</label>
+          <label className="block text-xs font-medium text-ink-muted">Business name</label>
           <input
             value={businessName}
             onChange={(e) => setBusinessName(e.target.value)}
-            className="mt-1 w-full rounded-md border border-[#D6E4FB] px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+            className="mt-1 w-full rounded-md border border-border px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-[#6B6C70]">Address</label>
+          <label className="block text-xs font-medium text-ink-muted">Address</label>
           <textarea
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             rows={3}
-            className="mt-1 w-full rounded-md border border-[#D6E4FB] px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+            className="mt-1 w-full rounded-md border border-border px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-[#6B6C70]">Phone</label>
+          <label className="block text-xs font-medium text-ink-muted">Phone</label>
           <input
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className="mt-1 w-full rounded-md border border-[#D6E4FB] px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+            className="mt-1 w-full rounded-md border border-border px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-[#6B6C70]">Contact email</label>
+          <label className="block text-xs font-medium text-ink-muted">Contact email</label>
           <input
             type="email"
             value={contactEmail}
             onChange={(e) => setContactEmail(e.target.value)}
             placeholder="Defaults to your account email"
-            className="mt-1 w-full rounded-md border border-[#D6E4FB] px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+            className="mt-1 w-full rounded-md border border-border px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
           />
         </div>
       </div>

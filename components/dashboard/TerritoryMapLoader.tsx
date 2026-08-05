@@ -10,7 +10,7 @@ import type { MapApplication } from './TerritoryMap'
 const TerritoryMap = dynamic(() => import('./TerritoryMap'), {
   ssr: false,
   loading: () => (
-    <div className="h-72 animate-pulse rounded-lg border border-[#D6E4FB] bg-[#F7F7F8] sm:h-96" />
+    <div className="h-72 animate-pulse rounded-md border border-border bg-surface-sunken sm:h-96" />
   ),
 })
 

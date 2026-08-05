@@ -24,21 +24,21 @@ export default function BlogIndexPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
-      <p className="text-xs font-semibold uppercase tracking-wider text-[#2563EB]">Blog</p>
-      <h1 className="mt-1 text-3xl font-bold tracking-tight text-[#111827]">
+      <p className="text-xs font-semibold uppercase tracking-wider text-primary-500">Blog</p>
+      <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink">
         Notes on planning applications &amp; civils leads
       </h1>
-      <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[#4B5563]">{DESCRIPTION}</p>
+      <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink-muted">{DESCRIPTION}</p>
 
       <div className="mt-10 space-y-8">
         {posts.map((post) => (
           <a key={post.slug} href={`/blog/${post.slug}`} className="block group">
-            <p className="text-xs text-[#9CA3AF]">{niceDate(post.date)}</p>
-            <h2 className="mt-1 text-lg font-semibold text-[#111827] group-hover:text-[#2563EB] transition-colors">
+            <p className="text-xs text-neutral-500">{niceDate(post.date)}</p>
+            <h2 className="mt-1 text-lg font-semibold text-ink group-hover:text-primary-500 transition-colors">
               {post.title}
             </h2>
-            <p className="mt-1.5 text-[15px] leading-relaxed text-[#4B5563]">{post.excerpt}</p>
-            <span className="mt-2 inline-block text-sm font-medium text-[#2563EB]">Read more &rarr;</span>
+            <p className="mt-1.5 text-base leading-relaxed text-ink-muted">{post.excerpt}</p>
+            <span className="mt-2 inline-block text-sm font-medium text-primary-500">Read more &rarr;</span>
           </a>
         ))}
       </div>

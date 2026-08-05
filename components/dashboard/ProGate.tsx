@@ -23,12 +23,12 @@ export default function ProGate({ variant }: { variant: keyof typeof COPY }) {
   const copy = COPY[variant]
 
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-[#D6E4FB] bg-white px-6 py-16 text-center">
-      <h2 className="text-lg font-semibold text-[#202124]">{copy.heading}</h2>
-      <p className="mt-2 max-w-md text-sm leading-relaxed text-[#6B6C70]">{copy.body}</p>
+    <div className="flex flex-col items-center justify-center rounded-md border border-border bg-surface px-6 py-16 text-center shadow-sm">
+      <h2 className="text-lg font-semibold text-ink">{copy.heading}</h2>
+      <p className="mt-2 max-w-md text-sm leading-relaxed text-ink-muted">{copy.body}</p>
       <a
         href={copy.href}
-        className="mt-6 inline-block rounded-md bg-[#2563EB] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1D4ED8]"
+        className="mt-6 inline-block rounded-md bg-primary-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-600"
       >
         {copy.cta}
       </a>

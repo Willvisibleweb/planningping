@@ -50,12 +50,12 @@ export default function RadiusControl({
   }
 
   return (
-    <div className="rounded-lg border border-[#D6E4FB] bg-white p-4">
+    <div className="rounded-md border border-border bg-surface p-5 shadow-sm">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-[#202124]">Tracking radius</h3>
-        <span className="font-mono text-sm text-[#6B6C70]">{formatMetres(radius)}</span>
+        <h3 className="text-sm font-medium text-ink">Tracking radius</h3>
+        <span className="tabular-data text-sm text-ink-muted">{formatMetres(radius)}</span>
       </div>
-      <p className="mt-1 text-xs text-[#A0A1A6]">
+      <p className="mt-1 text-xs text-ink-muted">
         How far from the postcode to pull planning applications from.
       </p>
       {overCap && (
@@ -74,7 +74,7 @@ export default function RadiusControl({
         disabled={isPending}
         className="mt-3 w-full accent-[#2563EB] disabled:opacity-50"
       />
-      <div className="mt-1 flex justify-between text-[10px] text-[#A0A1A6]">
+      <div className="mt-1 flex justify-between text-2xs text-ink-muted">
         <span>{formatMetres(MIN)}</span>
         <span>{formatMetres(maxRadiusMetres)}</span>
       </div>

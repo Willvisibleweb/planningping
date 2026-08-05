@@ -58,7 +58,7 @@ export default async function LeadsPage({
   return (
     <div className="space-y-6">
       {teaser && (
-        <div className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+        <div className="rounded-md border border-primary-200 bg-primary-50 px-4 py-3 text-sm text-primary-900">
           {isProfessional(profile) ? (
             <>
               Your free trial has ended — your leads are saved.{' '}
@@ -76,8 +76,8 @@ export default async function LeadsPage({
       )}
 
       <div>
-        <h2 className="text-xl font-semibold text-[#202124] mb-1">Leads</h2>
-        <p className="text-sm text-[#6B6C70]">
+        <h2 className="text-xl font-semibold text-ink mb-1">Leads</h2>
+        <p className="text-sm text-ink-muted">
           Planning applications scored for likely subcontract scope — drainage, highways,
           flood risk, SuDS, groundworks/geotechnical and structural work. Higher score means
           a stronger signal; reasons show why each one scored.

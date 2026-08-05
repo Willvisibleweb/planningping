@@ -53,9 +53,9 @@ export default function TrackedAreaSettings({
   }
 
   return (
-    <div className="rounded-lg border border-[#D6E4FB] bg-white p-4">
-      <h3 className="text-sm font-medium text-[#202124]">Relevance & alerts</h3>
-      <p className="mt-1 text-xs text-[#A0A1A6]">
+    <div className="rounded-md border border-border bg-surface p-5 shadow-sm">
+      <h3 className="text-sm font-medium text-ink">Relevance & alerts</h3>
+      <p className="mt-1 text-xs text-ink-muted">
         Applications are scored automatically — hide low-relevance noise like minor
         householder works from this territory.
       </p>
@@ -74,9 +74,9 @@ export default function TrackedAreaSettings({
         ))}
       </div>
 
-      <div className="mt-4 border-t border-[#E9F0FD] pt-3">
+      <div className="mt-4 border-t border-border pt-3">
         {hasProAccess ? (
-          <label className="flex items-center gap-2 text-sm text-[#202124]">
+          <label className="flex items-center gap-2 text-sm text-ink">
             <input
               type="checkbox"
               checked={alertsEnabled}
@@ -87,8 +87,8 @@ export default function TrackedAreaSettings({
             Email me when a new matching application appears
           </label>
         ) : (
-          <div className="text-xs text-[#A0A1A6]">
-            <span className="font-medium text-[#6B6C70]">Email alerts</span> — a professional-plan
+          <div className="text-xs text-ink-muted">
+            <span className="font-medium text-ink-muted">Email alerts</span> — a professional-plan
             feature.{' '}
             <a href="/settings#billing" className="pp-link font-medium">
               Upgrade
