@@ -66,7 +66,7 @@ export default function BillingSection({ profile }: { profile: Profile }) {
   }
 
   return (
-    <div id="billing" className="rounded-md border border-border bg-surface p-6 shadow-sm">
+    <div id="billing" className="rounded-md border border-border bg-surface p-5 sm:p-6 shadow-sm">
       <h3 className="text-sm font-semibold text-ink">Billing</h3>
 
       {subscribed ? (

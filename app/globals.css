@@ -45,6 +45,8 @@
   --text-4xl--line-height: 1.12;
   --text-5xl: 3.25rem;
   --text-5xl--line-height: 1.05;
+  --text-6xl: 3.875rem;
+  --text-6xl--line-height: 1.02;
 
   /* Headings tighten as they grow; body copy stays open at 1.65. */
   --tracking-tight: -0.011em;
@@ -58,15 +60,21 @@
      — 400/600/900 are unchanged — so the app moves toward what it mostly was,
      not somewhere new.
 
-     Contrast note: neutral-400 is 2.55:1 on white and must never carry text.
-     It is for borders, dividers and decorative icons only. neutral-600 (5.3:1)
-     is the lightest tone allowed on body copy. */
+     Contrast rules, all measured against white and verified in the audit
+     script rather than eyeballed:
+       neutral-400 (2.58:1) — decorative only. Dividers, skeleton fills. Never
+                              text, and never an icon that carries meaning.
+       neutral-500 (4.65:1) — the lightest tone allowed on text. Deliberately
+                              darker than a "true" 500 would be, so that
+                              timestamps, prices and placeholders clear AA
+                              rather than sitting just under it at 3.9:1.
+       neutral-600 (5.24:1) — default muted body text. */
   --color-neutral-50: #f8f8f9;
   --color-neutral-100: #f1f1f3;
   --color-neutral-200: #e3e3e7;
   --color-neutral-300: #cbccd1;
   --color-neutral-400: #a0a1a6;
-  --color-neutral-500: #808187;
+  --color-neutral-500: #757579;
   --color-neutral-600: #6b6c70;
   --color-neutral-700: #55565b;
   --color-neutral-800: #3a3b3f;
@@ -120,6 +128,11 @@
   --color-surface-sunken: var(--color-neutral-50);
   --color-border: var(--color-primary-200);
   --color-border-strong: var(--color-neutral-300);
+  /* Form controls need a boundary that clears WCAG 1.4.11's 3:1 for non-text
+     UI, because on a white card the border is the only thing identifying the
+     field. The decorative card border (1.28:1) is fine where it is — it isn't
+     identifying a control — but it can't do this job. 3.23:1 measured. */
+  --color-border-control: #8e8f93;
   --color-ink: var(--color-neutral-900);
   --color-ink-muted: var(--color-neutral-600);
 
@@ -195,6 +208,11 @@
     line-height: var(--leading-body);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* Safety net, not a substitute for fixing layouts: council-supplied
+       descriptions and references can be long unbroken strings, and one of
+       those should wrap rather than give the whole page a horizontal
+       scrollbar at 375px. */
+    overflow-wrap: break-word;
   }
 
   /* Headings tighten as they scale up. Set once, so no component has to
@@ -258,7 +276,10 @@
   :focus-visible {
     outline: 2px solid var(--color-primary-500);
     outline-offset: 2px;
-    border-radius: var(--radius-sm);
+    /* Deliberately no border-radius here. Browsers already curve the outline to
+       follow the element's own radius, and setting one would square off every
+       rounded-full control (the account avatar, badges, filter pills) the
+       moment it took keyboard focus. */
   }
 }
 

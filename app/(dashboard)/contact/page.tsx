@@ -18,7 +18,7 @@ export default function ContactPage() {
         </p>
       </div>
 
-      <div className="rounded-md border border-border bg-surface p-6 shadow-sm">
+      <div className="rounded-md border border-border bg-surface p-5 sm:p-6 shadow-sm">
         <p className="text-sm text-ink-muted">Email us directly at</p>
         <a
           href={`mailto:${CONTACT_EMAIL}`}

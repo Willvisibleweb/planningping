@@ -51,7 +51,7 @@ export default function HowItWorksPage() {
         ))}
       </ol>
 
-      <div className="rounded-md border border-border bg-surface p-6 shadow-sm">
+      <div className="rounded-md border border-border bg-surface p-5 sm:p-6 shadow-sm">
         <h3 className="text-sm font-semibold text-ink">Homeowner vs. professional</h3>
         <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
           Homeowner accounts get territory tracking and Leads (read-only) for free, forever.

@@ -18,8 +18,11 @@ const CONTROL =
   'focus:outline-none focus-visible:outline-none ' +
   'disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500'
 
+// border-control rather than the decorative card border: on a white card the
+// border is the only thing identifying the field, so it has to clear WCAG
+// 1.4.11's 3:1 for non-text UI. Measured 3.23:1.
 const CONTROL_DEFAULT =
-  'border-border hover:border-primary-300 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/15'
+  'border-border-control hover:border-primary-400 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/15'
 
 const CONTROL_INVALID =
   'border-danger-600 focus:border-danger-600 focus:ring-4 focus:ring-danger-600/15'

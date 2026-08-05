@@ -48,7 +48,7 @@ export function SkeletonText({
 /** Matches the stat tiles on the dashboard: label, figure, sub-label. */
 export function SkeletonStatTile() {
   return (
-    <div className="rounded-md border border-border bg-surface p-5 shadow-sm">
+    <div className="rounded-md border border-border bg-surface p-4 sm:p-5 shadow-sm">
       <Skeleton className="h-2.5 w-20" />
       <Skeleton className="mt-3 h-7 w-14" />
       <Skeleton className="mt-2.5 h-2.5 w-28" />

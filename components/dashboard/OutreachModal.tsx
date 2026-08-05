@@ -180,7 +180,7 @@ export default function OutreachModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-xl rounded-lg bg-surface p-6 shadow-lg"
+        className="w-full max-w-xl rounded-lg bg-surface p-5 sm:p-6 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-start justify-between">
@@ -191,7 +191,7 @@ export default function OutreachModal({
           <button
             onClick={onClose}
             aria-label="Close opportunity brief"
-            className="-m-1 rounded-sm p-1 text-neutral-400 transition-colors duration-fast ease-standard hover:bg-neutral-100 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45"
+            className="-m-1 rounded-sm p-1 text-neutral-500 transition-colors duration-fast ease-standard hover:bg-neutral-100 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45"
           >
             <X size={16} />
           </button>
@@ -240,7 +240,7 @@ export default function OutreachModal({
                   value={emailDraftText}
                   onChange={(e) => setEdits((prev) => ({ ...prev, [selected]: e.target.value }))}
                   rows={11}
-                  className="w-full rounded-sm border border-border bg-surface p-3.5 text-sm text-ink transition-[border-color,box-shadow] duration-fast ease-standard hover:border-primary-300 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15"
+                  className="w-full rounded-sm border border-border-control bg-surface p-3.5 text-sm text-ink transition-[border-color,box-shadow] duration-fast ease-standard hover:border-primary-300 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15"
                 />
                 <p className="mt-1 text-xs text-ink-muted">
                   Edit freely, then copy into your email client. Marking as sent logs today
@@ -253,7 +253,7 @@ export default function OutreachModal({
                   value={letterEdit}
                   onChange={(e) => setLetterEdit(e.target.value)}
                   rows={11}
-                  className="w-full rounded-sm border border-border bg-surface p-3.5 text-sm text-ink transition-[border-color,box-shadow] duration-fast ease-standard hover:border-primary-300 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15"
+                  className="w-full rounded-sm border border-border-control bg-surface p-3.5 text-sm text-ink transition-[border-color,box-shadow] duration-fast ease-standard hover:border-primary-300 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15"
                 />
                 <p className="mt-1 text-xs text-ink-muted">
                   Edit freely, then download as a PDF to print and post. Uses the firm

@@ -56,7 +56,7 @@ export default function HomePage() {
     <div className="min-h-screen flex flex-col bg-surface">
       {/* Nav */}
       <header className="border-b border-border">
-        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-6">
           <span className="text-sm font-semibold tracking-tight text-ink">
             Planning<span className="text-primary-500">Ping</span>
           </span>
@@ -81,14 +81,15 @@ export default function HomePage() {
       <section className="relative overflow-hidden bg-gradient-to-b from-primary-100 via-primary-50 to-surface">
         {/* soft blue glow behind the product mockup */}
         <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 h-[460px] w-[460px] rounded-full bg-primary-500/15 blur-3xl" />
-        <div className="relative max-w-6xl mx-auto px-6 py-20 w-full">
+        <div className="relative mx-auto w-full max-w-6xl px-5 py-16 sm:px-6 sm:py-20">
           <div className="grid items-center gap-14 lg:grid-cols-[1.02fr_1.18fr]">
             {/* Copy */}
             <div className="motion-safe-fade" style={{ animation: 'hero-fade-up 600ms cubic-bezier(.2,.7,.3,1) 100ms both' }}>
               <p className="inline-flex items-center rounded-full border border-border bg-primary-100 px-3 py-1 text-xs font-semibold text-primary-500 mb-5 tracking-wide uppercase">
                 UK Planning Application Tracker
               </p>
-              <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-ink leading-[1.04] mb-5 text-balance">
+              {/* 52px at 375px overflowed on "applications"; steps up from 40px. */}
+              <h1 className="mb-5 text-balance text-4xl font-bold leading-[1.06] tracking-tighter text-ink sm:text-5xl lg:text-6xl">
                 Spot planning applications
                 <br />
                 for <RotatingWord /> first.
@@ -130,7 +131,7 @@ export default function HomePage() {
                 <span className="h-2.5 w-2.5 rounded-full bg-neutral-200" />
                 <span className="ml-2.5 tabular-data text-2xs text-neutral-500">planningping.app/dashboard</span>
               </div>
-              <div className="grid grid-cols-[132px_1fr] sm:grid-cols-[148px_1fr]">
+              <div className="grid grid-cols-[104px_1fr] sm:grid-cols-[148px_1fr]">
                 {/* sidebar */}
                 <aside className="border-r border-border bg-surface-sunken p-3">
                   <div className="mb-3.5 px-1 text-xs font-bold tracking-tight text-ink">
@@ -150,7 +151,7 @@ export default function HomePage() {
                 <div className="p-4">
                   <h2 className="mb-0.5 text-sm font-semibold text-ink">Your tracked areas</h2>
                   <p className="mb-3.5 text-2xs text-neutral-500">Monitored weekly · digest every Monday</p>
-                  <div className="rounded-md border border-border bg-surface p-5 shadow-sm">
+                  <div className="rounded-md border border-border bg-surface p-4 sm:p-5 shadow-sm">
                     <div className="mb-2.5 flex items-center justify-between">
                       <div>
                         <div className="text-xs font-semibold text-ink">Croydon town centre</div>
@@ -288,7 +289,7 @@ export default function HomePage() {
             Free for homeowners. Built to pay for itself for professionals.
           </p>
           <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-3 max-w-5xl mx-auto">
-            <div className="rounded-md border border-border bg-surface p-7 shadow-sm">
+            <div className="rounded-md border border-border bg-surface p-5 sm:p-7 shadow-sm">
               <h3 className="text-sm font-semibold text-ink">Free</h3>
               <p className="mt-2 text-2xl font-semibold text-ink">Free</p>
               <p className="mt-1 text-xs text-neutral-500">forever</p>
@@ -304,7 +305,7 @@ export default function HomePage() {
                 Start free
               </Link>
             </div>
-            <div className="rounded-md border border-border bg-surface p-7 shadow-sm">
+            <div className="rounded-md border border-border bg-surface p-5 sm:p-7 shadow-sm">
               <h3 className="text-sm font-semibold text-ink">Pro</h3>
               <p className="mt-2 text-2xl font-semibold text-ink">£{PRICING.mid.monthly.amount}<span className="text-sm font-normal text-ink-muted">/month</span></p>
               <p className="mt-1 text-xs text-neutral-500">or £{PRICING.mid.annual.amount}/year ({PRICING.mid.annual.note}) · 14-day free trial, no card required</p>
@@ -321,7 +322,7 @@ export default function HomePage() {
                 Start free trial
               </Link>
             </div>
-            <div className="relative rounded-md border-2 border-primary-500 bg-surface p-6 shadow-sm">
+            <div className="relative rounded-md border-2 border-primary-500 bg-surface p-5 sm:p-6 shadow-sm">
               <span className="absolute -top-2.5 right-5 rounded-full bg-primary-500 px-2.5 py-0.5 text-2xs font-bold uppercase tracking-wide text-white">
                 14-day trial
               </span>
@@ -346,7 +347,7 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="border-t border-border">
-        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-6">
           <span className="text-sm font-semibold text-ink">PlanningPing</span>
           <span className="text-xs text-neutral-500">Track planning. Stay ahead.</span>
         </div>

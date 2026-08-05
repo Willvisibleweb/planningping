@@ -72,7 +72,7 @@ export default function FirmProfileSection({
   }
 
   return (
-    <div className="rounded-md border border-border bg-surface p-6 shadow-sm">
+    <div className="rounded-md border border-border bg-surface p-5 sm:p-6 shadow-sm">
       <h3 className="text-sm font-semibold text-ink">Firm letterhead</h3>
       <p className="mt-1 text-xs text-ink-muted">
         Used on formal letters drafted from a tracked lead — business name, address and logo

@@ -54,7 +54,7 @@ export default function TrackedAreaSettings({
   }
 
   return (
-    <div className="rounded-md border border-border bg-surface p-5 shadow-sm">
+    <div className="rounded-md border border-border bg-surface p-4 sm:p-5 shadow-sm">
       <h3 className="text-sm font-medium text-ink">Relevance & alerts</h3>
       <p className="mt-1 text-xs text-ink-muted">
         Applications are scored automatically — hide low-relevance noise like minor

@@ -122,7 +122,7 @@ function LeadCard({ lead, onOutreach }: { lead: TrackedLead; onOutreach: () => v
           value={lead.pipeline_stage}
           onChange={(e) => handleStageChange(e.target.value as PipelineStage)}
           disabled={isPending}
-          className="flex-1 rounded-sm border border-border bg-surface px-2 py-1.5 text-xs text-ink transition-[border-color,box-shadow] duration-fast ease-standard hover:border-primary-300 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15 disabled:opacity-50"
+          className="flex-1 rounded-sm border border-border-control bg-surface px-2 py-1.5 text-xs text-ink transition-[border-color,box-shadow] duration-fast ease-standard hover:border-primary-300 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15 disabled:opacity-50"
         >
           {PIPELINE_STAGES.map((s) => (
             <option key={s} value={s}>{s}</option>

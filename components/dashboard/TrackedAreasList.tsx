@@ -106,16 +106,18 @@ function AreaCard({
   const visible = showAll ? applications : applications.slice(0, 5)
 
   return (
-    <div className="rounded-md border border-border bg-surface p-6 shadow-sm">
-      <div className="flex items-start justify-between">
-        <div>
+    <div className="rounded-md border border-border bg-surface p-5 sm:p-6 shadow-sm">
+      {/* Stacks below sm: at 375px the label, the button and Remove can't share
+          a row without the council slug being squeezed to nothing. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <Link
             href={`/dashboard/${area.id}`}
-            className="rounded-sm font-medium text-ink transition-colors duration-fast ease-standard hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
+            className="block truncate rounded-sm font-medium text-ink transition-colors duration-fast ease-standard hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
           >
             {area.label}
           </Link>
-          <p className="mt-1 text-sm text-ink-muted">
+          <p className="mt-1 truncate text-sm text-ink-muted">
             {area.postcode} — {area.council_slug}
           </p>
         </div>

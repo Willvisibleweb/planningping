@@ -26,7 +26,7 @@ export default function AddAreaForm() {
   }
 
   return (
-    <div className="rounded-md border border-border bg-surface p-6 shadow-sm">
+    <div className="rounded-md border border-border bg-surface p-5 sm:p-6 shadow-sm">
       <h3 className="text-sm font-semibold text-ink">Add a territory to track</h3>
       <p className="mt-1 text-xs text-ink-muted">
         We&rsquo;ll identify the planning authority for this postcode automatically.

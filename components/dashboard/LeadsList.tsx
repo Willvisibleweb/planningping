@@ -158,7 +158,7 @@ function LeadCard({
   }
 
   return (
-    <div className="rounded-md border border-border bg-surface p-5 shadow-sm">
+    <div className="rounded-md border border-border bg-surface p-4 sm:p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-0.5">

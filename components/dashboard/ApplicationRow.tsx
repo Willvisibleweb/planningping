@@ -96,7 +96,10 @@ export default function ApplicationRow({
           <p className="text-xs text-ink-muted mt-0.5">{app.address}</p>
         )}
       </div>
-      <div className="flex shrink-0 flex-col items-end gap-1">
+      {/* Capped rather than shrink-0: status strings from councils run long
+          ("Pending consideration"), and an uncapped column pushes the
+          description to a one-word ribbon at 375px. */}
+      <div className="flex w-24 shrink-0 flex-col items-end gap-1.5 text-right sm:w-auto sm:max-w-[45%]">
         {app.status ? (
           <Badge tone={statusTone} icon={StatusIcon}>
             {app.status}

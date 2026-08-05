@@ -141,7 +141,7 @@ export default async function TerritoryPage({
         />
 
         {(councilRow?.portal_url || councilSeo || postcodeSeo) && (
-          <div className="rounded-md border border-border bg-surface p-5 shadow-sm">
+          <div className="rounded-md border border-border bg-surface p-4 sm:p-5 shadow-sm">
             <h3 className="text-sm font-medium text-ink">Links</h3>
             <ul className="mt-2 space-y-1.5">
               {councilRow?.portal_url && (
@@ -175,7 +175,7 @@ export default async function TerritoryPage({
         )}
       </div>
 
-      <div className="rounded-md border border-border bg-surface p-6 shadow-sm">
+      <div className="rounded-md border border-border bg-surface p-5 sm:p-6 shadow-sm">
         <h3 className="text-sm font-medium text-ink mb-3">Applications</h3>
         <ApplicationSearchList
           items={sorted.map(({ app, distance }) => ({

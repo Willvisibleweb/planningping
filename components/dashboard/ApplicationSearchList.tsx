@@ -53,7 +53,7 @@ export default function ApplicationSearchList({
         <Search
           size={15}
           aria-hidden="true"
-          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500"
         />
         <input
           type="search"
@@ -61,7 +61,7 @@ export default function ApplicationSearchList({
           onChange={(e) => setQuery(e.target.value)}
           aria-label="Search applications in this territory"
           placeholder="Search by reference, address or description…"
-          className="w-full rounded-sm border border-border bg-surface py-2 pl-9 pr-3 text-sm text-ink placeholder:text-neutral-500 transition-[border-color,box-shadow] duration-fast ease-standard hover:border-primary-300 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15"
+          className="w-full rounded-sm border border-border-control bg-surface py-2 pl-9 pr-3 text-sm text-ink placeholder:text-neutral-500 transition-[border-color,box-shadow] duration-fast ease-standard hover:border-primary-300 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15"
         />
       </div>
 

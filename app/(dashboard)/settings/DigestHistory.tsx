@@ -4,7 +4,7 @@ import type { Digest } from '@/types/database'
 
 export default function DigestHistory({ digests }: { digests: Digest[] }) {
   return (
-    <div className="rounded-md border border-border bg-surface p-6 shadow-sm">
+    <div className="rounded-md border border-border bg-surface p-5 sm:p-6 shadow-sm">
       <h3 className="mb-4 text-sm font-semibold text-ink">Digest history</h3>
       {digests.length === 0 ? (
         <EmptyState

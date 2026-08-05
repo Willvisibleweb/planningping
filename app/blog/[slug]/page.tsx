@@ -14,19 +14,33 @@ type Params = { params: Promise<{ slug: string }> }
 // unrelated feature. No Tailwind `prose` plugin is installed in this repo,
 // so markdown elements are styled explicitly.
 const components: Components = {
-  h1: ({ children }) => <h1 className="text-3xl font-bold tracking-tight text-ink mb-2">{children}</h1>,
-  h2: ({ children }) => <h2 className="text-lg font-semibold text-ink mt-10 mb-3">{children}</h2>,
-  p: ({ children }) => <p className="text-base leading-relaxed text-ink-muted mb-4">{children}</p>,
+  h1: ({ children }) => <h1 className="mb-2 text-3xl font-bold tracking-tighter text-ink">{children}</h1>,
+  h2: ({ children }) => <h2 className="mb-3 mt-10 text-lg font-semibold text-ink">{children}</h2>,
+  p: ({ children }) => <p className="mb-4 text-base leading-relaxed text-ink-muted">{children}</p>,
   ul: ({ children }) => (
-    <ul className="list-disc pl-5 mb-4 space-y-1.5 text-base leading-relaxed text-ink-muted">{children}</ul>
+    <ul className="mb-4 list-disc space-y-1.5 pl-5 text-base leading-relaxed text-ink-muted">{children}</ul>
   ),
   li: ({ children }) => <li className="pl-1">{children}</li>,
+  // break-words so a bare planning-portal URL in post copy can't push the
+  // article wider than a 375px viewport.
   a: ({ href, children }) => (
-    <a href={href} className="text-primary-500 hover:underline">{children}</a>
+    <a href={href} className="pp-link break-words">{children}</a>
   ),
   hr: () => <hr className="my-8 border-border" />,
   em: ({ children }) => <em className="not-italic text-neutral-500">{children}</em>,
   strong: ({ children }) => <strong className="font-semibold text-ink">{children}</strong>,
+  // Long references and inline code get their own scroll rather than widening
+  // the page.
+  code: ({ children }) => (
+    <code className="tabular-data rounded-sm bg-surface-sunken px-1.5 py-0.5 text-[0.9em] text-ink ring-1 ring-inset ring-neutral-200">
+      {children}
+    </code>
+  ),
+  pre: ({ children }) => (
+    <pre className="mb-4 overflow-x-auto rounded-md border border-border bg-surface-sunken p-4 text-xs leading-relaxed">
+      {children}
+    </pre>
+  ),
 }
 
 function niceDate(iso: string): string {

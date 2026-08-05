@@ -21,7 +21,7 @@ export default function DashboardLoading() {
         <SkeletonStatTile />
       </div>
 
-      <div className="rounded-md border border-border bg-surface p-6 shadow-sm">
+      <div className="rounded-md border border-border bg-surface p-5 sm:p-6 shadow-sm">
         <Skeleton className="h-3.5 w-48" />
         <div className="mt-5 flex flex-col gap-4 sm:flex-row">
           <Skeleton className="h-10 flex-1" />

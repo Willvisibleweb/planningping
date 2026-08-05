@@ -93,7 +93,7 @@ export default async function ApplicationDetailPage({
       </div>
 
       {isDischarge && (
-        <div className="rounded-md border border-border bg-surface p-5 shadow-sm">
+        <div className="rounded-md border border-border bg-surface p-4 sm:p-5 shadow-sm">
           <h3 className="text-sm font-medium text-ink">Parent application</h3>
           {parent ? (
             <Link
@@ -119,7 +119,7 @@ export default async function ApplicationDetailPage({
       )}
 
       {childRows.length > 0 && (
-        <div className="rounded-md border border-border bg-surface p-5 shadow-sm">
+        <div className="rounded-md border border-border bg-surface p-4 sm:p-5 shadow-sm">
           <h3 className="text-sm font-medium text-ink">
             Linked discharge application{childRows.length === 1 ? '' : 's'}
           </h3>

@@ -5,6 +5,8 @@
 
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { Map as MapIcon } from 'lucide-react'
+import EmptyState from '@/components/ui/EmptyState'
 
 interface CouncilCoverage {
   slug: string
@@ -51,30 +53,54 @@ export default async function CoveragePage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 max-w-lg">
-        <div className="rounded-md border border-border bg-surface p-5 shadow-sm">
+        <div className="rounded-md border border-border bg-surface p-4 sm:p-5 shadow-sm">
           <p className="text-2xs font-semibold uppercase tracking-wider text-ink-muted">Authorities</p>
-          <p className="mt-1.5 text-2xl font-bold tabular-nums text-ink">{rows.length}</p>
+          <p className="tabular-data mt-2 text-2xl font-semibold text-ink">{rows.length}</p>
         </div>
-        <div className="rounded-md border border-border bg-surface p-5 shadow-sm">
+        <div className="rounded-md border border-border bg-surface p-4 sm:p-5 shadow-sm">
           <p className="text-2xs font-semibold uppercase tracking-wider text-ink-muted">Applications</p>
-          <p className="mt-1.5 text-2xl font-bold tabular-nums text-ink">{totalApplications.toLocaleString()}</p>
+          <p className="tabular-data mt-2 text-2xl font-semibold text-ink">{totalApplications.toLocaleString()}</p>
         </div>
       </div>
 
       <div className="rounded-md border border-border bg-surface shadow-sm overflow-hidden">
-        <div className="grid grid-cols-[1fr_auto_auto] gap-4 border-b border-border bg-surface-sunken px-5 py-2.5 text-2xs font-semibold uppercase tracking-wider text-ink-muted">
+        {/* The "Public page" column is dropped below sm rather than crushed —
+            at 375px three columns leave the authority name about 90px, which
+            truncates most council names to nothing useful. */}
+        <div className="grid grid-cols-[1fr_auto] gap-4 border-b border-border bg-surface-sunken px-4 py-2.5 text-2xs font-semibold uppercase tracking-wider text-ink-muted sm:grid-cols-[1fr_auto_auto] sm:px-5">
           <span>Planning authority</span>
           <span className="text-right">Applications</span>
-          <span className="text-right">Public page</span>
+          <span className="hidden text-right sm:block">Public page</span>
         </div>
         <div className="divide-y divide-border">
           {rows.map((r) => (
-            <div key={r.slug} className="grid grid-cols-[1fr_auto_auto] items-center gap-4 px-5 py-3 transition-colors duration-fast ease-standard hover:bg-primary-50/60">
-              <span className="text-sm text-ink">{r.name}</span>
-              <span className="text-right text-sm tabular-nums text-ink-muted">{r.applicationCount.toLocaleString()}</span>
-              <span className="text-right">
+            <div
+              key={r.slug}
+              className="grid grid-cols-[1fr_auto] items-center gap-4 px-4 py-3 transition-colors duration-fast ease-standard hover:bg-primary-50/60 sm:grid-cols-[1fr_auto_auto] sm:px-5"
+            >
+              <span className="min-w-0 truncate text-sm text-ink" title={r.name}>
                 {r.hasPublicPage ? (
-                  <Link href={`/planning-applications/${r.slug}`} className="text-xs font-medium text-primary-500 hover:underline">
+                  // On mobile the name itself carries the link, since the
+                  // dedicated column is hidden.
+                  <Link
+                    href={`/planning-applications/${r.slug}`}
+                    className="rounded-sm transition-colors duration-fast ease-standard hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 sm:pointer-events-none sm:hover:text-ink"
+                  >
+                    {r.name}
+                  </Link>
+                ) : (
+                  r.name
+                )}
+              </span>
+              <span className="tabular-data text-right text-sm text-ink-muted">
+                {r.applicationCount.toLocaleString()}
+              </span>
+              <span className="hidden text-right sm:block">
+                {r.hasPublicPage ? (
+                  <Link
+                    href={`/planning-applications/${r.slug}`}
+                    className="pp-link text-xs font-medium"
+                  >
                     View &rarr;
                   </Link>
                 ) : (
@@ -84,7 +110,12 @@ export default async function CoveragePage() {
             </div>
           ))}
           {rows.length === 0 && (
-            <p className="px-5 py-6 text-sm text-ink-muted">No coverage data yet.</p>
+            <EmptyState
+              size="sm"
+              icon={MapIcon}
+              title="No coverage data yet"
+              description="Council coverage appears here once the first scrape completes."
+            />
           )}
         </div>
       </div>

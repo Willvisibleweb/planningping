@@ -63,7 +63,7 @@ export default function AlertForm({ locationSlug, locationType, placeName }: Pro
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
           disabled={state === 'submitting'}
-          className="w-full rounded-sm border border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-neutral-500 transition-[border-color,box-shadow] duration-fast ease-standard hover:border-primary-300 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-sm border border-border-control bg-surface px-3 py-2 text-sm text-ink placeholder:text-neutral-500 transition-[border-color,box-shadow] duration-fast ease-standard hover:border-primary-300 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15 disabled:cursor-not-allowed disabled:opacity-60"
         />
         <Button
           type="submit"

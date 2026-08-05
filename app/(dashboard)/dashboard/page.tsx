@@ -9,7 +9,7 @@ import type { TrackedArea } from '@/types/database'
 
 function StatTile({ label, value, sub }: { label: string; value: number; sub: string }) {
   return (
-    <div className="rounded-md border border-border bg-surface p-5 shadow-sm">
+    <div className="rounded-md border border-border bg-surface p-4 sm:p-5 shadow-sm">
       <p className="text-2xs font-semibold uppercase tracking-wider text-ink-muted">{label}</p>
       {/* Mono + tabular so figures line up across the four tiles rather than
           jittering as the digit widths change. */}

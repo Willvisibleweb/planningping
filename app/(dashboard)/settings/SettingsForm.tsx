@@ -5,7 +5,7 @@
 
 export default function SettingsForm() {
   return (
-    <div className="rounded-md border border-border bg-surface p-6 shadow-sm">
+    <div className="rounded-md border border-border bg-surface p-5 sm:p-6 shadow-sm">
       <h3 className="text-sm font-medium text-ink mb-2">Weekly digest</h3>
       <p className="text-sm text-ink-muted">
         Your digest arrives every <span className="font-medium text-ink">Monday morning</span>,

@@ -84,7 +84,7 @@ const RESOURCE_NAV = [
 
 // Small chrome buttons (collapse toggle, sign out, drawer close) share this.
 const ICON_BUTTON =
-  'rounded-sm p-1.5 text-neutral-400 transition-colors duration-fast ease-standard ' +
+  'rounded-sm p-1.5 text-neutral-500 transition-colors duration-fast ease-standard ' +
   'hover:bg-primary-50 hover:text-ink ' +
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 ' +
   'disabled:opacity-50'

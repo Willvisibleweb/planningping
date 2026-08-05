@@ -45,7 +45,7 @@ export default function SignupForm({
 
   if (success) {
     return (
-      <div className="rounded-md border border-border bg-surface p-7 text-center shadow-sm">
+      <div className="rounded-md border border-border bg-surface p-5 sm:p-7 text-center shadow-sm">
         <div className="mx-auto mb-4 grid size-11 place-items-center rounded-full bg-success-50 text-success-600 ring-1 ring-inset ring-success-200">
           <MailCheck size={20} aria-hidden="true" />
         </div>
@@ -59,7 +59,7 @@ export default function SignupForm({
   }
 
   return (
-    <div className="rounded-md border border-border bg-surface p-7 shadow-sm">
+    <div className="rounded-md border border-border bg-surface p-5 sm:p-7 shadow-sm">
       <form action={handleSubmit} className="space-y-4">
         <fieldset>
           <legend className="block text-sm font-medium text-ink mb-2">

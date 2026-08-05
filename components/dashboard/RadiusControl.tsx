@@ -50,7 +50,7 @@ export default function RadiusControl({
   }
 
   return (
-    <div className="rounded-md border border-border bg-surface p-5 shadow-sm">
+    <div className="rounded-md border border-border bg-surface p-4 sm:p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-ink">Tracking radius</h3>
         <span className="tabular-data text-sm text-ink-muted">{formatMetres(radius)}</span>
