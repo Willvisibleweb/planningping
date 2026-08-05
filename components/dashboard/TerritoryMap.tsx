@@ -68,6 +68,14 @@ export default function TerritoryMap({
         <MapContainer
           center={[centerLat, centerLng]}
           zoom={14}
+          // Leaflet defaults to zoomSnap=1 (whole-integer zoom levels), which
+          // is what makes scroll-zoom feel like it jumps in chunks rather
+          // than gliding smoothly. Fractional snap/delta + a higher
+          // wheelPxPerZoomLevel gives much finer, smoother increments —
+          // core Leaflet options, no extra dependency needed.
+          zoomSnap={0.25}
+          zoomDelta={0.5}
+          wheelPxPerZoomLevel={90}
           scrollWheelZoom
           touchZoom
           doubleClickZoom
