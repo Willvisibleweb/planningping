@@ -1,8 +1,11 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { MailCheck } from 'lucide-react'
 import { signup } from './actions'
 import Button from '@/components/ui/Button'
+import { Field, Input } from '@/components/ui/Input'
+import { Alert } from '@/components/ui/ErrorState'
 
 const USER_TYPES = [
   {
@@ -26,6 +29,8 @@ export default function SignupForm({
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [userType, setUserType] = useState<string>(defaultType)
+  const [password, setPassword] = useState('')
+  const [passwordError, setPasswordError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   async function handleSubmit(formData: FormData) {
@@ -40,8 +45,13 @@ export default function SignupForm({
   if (success) {
     return (
       <div className="rounded-md border border-border bg-surface p-7 text-center shadow-sm">
-        <p className="text-sm text-ink">
-          Account created. Check your email to confirm your address before signing in.
+        <div className="mx-auto mb-4 grid size-11 place-items-center rounded-full bg-success-50 text-success-600 ring-1 ring-inset ring-success-200">
+          <MailCheck size={20} aria-hidden="true" />
+        </div>
+        <p className="text-sm font-semibold tracking-tight text-ink">Account created</p>
+        <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
+          Confirm your address from the email we&rsquo;ve just sent, then sign in and add
+          your first territory.
         </p>
       </div>
     )
@@ -84,39 +94,53 @@ export default function SignupForm({
           </div>
         </fieldset>
 
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-ink mb-1">
-            Email
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            autoComplete="email"
-            className="w-full rounded-md border border-border px-3 py-2 text-sm text-ink placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
-          />
-        </div>
+        <Field label="Email" required>
+          {(p) => (
+            <Input
+              {...p}
+              name="email"
+              type="email"
+              required
+              autoComplete="email"
+              placeholder="you@firm.co.uk"
+            />
+          )}
+        </Field>
 
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-ink mb-1">
-            Password
-          </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            required
-            autoComplete="new-password"
-            minLength={8}
-            className="w-full rounded-md border border-border px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
-          />
-          <p className="mt-1 text-xs text-neutral-500">Minimum 8 characters</p>
-        </div>
+        {/* Validated on blur rather than on every keystroke — telling someone
+            their password is too short while they're still typing it is
+            noise, not help. */}
+        <Field
+          label="Password"
+          required
+          error={passwordError}
+          hint="At least 8 characters."
+        >
+          {(p) => (
+            <Input
+              {...p}
+              name="password"
+              type="password"
+              required
+              autoComplete="new-password"
+              minLength={8}
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value)
+                if (passwordError) setPasswordError(null)
+              }}
+              onBlur={() =>
+                setPasswordError(
+                  password.length > 0 && password.length < 8
+                    ? `That's ${password.length} character${password.length === 1 ? '' : 's'} — you need at least 8.`
+                    : null,
+                )
+              }
+            />
+          )}
+        </Field>
 
-        {error && (
-          <p className="text-sm text-danger-600">{error}</p>
-        )}
+        {error && <Alert tone="danger">{error}</Alert>}
 
         <p className="text-xs leading-relaxed text-ink-muted">
           By creating an account you agree to our{' '}

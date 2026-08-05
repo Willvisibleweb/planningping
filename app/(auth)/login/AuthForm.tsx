@@ -1,8 +1,11 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { MailCheck } from 'lucide-react'
 import { loginWithPassword, loginWithMagicLink } from './actions'
 import Button from '@/components/ui/Button'
+import { Field, Input } from '@/components/ui/Input'
+import { Alert } from '@/components/ui/ErrorState'
 
 export default function AuthForm() {
   const [mode, setMode] = useState<'password' | 'magic'>('password')
@@ -27,8 +30,12 @@ export default function AuthForm() {
   if (magicSent) {
     return (
       <div className="rounded-md border border-border bg-surface p-7 text-center shadow-sm">
-        <p className="text-sm text-ink">
-          Check your email — we sent a sign-in link.
+        <div className="mx-auto mb-4 grid size-11 place-items-center rounded-full bg-success-50 text-success-600 ring-1 ring-inset ring-success-200">
+          <MailCheck size={20} aria-hidden="true" />
+        </div>
+        <p className="text-sm font-semibold tracking-tight text-ink">Check your email</p>
+        <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
+          We&rsquo;ve sent a sign-in link. It expires in an hour — request another if it lapses.
         </p>
       </div>
     )
@@ -36,45 +43,39 @@ export default function AuthForm() {
 
   return (
     <div className="rounded-md border border-border bg-surface p-7 shadow-sm">
-      <form action={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-ink mb-1">
-            Email
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            autoComplete="email"
-            className="w-full rounded-md border border-border px-3 py-2 text-sm text-ink placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
-          />
-        </div>
+      <form action={handleSubmit} className="space-y-5">
+        <Field label="Email">
+          {(p) => (
+            <Input
+              {...p}
+              name="email"
+              type="email"
+              required
+              autoComplete="email"
+              placeholder="you@firm.co.uk"
+            />
+          )}
+        </Field>
 
         {mode === 'password' && (
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label htmlFor="password" className="block text-sm font-medium text-ink">
-                Password
-              </label>
+          <Field
+            label="Password"
+            labelAction={
               <a href="/reset-password" className="pp-link text-xs">
                 Forgot password?
               </a>
-            </div>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              className="w-full rounded-md border border-border px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
-            />
-          </div>
+            }
+          >
+            {(p) => (
+              <Input {...p} name="password" type="password" required autoComplete="current-password" />
+            )}
+          </Field>
         )}
 
-        {error && (
-          <p className="text-sm text-danger-600">{error}</p>
-        )}
+        {/* Sign-in failures come back from Supabase, so they're surfaced as a
+            form-level alert rather than pinned to a field — we don't know
+            which of the two was wrong, and guessing would be worse. */}
+        {error && <Alert tone="danger">{error}</Alert>}
 
         {/* The label swaps between modes, so the button is sized to the widest
             of them — switching mode can't nudge the card's height or width. */}

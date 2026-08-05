@@ -64,6 +64,7 @@ export function Field({
   error,
   hint,
   required,
+  labelAction,
   className,
   children,
 }: {
@@ -71,6 +72,8 @@ export function Field({
   error?: string | null
   hint?: React.ReactNode
   required?: boolean
+  /** Optional control aligned to the label's right — e.g. "Forgot password?". */
+  labelAction?: React.ReactNode
   className?: string
   children: (props: {
     id: string
@@ -99,6 +102,7 @@ export function Field({
             </span>
           )}
         </Label>
+        {labelAction}
       </div>
 
       {children({

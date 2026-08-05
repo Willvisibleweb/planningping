@@ -49,12 +49,12 @@ export default function AlertForm({ locationSlug, locationType, placeName }: Pro
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-md border border-border bg-primary-50 px-5 py-5">
-      <label htmlFor="alert-email" className="block text-sm font-semibold text-ink">
+    <form onSubmit={handleSubmit} className="rounded-md border border-border bg-primary-50 p-6">
+      <label htmlFor="alert-email" className="block text-sm font-semibold tracking-tight text-ink">
         Get alerted when a new application is submitted near {placeName}
       </label>
-      <p className="mt-1 text-sm text-ink-muted">Free weekly email. No spam, unsubscribe anytime.</p>
-      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+      <p className="mt-1.5 text-sm text-ink-muted">Free weekly email. No spam, unsubscribe anytime.</p>
+      <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
         <input
           id="alert-email"
           type="email"
@@ -63,7 +63,7 @@ export default function AlertForm({ locationSlug, locationType, placeName }: Pro
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
           disabled={state === 'submitting'}
-          className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 disabled:opacity-60"
+          className="w-full rounded-sm border border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-neutral-500 transition-[border-color,box-shadow] duration-fast ease-standard hover:border-primary-300 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15 disabled:cursor-not-allowed disabled:opacity-60"
         />
         <Button
           type="submit"

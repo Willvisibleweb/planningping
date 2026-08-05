@@ -212,7 +212,7 @@ export default function OutreachModal({
                   value={emailDraftText}
                   onChange={(e) => setEdits((prev) => ({ ...prev, [selected]: e.target.value }))}
                   rows={11}
-                  className="w-full rounded-md border border-border p-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+                  className="w-full rounded-sm border border-border bg-surface p-3.5 text-sm text-ink transition-[border-color,box-shadow] duration-fast ease-standard hover:border-primary-300 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15"
                 />
                 <p className="mt-1 text-xs text-ink-muted">
                   Edit freely, then copy into your email client. Marking as sent logs today
@@ -225,7 +225,7 @@ export default function OutreachModal({
                   value={letterEdit}
                   onChange={(e) => setLetterEdit(e.target.value)}
                   rows={11}
-                  className="w-full rounded-md border border-border p-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+                  className="w-full rounded-sm border border-border bg-surface p-3.5 text-sm text-ink transition-[border-color,box-shadow] duration-fast ease-standard hover:border-primary-300 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15"
                 />
                 <p className="mt-1 text-xs text-ink-muted">
                   Edit freely, then download as a PDF to print and post. Uses the firm

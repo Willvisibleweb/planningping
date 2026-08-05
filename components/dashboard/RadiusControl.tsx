@@ -72,7 +72,8 @@ export default function RadiusControl({
         value={radius}
         onChange={(e) => setRadius(Number(e.target.value))}
         disabled={isPending}
-        className="mt-3 w-full accent-[#2563EB] disabled:opacity-50"
+        aria-label="Tracking radius in metres"
+        className="mt-4 w-full cursor-pointer accent-primary-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-4 disabled:cursor-not-allowed disabled:opacity-50"
       />
       <div className="mt-1 flex justify-between text-2xs text-ink-muted">
         <span>{formatMetres(MIN)}</span>

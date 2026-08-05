@@ -8,6 +8,7 @@
 import { useRef, useState, useTransition } from 'react'
 import { saveFirmProfile, uploadFirmLogo, removeFirmLogo } from './firmProfileActions'
 import Button from '@/components/ui/Button'
+import { Field, Input, Textarea } from '@/components/ui/Input'
 import { Alert } from '@/components/ui/ErrorState'
 import type { FirmProfile } from '@/types/database'
 
@@ -114,44 +115,39 @@ export default function FirmProfileSection({
           )}
         </div>
       </div>
-      {logoError && <p className="mt-1 text-xs text-danger-600">{logoError}</p>}
+      {logoError && (
+        <Alert tone="danger" className="mt-3 text-xs">
+          {logoError}
+        </Alert>
+      )}
 
-      <div className="mt-4 space-y-3">
-        <div>
-          <label className="block text-xs font-medium text-ink-muted">Business name</label>
-          <input
-            value={businessName}
-            onChange={(e) => setBusinessName(e.target.value)}
-            className="mt-1 w-full rounded-md border border-border px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-ink-muted">Address</label>
-          <textarea
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            rows={3}
-            className="mt-1 w-full rounded-md border border-border px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-ink-muted">Phone</label>
-          <input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            className="mt-1 w-full rounded-md border border-border px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-ink-muted">Contact email</label>
-          <input
-            type="email"
-            value={contactEmail}
-            onChange={(e) => setContactEmail(e.target.value)}
-            placeholder="Defaults to your account email"
-            className="mt-1 w-full rounded-md border border-border px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
-          />
-        </div>
+      <div className="mt-5 space-y-4">
+        <Field label="Business name">
+          {(p) => (
+            <Input {...p} value={businessName} onChange={(e) => setBusinessName(e.target.value)} />
+          )}
+        </Field>
+        <Field label="Address">
+          {(p) => (
+            <Textarea {...p} rows={3} value={address} onChange={(e) => setAddress(e.target.value)} />
+          )}
+        </Field>
+        <Field label="Phone">
+          {(p) => (
+            <Input {...p} type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          )}
+        </Field>
+        <Field label="Contact email" hint="Leave blank to use your account email.">
+          {(p) => (
+            <Input
+              {...p}
+              type="email"
+              value={contactEmail}
+              onChange={(e) => setContactEmail(e.target.value)}
+              placeholder="Defaults to your account email"
+            />
+          )}
+        </Field>
       </div>
 
       <Button size="sm" className="mt-5" onClick={handleSave} loading={isPending} loadingLabel="Saving firm details">

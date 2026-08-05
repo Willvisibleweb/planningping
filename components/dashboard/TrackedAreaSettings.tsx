@@ -76,13 +76,13 @@ export default function TrackedAreaSettings({
 
       <div className="mt-4 border-t border-border pt-3">
         {hasProAccess ? (
-          <label className="flex items-center gap-2 text-sm text-ink">
+          <label className="-m-2 flex cursor-pointer items-center gap-2.5 rounded-sm p-2 text-sm text-ink transition-colors duration-fast ease-standard hover:bg-primary-50/60 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary-500/45">
             <input
               type="checkbox"
               checked={alertsEnabled}
               onChange={(e) => setAlertsEnabled(e.target.checked)}
               disabled={isPending}
-              className="h-4 w-4 accent-[#2563EB]"
+              className="size-4 shrink-0 accent-primary-500 focus-visible:outline-none"
             />
             Email me when a new matching application appears
           </label>
