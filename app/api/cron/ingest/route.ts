@@ -5,10 +5,19 @@
 // scoring). Runs on a Vercel Cron via the CRON_SECRET bearer token; can also be
 // invoked manually with the same header for testing.
 //
-// The periodic digest is still sent separately by n8n, untouched. This route
-// ALSO now does its own thing: a batched alert email, once per run, to any
+// This route also sends a batched alert email, once per run, to any
 // professional user with alerts_enabled on a territory that just surfaced a
 // genuinely new, relevance-filtered application — see the fan-out below.
+// Note it is gated on hasProAccess, so homeowner accounts receive no email
+// from this path at all.
+//
+// The weekly digest is NOT sent from here, and is currently not sent by
+// anything. This comment used to say it was "still sent separately by n8n,
+// untouched" — that stopped being true when n8n was replaced by this Vercel
+// cron, and the digests table has never had a row written to it. Several
+// pages still describe a Monday digest to customers; that copy becomes true
+// when the digest job is built, and should be checked against reality if it
+// isn't.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'

@@ -6,12 +6,15 @@ export default function DigestHistory({ digests }: { digests: Digest[] }) {
   return (
     <div className="rounded-md border border-border bg-surface p-5 sm:p-6 shadow-sm">
       <h3 className="mb-4 text-sm font-semibold text-ink">Digest history</h3>
+      {/* The empty state deliberately states no schedule. Nothing writes to
+          the digests table yet, so naming a send day here would be inventing
+          a behaviour — put the cadence back once the digest job ships. */}
       {digests.length === 0 ? (
         <EmptyState
           size="sm"
           icon={Mail}
           title="No digests sent yet"
-          description="Your first weekly digest goes out on Monday morning, listing every new application in your tracked territories."
+          description="Once digests start going out, each one will be listed here with the period it covered and how many applications it included."
         />
       ) : (
         <div className="divide-y divide-border">
