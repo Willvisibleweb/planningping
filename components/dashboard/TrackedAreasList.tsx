@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { MapPin, Inbox } from 'lucide-react'
+import { MapPin, Inbox, ArrowRight } from 'lucide-react'
 import { deleteTrackedArea } from './actions'
 import ApplicationRow from './ApplicationRow'
 import type { TrackedArea, PlanningApplication } from '@/types/database'
@@ -95,8 +95,12 @@ function AreaCard({
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-3">
-          <a href={`/dashboard/${area.id}`} className="text-xs font-medium text-[#2563EB] hover:underline">
-            View territory &rarr;
+          <a
+            href={`/dashboard/${area.id}`}
+            className="inline-flex items-center gap-1.5 rounded-md border border-[#D6E4FB] px-3 py-1.5 text-sm font-medium text-[#2563EB] transition-colors hover:border-[#2563EB] hover:bg-[#EAF0FF]"
+          >
+            View territory
+            <ArrowRight size={14} className="shrink-0" />
           </a>
           <button
             onClick={handleDelete}
