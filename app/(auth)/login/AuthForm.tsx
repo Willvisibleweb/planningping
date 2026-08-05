@@ -6,6 +6,7 @@ import { loginWithPassword, loginWithMagicLink } from './actions'
 import Button from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Input'
 import { Alert } from '@/components/ui/ErrorState'
+import Link from 'next/link'
 
 export default function AuthForm() {
   const [mode, setMode] = useState<'password' | 'magic'>('password')
@@ -61,9 +62,9 @@ export default function AuthForm() {
           <Field
             label="Password"
             labelAction={
-              <a href="/reset-password" className="pp-link text-xs">
+              <Link href="/reset-password" className="pp-link text-xs">
                 Forgot password?
-              </a>
+              </Link>
             }
           >
             {(p) => (
@@ -100,9 +101,9 @@ export default function AuthForm() {
 
       <p className="mt-4 text-center text-xs text-ink-muted">
         No account?{' '}
-        <a href="/signup" className="pp-link">
+        <Link href="/signup" className="pp-link">
           Sign up
-        </a>
+        </Link>
       </p>
     </div>
   )

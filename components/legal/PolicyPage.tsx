@@ -6,6 +6,7 @@
 
 import ReactMarkdown from 'react-markdown'
 import type { Components } from 'react-markdown'
+import Link from 'next/link'
 
 // Map markdown elements to the site's existing colour tokens / spacing.
 const components: Components = {
@@ -40,15 +41,15 @@ export default function PolicyPage({ markdown }: { markdown: string }) {
       {/* Nav — mirrors the landing page header */}
       <header className="border-b border-border">
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-          <a href="/" className="text-sm font-semibold tracking-tight text-ink">
+          <Link href="/" className="text-sm font-semibold tracking-tight text-ink">
             PlanningPing
-          </a>
-          <a
+          </Link>
+          <Link
             href="/login"
             className="text-sm font-medium text-ink-muted hover:text-ink transition-colors"
           >
             Sign in
-          </a>
+          </Link>
         </div>
       </header>
 

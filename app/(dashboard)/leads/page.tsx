@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getProfile, isProfessional, hasProAccess } from '@/lib/access'
 import LeadsList from '@/components/dashboard/LeadsList'
 import type { PlanningApplication } from '@/types/database'
+import Link from 'next/link'
 
 type BandFilter = 'HOT' | 'WARM' | 'COLD' | 'ALL'
 
@@ -62,13 +63,13 @@ export default async function LeadsPage({
           {isProfessional(profile) ? (
             <>
               Your free trial has ended — your leads are saved.{' '}
-              <a href="/settings#billing" className="font-medium underline">Upgrade</a>{' '}
+              <Link href="/settings#billing" className="font-medium underline">Upgrade</Link>{' '}
               to keep tracking opportunities through your pipeline.
             </>
           ) : (
             <>
               Lead scoring is a professional feature. Switch to a professional account in{' '}
-              <a href="/settings" className="font-medium underline">Settings</a>{' '}
+              <Link href="/settings" className="font-medium underline">Settings</Link>{' '}
               (14-day free trial) to track these as opportunities.
             </>
           )}

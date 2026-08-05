@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getProfile, hasProAccess } from '@/lib/access'
 import TrackedAreasList from '@/components/dashboard/TrackedAreasList'
 import AddAreaForm from '@/components/dashboard/AddAreaForm'
-import type { TrackedArea, PlanningApplication } from '@/types/database'
+import type { TrackedArea } from '@/types/database'
 
 function StatTile({ label, value, sub }: { label: string; value: number; sub: string }) {
   return (

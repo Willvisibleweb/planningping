@@ -18,6 +18,7 @@ import Button from '@/components/ui/Button'
 import Pill from '@/components/ui/Pill'
 import { useToast } from '@/components/ui/Toast'
 import type { TrackedLead } from '@/types/database'
+import Link from 'next/link'
 
 type Mode = 'email' | 'letter'
 
@@ -64,10 +65,12 @@ export default function OutreachModal({
   const [isDownloading, setIsDownloading] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
 
-  async function loadMode(m: Mode) {
+  // Split from loadMode so the mount effect can start a fetch without running
+  // any setState synchronously in its body — `loading` already initialises to
+  // true and `error` to null, so the initial call has nothing to reset. Every
+  // setState below happens after an await. Same requests, same caching.
+  async function fetchMode(m: Mode) {
     if (fetchedModes.current.has(m)) return
-    setLoading(true)
-    setError(null)
     try {
       const res = await fetch('/api/outreach', {
         method: 'POST',
@@ -93,15 +96,28 @@ export default function OutreachModal({
     }
   }
 
+  // Resets the visible state, then fetches. Used when the user switches mode;
+  // the mount effect calls fetchMode directly instead.
+  function loadMode(m: Mode) {
+    setLoading(true)
+    setError(null)
+    void fetchMode(m)
+  }
+
   useEffect(() => {
-    loadMode('email')
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadMode is stable for this modal's lifetime
+    // set-state-in-effect flags any call that transitively setStates, but every
+    // setState inside fetchMode happens after an await — there is no cascading
+    // render here. Fetching a draft when the modal opens for a given lead is
+    // exactly what an effect is for, absent a data-fetching library.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- see above
+    void fetchMode('email')
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchMode is stable for this modal's lifetime
   }, [lead.id])
 
   function handleModeChange(m: Mode) {
     setMode(m)
     setError(null)
-    if (!fetchedModes.current.has(m)) void loadMode(m)
+    if (!fetchedModes.current.has(m)) loadMode(m)
   }
 
   function handleMarkSent() {
@@ -242,9 +258,9 @@ export default function OutreachModal({
                 <p className="mt-1 text-xs text-ink-muted">
                   Edit freely, then download as a PDF to print and post. Uses the firm
                   letterhead saved in{' '}
-                  <a href="/settings" className="pp-link font-medium">
+                  <Link href="/settings" className="pp-link font-medium">
                     Settings
-                  </a>{' '}
+                  </Link>{' '}
                   — optional, the letter still downloads fine without one.
                 </p>
                 {downloadError && <p className="mt-1 text-xs text-danger-600">{downloadError}</p>}

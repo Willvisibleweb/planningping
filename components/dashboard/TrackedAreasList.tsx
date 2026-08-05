@@ -7,6 +7,7 @@ import ApplicationRow from './ApplicationRow'
 import EmptyState from '@/components/ui/EmptyState'
 import { useToast } from '@/components/ui/Toast'
 import type { TrackedArea, PlanningApplication } from '@/types/database'
+import Link from 'next/link'
 
 interface Props {
   areas: TrackedArea[]
@@ -108,12 +109,12 @@ function AreaCard({
     <div className="rounded-md border border-border bg-surface p-6 shadow-sm">
       <div className="flex items-start justify-between">
         <div>
-          <a
+          <Link
             href={`/dashboard/${area.id}`}
             className="rounded-sm font-medium text-ink transition-colors duration-fast ease-standard hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
           >
             {area.label}
-          </a>
+          </Link>
           <p className="mt-1 text-sm text-ink-muted">
             {area.postcode} — {area.council_slug}
           </p>
@@ -122,7 +123,7 @@ function AreaCard({
           {/* A link styled as a button — the Button component renders a
               <button>, and this navigates, so it stays an anchor and borrows
               the secondary variant's look instead. */}
-          <a
+          <Link
             href={`/dashboard/${area.id}`}
             className="pp-lift group inline-flex h-9 items-center gap-1.5 rounded-sm border border-border bg-surface px-3.5 text-sm font-medium text-primary-600 shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:border-primary-300 hover:bg-primary-50 hover:shadow-md active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
           >
@@ -131,7 +132,7 @@ function AreaCard({
               size={14}
               className="shrink-0 transition-transform duration-fast ease-standard group-hover:translate-x-0.5"
             />
-          </a>
+          </Link>
           <button
             onClick={handleDelete}
             disabled={isPending}

@@ -1,7 +1,15 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+} from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import {
   LayoutDashboard,
@@ -27,6 +35,37 @@ interface Props {
 }
 
 const STORAGE_KEY = 'pp:sidebar-collapsed'
+
+// The collapsed preference lives in localStorage, which is an external store —
+// so it's read with useSyncExternalStore rather than an effect that setStates
+// on mount. That avoids the cascading render the old pattern caused, and syncs
+// the rail across tabs for free via the storage event.
+const collapseListeners = new Set<() => void>()
+
+function subscribeCollapsed(onChange: () => void) {
+  collapseListeners.add(onChange)
+  window.addEventListener('storage', onChange)
+  return () => {
+    collapseListeners.delete(onChange)
+    window.removeEventListener('storage', onChange)
+  }
+}
+
+function getCollapsedSnapshot() {
+  return localStorage.getItem(STORAGE_KEY) === '1'
+}
+
+// The server can't know the preference, so it renders expanded — same as the
+// old default. React reconciles to the stored value after hydration.
+function getCollapsedServerSnapshot() {
+  return false
+}
+
+function writeCollapsed(next: boolean) {
+  localStorage.setItem(STORAGE_KEY, next ? '1' : '0')
+  // The storage event only fires in *other* tabs, so notify this one directly.
+  collapseListeners.forEach((cb) => cb())
+}
 
 const CORE_NAV = (professional: boolean) => [
   { href: '/dashboard', label: 'Territory', icon: LayoutDashboard },
@@ -129,12 +168,12 @@ function SidebarInner({
         }`}
       >
         {showLabels && (
-          <a
+          <Link
             href="/dashboard"
             className="rounded-sm text-base font-semibold tracking-tight text-ink transition-colors duration-fast ease-standard hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
           >
             Planning<span className="text-primary-500">Ping</span>
-          </a>
+          </Link>
         )}
         <button
           onClick={onToggleCollapsed}
@@ -182,12 +221,12 @@ function SidebarInner({
       {/* Footer: trial, account, sign out */}
       <div className="shrink-0 border-t border-border p-3">
         {onTrial && showLabels && (
-          <a
+          <Link
             href="/settings#billing"
             className="mb-3 block rounded-sm bg-primary-100 px-3 py-2 text-xs font-medium text-primary-700 transition-colors duration-fast ease-standard hover:bg-primary-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45"
           >
             Trial: {daysLeft} day{daysLeft === 1 ? '' : 's'} left
-          </a>
+          </Link>
         )}
         {showLabels ? (
           <div className="flex items-center gap-2.5">
@@ -226,7 +265,11 @@ function SidebarInner({
 export default function Sidebar({ userEmail, professional, onTrial, daysLeft }: Props) {
   const pathname = usePathname()
   const router = useRouter()
-  const [collapsed, setCollapsed] = useState(false)
+  const collapsed = useSyncExternalStore(
+    subscribeCollapsed,
+    getCollapsedSnapshot,
+    getCollapsedServerSnapshot,
+  )
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const drawerRef = useRef<HTMLDivElement>(null)
@@ -234,24 +277,18 @@ export default function Sidebar({ userEmail, professional, onTrial, daysLeft }: 
   // focus to the menu button rather than dumping it at the top of the document.
   const openerRef = useRef<HTMLElement | null>(null)
 
-  // Restore the collapsed preference on mount (client-only; avoids hydration
-  // mismatch by defaulting to expanded until we've read localStorage).
-  useEffect(() => {
-    if (localStorage.getItem(STORAGE_KEY) === '1') setCollapsed(true)
-  }, [])
-
   const toggleCollapsed = useCallback(() => {
-    setCollapsed((c) => {
-      const next = !c
-      localStorage.setItem(STORAGE_KEY, next ? '1' : '0')
-      return next
-    })
+    writeCollapsed(!getCollapsedSnapshot())
   }, [])
 
-  // Close the mobile drawer whenever the route changes.
-  useEffect(() => {
-    setMobileOpen(false)
-  }, [pathname])
+  // Close the mobile drawer on navigation. Done by adjusting state during
+  // render — React's documented pattern for derived state — rather than in an
+  // effect, which would render the stale open drawer for a frame first.
+  const [pathAtRender, setPathAtRender] = useState(pathname)
+  if (pathAtRender !== pathname) {
+    setPathAtRender(pathname)
+    if (mobileOpen) setMobileOpen(false)
+  }
 
   const closeDrawer = useCallback(() => {
     setMobileOpen(false)
@@ -343,12 +380,12 @@ export default function Sidebar({ userEmail, professional, onTrial, daysLeft }: 
         >
           <Menu size={20} />
         </button>
-        <a
+        <Link
           href="/dashboard"
           className="rounded-sm text-base font-semibold tracking-tight text-ink transition-colors duration-fast ease-standard hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
         >
           Planning<span className="text-primary-500">Ping</span>
-        </a>
+        </Link>
       </div>
 
       {/* Desktop rail */}

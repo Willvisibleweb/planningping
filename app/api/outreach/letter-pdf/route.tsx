@@ -71,7 +71,13 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // The error-boundaries rule assumes React DOM, where a render error must be
+    // caught by a boundary rather than a try/catch. renderToBuffer is
+    // @react-pdf/renderer's imperative server-side renderer — it returns a
+    // promise that rejects, so try/catch is the correct and only way to handle
+    // a failure here. There is no component tree and no boundary to use.
     const pdfBuffer = await renderToBuffer(
+      // eslint-disable-next-line react-hooks/error-boundaries -- server-side PDF render, not React DOM; see above
       <LetterDocument
         logo={logo}
         businessName={firm?.business_name ?? null}

@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown'
 import type { Components } from 'react-markdown'
 import { SITE_URL } from '@/lib/seo/locations'
 import { getAllPosts, getPostBySlug } from '@/lib/blog/posts'
+import Link from 'next/link'
 
 type Params = { params: Promise<{ slug: string }> }
 
@@ -61,9 +62,9 @@ export default async function BlogPostPage({ params }: Params) {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
-      <a href="/blog" className="text-sm font-medium text-primary-500 hover:underline">
+      <Link href="/blog" className="text-sm font-medium text-primary-500 hover:underline">
         &larr; Back to blog
-      </a>
+      </Link>
 
       <p className="mt-6 text-xs text-neutral-500">{niceDate(post.date)}</p>
       <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink">{post.title}</h1>

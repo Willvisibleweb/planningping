@@ -6,6 +6,7 @@ import { signup } from './actions'
 import Button from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Input'
 import { Alert } from '@/components/ui/ErrorState'
+import Link from 'next/link'
 
 const USER_TYPES = [
   {
@@ -173,9 +174,9 @@ export default function SignupForm({
 
       <p className="mt-5 text-center text-xs text-ink-muted">
         Already have an account?{' '}
-        <a href="/login" className="pp-link">
+        <Link href="/login" className="pp-link">
           Sign in
-        </a>
+        </Link>
       </p>
     </div>
   )

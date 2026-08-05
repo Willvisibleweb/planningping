@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { SITE_URL } from '@/lib/seo/locations'
 import { getAllPosts } from '@/lib/blog/posts'
+import Link from 'next/link'
 
 const TITLE = 'Blog | PlanningPing'
 const DESCRIPTION =
@@ -32,14 +33,14 @@ export default function BlogIndexPage() {
 
       <div className="mt-10 space-y-8">
         {posts.map((post) => (
-          <a key={post.slug} href={`/blog/${post.slug}`} className="block group">
+          <Link key={post.slug} href={`/blog/${post.slug}`} className="block group">
             <p className="text-xs text-neutral-500">{niceDate(post.date)}</p>
             <h2 className="mt-1 text-lg font-semibold text-ink group-hover:text-primary-500 transition-colors">
               {post.title}
             </h2>
             <p className="mt-1.5 text-base leading-relaxed text-ink-muted">{post.excerpt}</p>
             <span className="mt-2 inline-block text-sm font-medium text-primary-500">Read more &rarr;</span>
-          </a>
+          </Link>
         ))}
       </div>
     </div>

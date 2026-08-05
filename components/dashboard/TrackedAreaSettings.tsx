@@ -10,6 +10,7 @@ import Button from '@/components/ui/Button'
 import Pill from '@/components/ui/Pill'
 import { Alert } from '@/components/ui/ErrorState'
 import type { MinBand } from '@/types/database'
+import Link from 'next/link'
 
 const BAND_OPTIONS: { value: MinBand; label: string; hint: string }[] = [
   { value: 'ALL', label: 'All', hint: 'Show every application' },
@@ -90,9 +91,9 @@ export default function TrackedAreaSettings({
           <div className="text-xs text-ink-muted">
             <span className="font-medium text-ink-muted">Email alerts</span> — a professional-plan
             feature.{' '}
-            <a href="/settings#billing" className="pp-link font-medium">
+            <Link href="/settings#billing" className="pp-link font-medium">
               Upgrade
-            </a>{' '}
+            </Link>{' '}
             to get emailed when a new matching application appears.
           </div>
         )}

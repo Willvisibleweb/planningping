@@ -14,6 +14,7 @@ import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import { useToast } from '@/components/ui/Toast'
 import type { PlanningApplication } from '@/types/database'
+import Link from 'next/link'
 
 export default function ApplicationRow({
   app,
@@ -73,12 +74,12 @@ export default function ApplicationRow({
     >
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 mb-0.5">
-          <a
+          <Link
             href={`/applications/${app.id}`}
             className="tabular-data rounded-sm text-xs text-ink-muted transition-colors duration-fast ease-standard hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
           >
             {app.reference}
-          </a>
+          </Link>
           {app.application_date && (
             <p className="text-xs text-ink-muted">{app.application_date}</p>
           )}

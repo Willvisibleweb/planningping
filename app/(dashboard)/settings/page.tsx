@@ -4,7 +4,7 @@ import DigestHistory from './DigestHistory'
 import AccountSection from './AccountSection'
 import BillingSection from './BillingSection'
 import FirmProfileSection from './FirmProfileSection'
-import type { Profile, Digest, FirmProfile } from '@/types/database'
+import type { Profile, FirmProfile } from '@/types/database'
 
 export default async function SettingsPage() {
   const supabase = await createClient()

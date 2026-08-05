@@ -4,6 +4,7 @@
 // see migration 0008's seo_locations view) — never a link that would 404.
 
 import { createClient } from '@/lib/supabase/server'
+import Link from 'next/link'
 
 interface CouncilCoverage {
   slug: string
@@ -73,9 +74,9 @@ export default async function CoveragePage() {
               <span className="text-right text-sm tabular-nums text-ink-muted">{r.applicationCount.toLocaleString()}</span>
               <span className="text-right">
                 {r.hasPublicPage ? (
-                  <a href={`/planning-applications/${r.slug}`} className="text-xs font-medium text-primary-500 hover:underline">
+                  <Link href={`/planning-applications/${r.slug}`} className="text-xs font-medium text-primary-500 hover:underline">
                     View &rarr;
-                  </a>
+                  </Link>
                 ) : (
                   <span className="text-xs text-ink-muted">&mdash;</span>
                 )}

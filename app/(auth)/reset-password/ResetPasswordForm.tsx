@@ -6,6 +6,7 @@ import { sendResetEmail } from './actions'
 import Button from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Input'
 import { Alert } from '@/components/ui/ErrorState'
+import Link from 'next/link'
 
 export default function ResetPasswordForm() {
   const [error, setError] = useState<string | null>(null)
@@ -59,9 +60,9 @@ export default function ResetPasswordForm() {
       </form>
 
       <p className="mt-5 text-center text-xs text-ink-muted">
-        <a href="/login" className="pp-link">
+        <Link href="/login" className="pp-link">
           Back to sign in
-        </a>
+        </Link>
       </p>
     </div>
   )

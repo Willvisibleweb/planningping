@@ -13,6 +13,7 @@ import ApplicationSearchList from '@/components/dashboard/ApplicationSearchList'
 import TerritoryMap from '@/components/dashboard/TerritoryMapLoader'
 import type { TrackedArea, PlanningApplication } from '@/types/database'
 import type { MapApplication } from '@/components/dashboard/TerritoryMap'
+import Link from 'next/link'
 
 export default async function TerritoryPage({
   params,
@@ -101,9 +102,9 @@ export default async function TerritoryPage({
   return (
     <div className="pp-stagger space-y-6">
       <div>
-        <a href="/dashboard" className="text-xs font-medium text-primary-500 hover:underline">
+        <Link href="/dashboard" className="text-xs font-medium text-primary-500 hover:underline">
           &larr; Back to territory
-        </a>
+        </Link>
         <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-xl font-semibold text-ink">{area.label}</h2>
           <span className="text-sm text-ink-muted">
@@ -157,16 +158,16 @@ export default async function TerritoryPage({
               )}
               {councilSeo && (
                 <li>
-                  <a href={`/planning-applications/${area.council_slug}`} className="text-xs font-medium text-primary-500 hover:underline">
+                  <Link href={`/planning-applications/${area.council_slug}`} className="text-xs font-medium text-primary-500 hover:underline">
                     Public {councilRow?.name ?? area.council_slug} applications page &rarr;
-                  </a>
+                  </Link>
                 </li>
               )}
               {postcodeSeo && district && (
                 <li>
-                  <a href={`/planning-applications/postcode/${district}`} className="text-xs font-medium text-primary-500 hover:underline">
+                  <Link href={`/planning-applications/postcode/${district}`} className="text-xs font-medium text-primary-500 hover:underline">
                     Public {district.toUpperCase()} postcode page &rarr;
-                  </a>
+                  </Link>
                 </li>
               )}
             </ul>

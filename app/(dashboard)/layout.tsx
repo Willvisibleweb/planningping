@@ -5,6 +5,7 @@
 import { redirect } from 'next/navigation'
 import { getProfile, isProfessional, hasProAccess, trialDaysLeft } from '@/lib/access'
 import Sidebar from '@/components/dashboard/Sidebar'
+import Link from 'next/link'
 
 export default async function DashboardLayout({
   children,
@@ -50,9 +51,9 @@ export default async function DashboardLayout({
               Always verify against the official planning authority before acting.
             </p>
             <p className="mt-2.5 text-xs text-ink-muted">
-              <a href="/terms" className="pp-link-muted">Terms of Service</a>
+              <Link href="/terms" className="pp-link-muted">Terms of Service</Link>
               {' · '}
-              <a href="/privacy" className="pp-link-muted">Privacy Policy</a>
+              <Link href="/privacy" className="pp-link-muted">Privacy Policy</Link>
             </p>
           </div>
         </footer>

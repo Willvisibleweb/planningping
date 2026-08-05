@@ -13,6 +13,7 @@ import { createClient } from '@/lib/supabase/server'
 import { statusStyle } from '@/lib/statusStyle'
 import Badge from '@/components/ui/Badge'
 import type { PlanningApplication } from '@/types/database'
+import Link from 'next/link'
 
 type ChildRow = Pick<PlanningApplication, 'id' | 'reference' | 'status' | 'application_date' | 'is_stale'>
 type ParentRow = Pick<PlanningApplication, 'id' | 'reference' | 'address' | 'description'>
@@ -95,14 +96,14 @@ export default async function ApplicationDetailPage({
         <div className="rounded-md border border-border bg-surface p-5 shadow-sm">
           <h3 className="text-sm font-medium text-ink">Parent application</h3>
           {parent ? (
-            <a
+            <Link
               href={`/applications/${parent.id}`}
               className="pp-lift mt-3 block rounded-sm border border-border p-4 transition-[border-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:border-primary-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
             >
               <p className="tabular-data text-xs text-ink-muted">{parent.reference}</p>
               <p className="mt-1.5 text-sm text-ink">{parent.description ?? 'No description'}</p>
               {parent.address && <p className="mt-1 text-xs text-ink-muted">{parent.address}</p>}
-            </a>
+            </Link>
           ) : app.parent_application_reference ? (
             <p className="mt-2 text-sm text-ink-muted">
               Parent application <span className="tabular-data">{app.parent_application_reference}</span> not
@@ -124,7 +125,7 @@ export default async function ApplicationDetailPage({
           </h3>
           <div className="mt-2 divide-y divide-border">
             {childRows.map((child) => (
-              <a
+              <Link
                 key={child.id}
                 href={`/applications/${child.id}`}
                 className="flex items-center justify-between gap-3 py-2.5 hover:bg-primary-50"
@@ -143,7 +144,7 @@ export default async function ApplicationDetailPage({
                   )}
                   <span className="text-xs text-ink-muted">{child.status ?? 'Status not available'}</span>
                 </div>
-              </a>
+              </Link>
             ))}
           </div>
         </div>

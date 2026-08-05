@@ -170,12 +170,12 @@ function LeadCard({
               {band}
             </Badge>
             <span className="tabular-data text-xs text-ink-muted">score {app.score ?? 0}</span>
-            <a
+            <Link
               href={`/applications/${app.id}`}
               className="tabular-data rounded-sm text-xs text-ink-muted transition-colors duration-fast ease-standard hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
             >
               {app.reference}
-            </a>
+            </Link>
             {app.application_date && (
               <span className="text-xs text-ink-muted">{app.application_date}</span>
             )}

@@ -51,6 +51,10 @@ export default function LetterDocument({
   return (
     <Document>
       <Page size="A4" style={styles.page}>
+        {/* This is @react-pdf/renderer's Image, which draws into a PDF and has
+            no alt prop — the jsx-a11y rule is matching the name, not an <img>.
+            PDF alternate text isn't supported by the library. */}
+        {/* eslint-disable-next-line jsx-a11y/alt-text -- not an HTML <img>; see above */}
         {logo && <Image src={logo} style={styles.logo} />}
 
         <Text style={styles.letterheadLine}>{businessName ?? '[Your business name]'}</Text>

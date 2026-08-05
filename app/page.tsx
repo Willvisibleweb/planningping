@@ -1,6 +1,7 @@
 import { MapPin, Mail, CheckCircle, Check } from 'lucide-react'
 import RotatingWord from '@/components/landing/RotatingWord'
 import { PRICING } from '@/lib/stripe'
+import Link from 'next/link'
 
 // Small presentational helpers for the product mockups in the hero / inbox band.
 // These are pure markup (no real data) — a "screenshot" of the app rendered in
@@ -60,18 +61,18 @@ export default function HomePage() {
             Planning<span className="text-primary-500">Ping</span>
           </span>
           <div className="flex items-center gap-5">
-            <a
+            <Link
               href="/blog"
               className="rounded-sm text-sm font-medium text-ink-muted transition-colors duration-fast ease-standard hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
             >
               Blog
-            </a>
-            <a
+            </Link>
+            <Link
               href="/login"
               className="rounded-sm text-sm font-medium text-ink-muted transition-colors duration-fast ease-standard hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
             >
               Sign in
-            </a>
+            </Link>
           </div>
         </div>
       </header>
@@ -99,18 +100,18 @@ export default function HomePage() {
                 {/* Flat brand colour rather than the old gradient: this is a
                     data tool, and the primary shadow token already gives the
                     button depth without a colour ramp doing the work. */}
-                <a
+                <Link
                   href="/signup"
                   className="pp-lift inline-flex items-center rounded-sm bg-primary-500 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-[background-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:bg-primary-600 hover:shadow-primary active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
                 >
                   Get started free
-                </a>
-                <a
+                </Link>
+                <Link
                   href="/login"
                   className="pp-lift inline-flex items-center rounded-sm border border-border bg-surface px-5 py-2.5 text-sm font-medium text-ink shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:border-primary-300 hover:bg-primary-50 hover:shadow-md active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
                 >
                   Sign in
-                </a>
+                </Link>
               </div>
               <div className="mt-6 flex items-center gap-2 text-xs text-neutral-500">
                 <span className="h-[5px] w-[5px] rounded-full bg-success-600 ring-4 ring-success-50" />
@@ -296,12 +297,12 @@ export default function HomePage() {
                 <li>{PRICING.free.radiusKm}km radius, {PRICING.free.maxAreas} tracked area</li>
                 <li>Weekly email digest</li>
               </ul>
-              <a
+              <Link
                 href="/signup"
                 className="mt-6 block rounded-md border border-primary-500 px-4 py-2 text-center text-sm font-medium text-primary-500 transition-[background-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:bg-primary-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
               >
                 Start free
-              </a>
+              </Link>
             </div>
             <div className="rounded-md border border-border bg-surface p-7 shadow-sm">
               <h3 className="text-sm font-semibold text-ink">Pro</h3>
@@ -313,12 +314,12 @@ export default function HomePage() {
                 <li>{PRICING.mid.radiusKm}km radius, {PRICING.mid.maxAreas} tracked areas</li>
                 <li>{PRICING.mid.support}</li>
               </ul>
-              <a
+              <Link
                 href="/signup?type=professional"
                 className="mt-6 block rounded-md border border-primary-500 px-4 py-2 text-center text-sm font-medium text-primary-500 transition-[background-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:bg-primary-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
               >
                 Start free trial
-              </a>
+              </Link>
             </div>
             <div className="relative rounded-md border-2 border-primary-500 bg-surface p-6 shadow-sm">
               <span className="absolute -top-2.5 right-5 rounded-full bg-primary-500 px-2.5 py-0.5 text-2xs font-bold uppercase tracking-wide text-white">
@@ -332,12 +333,12 @@ export default function HomePage() {
                 <li>{PRICING.top.radiusKm}km radius, unlimited tracked areas</li>
                 <li>{PRICING.top.support}</li>
               </ul>
-              <a
+              <Link
                 href="/signup?type=professional"
                 className="mt-6 block rounded-md bg-primary-500 px-4 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-primary-600"
               >
                 Start free trial
-              </a>
+              </Link>
             </div>
           </div>
         </div>
