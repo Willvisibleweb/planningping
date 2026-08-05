@@ -43,16 +43,16 @@ export default async function DashboardLayout({
 
         {/* Persistent legal disclaimer — subtle, present on every dashboard view. */}
         <footer className="border-t border-border">
-          <div className="mx-auto w-full max-w-5xl px-4 py-5 lg:px-8">
-            <p className="text-xs leading-relaxed text-ink-muted">
+          <div className="mx-auto w-full max-w-5xl px-4 py-6 lg:px-8">
+            <p className="max-w-3xl text-xs leading-relaxed text-ink-muted">
               PlanningPing is an alerting tool, not professional advice. Planning data is
               collected from public portals and may be incomplete, delayed, or inaccurate.
               Always verify against the official planning authority before acting.
             </p>
-            <p className="mt-2 text-xs text-ink-muted">
-              <a href="/terms" className="hover:text-ink-muted">Terms of Service</a>
+            <p className="mt-2.5 text-xs text-ink-muted">
+              <a href="/terms" className="pp-link-muted">Terms of Service</a>
               {' · '}
-              <a href="/privacy" className="hover:text-ink-muted">Privacy Policy</a>
+              <a href="/privacy" className="pp-link-muted">Privacy Policy</a>
             </p>
           </div>
         </footer>

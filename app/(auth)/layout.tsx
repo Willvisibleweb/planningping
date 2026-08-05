@@ -5,9 +5,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center">
           <a
             href="/"
-            className="text-sm font-semibold tracking-tight text-ink hover:text-primary-500 transition-colors"
+            className="rounded-sm text-sm font-semibold tracking-tight text-ink transition-colors duration-fast ease-standard hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
           >
-            PlanningPing
+            Planning<span className="text-primary-500">Ping</span>
           </a>
         </div>
       </header>

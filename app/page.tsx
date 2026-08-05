@@ -62,13 +62,13 @@ export default function HomePage() {
           <div className="flex items-center gap-5">
             <a
               href="/blog"
-              className="text-sm font-medium text-ink-muted hover:text-ink transition-colors"
+              className="rounded-sm text-sm font-medium text-ink-muted transition-colors duration-fast ease-standard hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
             >
               Blog
             </a>
             <a
               href="/login"
-              className="text-sm font-medium text-ink-muted hover:text-ink transition-colors"
+              className="rounded-sm text-sm font-medium text-ink-muted transition-colors duration-fast ease-standard hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
             >
               Sign in
             </a>

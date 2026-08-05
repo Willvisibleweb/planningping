@@ -10,12 +10,15 @@ export default function PlanningApplicationsLayout({
     <div className="min-h-screen flex flex-col bg-surface">
       <header className="border-b border-border">
         <div className="mx-auto max-w-4xl px-6 h-14 flex items-center justify-between">
-          <a href="/" className="text-sm font-semibold tracking-tight text-ink">
+          <a
+            href="/"
+            className="rounded-sm text-sm font-semibold tracking-tight text-ink transition-colors duration-fast ease-standard hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
+          >
             Planning<span className="text-primary-500">Ping</span>
           </a>
           <a
             href="/signup"
-            className="inline-flex items-center rounded-md bg-primary-500 px-3.5 py-1.5 text-sm font-medium text-white hover:bg-primary-600 transition-colors"
+            className="pp-lift inline-flex items-center rounded-sm bg-primary-500 px-3.5 py-1.5 text-sm font-medium text-white shadow-sm transition-[background-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:bg-primary-600 hover:shadow-primary active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
           >
             Get alerts
           </a>
@@ -29,7 +32,7 @@ export default function PlanningApplicationsLayout({
           Planning data is collected from public council registers and may be incomplete,
           delayed, or inaccurate. Always verify against the official planning authority
           before acting. {' · '}
-          <a href="/" className="hover:text-ink-muted">PlanningPing</a>
+          <a href="/" className="pp-link-muted">PlanningPing</a>
         </div>
       </footer>
     </div>

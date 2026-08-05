@@ -157,6 +157,9 @@
 
   --animate-enter: pp-enter 200ms var(--ease-standard) both;
   --animate-enter-fade: pp-enter-fade 200ms var(--ease-standard) both;
+  /* Panels anchored to the left edge slide in from it — a drawer that fades
+     up from the bottom reads as unrelated to the edge it's attached to. */
+  --animate-drawer: pp-drawer-in var(--duration-slow) var(--ease-standard) both;
 }
 
 /* ---------------------------------------------------------------------------
@@ -275,6 +278,11 @@
 @keyframes pp-enter-fade {
   from { opacity: 0; }
   to   { opacity: 1; }
+}
+
+@keyframes pp-drawer-in {
+  from { transform: translateX(-100%); }
+  to   { transform: none; }
 }
 
 .pp-stagger > * {
