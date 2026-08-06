@@ -13,6 +13,7 @@ import { createClient } from '@/lib/supabase/server'
 import { statusStyle } from '@/lib/statusStyle'
 import { getProfile } from '@/lib/access'
 import { getUserFeatures } from '@/lib/features'
+import { ChevronRight } from 'lucide-react'
 import Badge from '@/components/ui/Badge'
 import SiteMonitoringButton from '@/components/features/SiteMonitoringButton'
 import type { PlanningApplication } from '@/types/database'
@@ -145,7 +146,7 @@ export default async function ApplicationDetailPage({
               <Link
                 key={child.id}
                 href={`/applications/${child.id}`}
-                className="flex items-center justify-between gap-3 py-2.5 hover:bg-primary-50"
+                className="group -mx-2 flex items-center justify-between gap-3 rounded-sm px-2 py-3 transition-colors duration-fast ease-standard hover:bg-primary-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45"
               >
                 <div className="min-w-0">
                   <p className="tabular-data text-xs text-ink-muted">{child.reference}</p>
@@ -160,6 +161,14 @@ export default async function ApplicationDetailPage({
                     </span>
                   )}
                   <span className="text-xs text-ink-muted">{child.status ?? 'Status not available'}</span>
+                  {/* The whole row is the link, so it needs something that says
+                      so — a hover background alone gives no cue until you're
+                      already on it. */}
+                  <ChevronRight
+                    size={15}
+                    aria-hidden="true"
+                    className="shrink-0 text-neutral-400 transition-[color,transform] duration-fast ease-standard group-hover:translate-x-0.5 group-hover:text-primary-600"
+                  />
                 </div>
               </Link>
             ))}

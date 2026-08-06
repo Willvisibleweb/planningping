@@ -5,11 +5,12 @@
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import { Check, Target, Filter } from 'lucide-react'
+import { Check, Target, Filter, ArrowRight } from 'lucide-react'
 import { trackOpportunity } from './leadActions'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
+import LinkButton from '@/components/ui/LinkButton'
 import { useToast } from '@/components/ui/Toast'
 import type { PlanningApplication } from '@/types/database'
 
@@ -170,12 +171,8 @@ function LeadCard({
               {band}
             </Badge>
             <span className="tabular-data text-xs text-ink-muted">score {app.score ?? 0}</span>
-            <Link
-              href={`/applications/${app.id}`}
-              className="tabular-data rounded-sm text-xs text-ink-muted transition-colors duration-fast ease-standard hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
-            >
-              {app.reference}
-            </Link>
+            {/* Plain text — opening is the explicit button in the action row. */}
+            <span className="tabular-data text-xs text-ink-muted">{app.reference}</span>
             {app.application_date && (
               <span className="text-xs text-ink-muted">{app.application_date}</span>
             )}
@@ -186,22 +183,9 @@ function LeadCard({
           {app.address && <p className="text-xs text-ink-muted mt-0.5">{app.address}</p>}
         </div>
 
-        {showTrackActions && (
+        {showTrackActions && tracked && (
           <div className="shrink-0">
-            {tracked ? (
-              <Badge tone="success" icon={Check}>Tracked</Badge>
-            ) : (
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={handleTrack}
-                loading={isPending}
-                loadingLabel="Tracking opportunity"
-                className="h-7 px-2.5 text-2xs"
-              >
-                Track Opportunity
-              </Button>
-            )}
+            <Badge tone="success" icon={Check}>Tracked</Badge>
           </div>
         )}
       </div>
@@ -219,6 +203,26 @@ function LeadCard({
           ))}
         </div>
       )}
+
+      {/* Explicit action row, matching ApplicationRow. */}
+      <div className="mt-3.5 flex flex-wrap items-center gap-2">
+        <LinkButton href={`/applications/${app.id}`} size="sm" variant="secondary">
+          Open application
+          <ArrowRight size={13} className="shrink-0" aria-hidden="true" />
+        </LinkButton>
+
+        {showTrackActions && !tracked && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleTrack}
+            loading={isPending}
+            loadingLabel="Tracking opportunity"
+          >
+            Track Opportunity
+          </Button>
+        )}
+      </div>
     </div>
   )
 }

@@ -13,12 +13,13 @@
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import { KanbanSquare, Trash2, Sparkles } from 'lucide-react'
+import { KanbanSquare, Trash2, Sparkles, ArrowRight } from 'lucide-react'
 import { setStage, untrackLead } from './leadActions'
 import OutreachModal from './OutreachModal'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
+import LinkButton from '@/components/ui/LinkButton'
 import { useToast } from '@/components/ui/Toast'
 import { PIPELINE_STAGES, type PipelineStage, type TrackedLead } from '@/types/database'
 
@@ -149,12 +150,10 @@ function LeadCard({ lead, onOutreach }: { lead: TrackedLead; onOutreach: () => v
     <article className="rounded-md border border-border bg-surface shadow-sm transition-shadow duration-fast ease-standard hover:shadow-md">
       <div className="p-3.5">
         <div className="flex items-start justify-between gap-2">
-          <Link
-            href={`/applications/${lead.application_id}`}
-            className="tabular-data min-w-0 truncate rounded-sm text-xs text-ink-muted transition-colors duration-fast ease-standard hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
-          >
+          {/* Plain text — opening is the explicit button in the footer. */}
+          <span className="tabular-data min-w-0 truncate text-xs text-ink-muted">
             {lead.reference}
-          </Link>
+          </span>
           {lead.priority_follow_up && (
             <Badge tone="danger" className="shrink-0 font-semibold uppercase tracking-wide">
               Priority
@@ -214,10 +213,20 @@ function LeadCard({ lead, onOutreach }: { lead: TrackedLead; onOutreach: () => v
           ))}
         </select>
 
+        <LinkButton
+          href={`/applications/${lead.application_id}`}
+          size="sm"
+          variant="secondary"
+          className="h-8 w-full px-2 text-2xs"
+        >
+          Open application
+          <ArrowRight size={12} className="shrink-0" aria-hidden="true" />
+        </LinkButton>
+
         <div className="flex items-center gap-2">
           <Button
             size="sm"
-            variant="secondary"
+            variant="ghost"
             onClick={onOutreach}
             className="h-8 min-w-0 flex-1 px-2 text-2xs"
           >
