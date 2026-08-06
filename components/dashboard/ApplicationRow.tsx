@@ -7,14 +7,14 @@
 // only the territory page passes `distanceKm`.
 
 import { useState, useTransition } from 'react'
-import { HelpCircle, Check } from 'lucide-react'
+import { HelpCircle, Check, ArrowRight } from 'lucide-react'
 import { trackOpportunity } from './leadActions'
 import { statusStyle } from '@/lib/statusStyle'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
+import LinkButton from '@/components/ui/LinkButton'
 import { useToast } from '@/components/ui/Toast'
 import type { PlanningApplication } from '@/types/database'
-import Link from 'next/link'
 
 export default function ApplicationRow({
   app,
@@ -70,16 +70,16 @@ export default function ApplicationRow({
       id={anchorId}
       // Negative margin + matching padding lets the hover background bleed to
       // the card's edge instead of stopping short inside the divider line.
-      className="-mx-3 flex scroll-mt-4 items-start justify-between gap-4 rounded-sm px-3 py-4 transition-colors duration-fast ease-standard hover:bg-primary-50/60"
+      className="-mx-3 scroll-mt-4 rounded-sm px-3 py-4 transition-colors duration-fast ease-standard hover:bg-primary-50/60"
     >
+      <div className="flex items-start justify-between gap-4">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 mb-0.5">
-          <Link
-            href={`/applications/${app.id}`}
-            className="tabular-data rounded-sm text-xs text-ink-muted transition-colors duration-fast ease-standard hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
-          >
-            {app.reference}
-          </Link>
+          {/* Plain text, not a link. Opening an application is an explicit
+              button in the action row below — a reference that only reveals
+              itself as a link on hover gave no clue it was clickable, or
+              what clicking it would do. */}
+          <span className="tabular-data text-xs text-ink-muted">{app.reference}</span>
           {app.application_date && (
             <p className="text-xs text-ink-muted">{app.application_date}</p>
           )}
@@ -122,20 +122,32 @@ export default function ApplicationRow({
             Check council portal &rarr;
           </a>
         )}
-        {showTrackActions && (tracked ? (
+        {showTrackActions && tracked && (
           <Badge tone="success" icon={Check}>Tracked</Badge>
-        ) : (
+        )}
+      </div>
+      </div>
+
+      {/* Actions get their own row rather than being squeezed into the status
+          column. At 375px that column is 96px wide, which is not enough for a
+          button whose label actually says what it does. */}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <LinkButton href={`/applications/${app.id}`} size="sm" variant="secondary">
+          Open application
+          <ArrowRight size={13} className="shrink-0" aria-hidden="true" />
+        </LinkButton>
+
+        {showTrackActions && !tracked && (
           <Button
             size="sm"
-            variant="secondary"
+            variant="ghost"
             onClick={handleTrack}
             loading={isPending}
             loadingLabel="Tracking opportunity"
-            className="h-7 px-2.5 text-2xs"
           >
             Track Opportunity
           </Button>
-        ))}
+        )}
       </div>
     </div>
   )

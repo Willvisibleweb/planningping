@@ -11,6 +11,7 @@
 // (mirrors the ANTHROPIC_API_KEY guard in app/api/outreach/route.ts).
 
 import { Resend } from 'resend'
+import type { PartnershipProvider } from '@/types/database'
 
 const FROM = 'PlanningPing <notifications@kelwave.co.uk>'
 const MAX_ITEMS = 15
@@ -69,6 +70,26 @@ function renderItem(item: AlertItem): string {
     </tr>`
 }
 
+// Partner footer, rendered only for accounts that opted into that network.
+// Returns an empty string for everyone else, so a standard alert email
+// contains no partner markup at all.
+function renderPartnerBlock(partner: PartnershipProvider | null, dashboardUrl: string): string {
+  if (partner !== 'gabrielcam') return ''
+  return `
+    <table style="width:100%;border-collapse:collapse;margin-top:20px;background:#f5f8ff;border:1px solid #d6e4fb;border-radius:10px;">
+      <tr><td style="padding:14px 16px;">
+        <p style="margin:0;font-size:13px;font-weight:600;color:#202124;">Site monitoring available</p>
+        <p style="margin:4px 0 0;font-size:12px;line-height:1.6;color:#6b6c70;">
+          Open any of these applications in PlanningPing to send GabrielCAM a monitoring
+          enquiry with the site details already filled in.
+        </p>
+        <p style="margin:10px 0 0;">
+          <a href="${dashboardUrl}" style="color:#1d4ed8;font-size:12px;font-weight:600;text-decoration:none;">Review these sites &rarr;</a>
+        </p>
+      </td></tr>
+    </table>`
+}
+
 // Sends one email listing up to MAX_ITEMS new matching applications, with a
 // "+N more" link to the dashboard when there are more than that. Returns
 // false (does not throw) on any failure — a single user's send failing
@@ -77,6 +98,11 @@ export async function sendAlertEmail(opts: {
   to: string
   items: AlertItem[]
   siteUrl: string
+  // Partner network this recipient belongs to, or null. Resolved by the caller
+  // via getUserFeatures so one function decides partner membership everywhere.
+  // Null means the partner block is omitted entirely — a non-partner must
+  // never receive a partner suggestion, not even a dismissible one.
+  partner?: PartnershipProvider | null
 }): Promise<boolean> {
   const resend = getResend()
   if (!resend) {
@@ -95,6 +121,7 @@ export async function sendAlertEmail(opts: {
         ${shown.map(renderItem).join('')}
       </table>
       ${moreCount > 0 ? `<p style="margin-top:16px;"><a href="${dashboardUrl}" style="color:#2563EB;font-size:13px;font-weight:600;text-decoration:none;">+${moreCount} more — view your dashboard &rarr;</a></p>` : ''}
+      ${renderPartnerBlock(opts.partner ?? null, dashboardUrl)}
       <p style="margin-top:24px;"><a href="${dashboardUrl}" style="color:#2563EB;font-size:13px;text-decoration:none;">Open PlanningPing &rarr;</a></p>
     </div>`
 

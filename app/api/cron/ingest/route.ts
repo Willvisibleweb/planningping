@@ -27,6 +27,7 @@ import { resolveDischargeParents } from '@/lib/ingest/resolveDischargeParents'
 import { flagStaleDischarges } from '@/lib/ingest/flagStaleDischarges'
 import { sendDischargeAlerts } from '@/lib/alerts/dischargeAlerts'
 import { hasProAccess } from '@/lib/access'
+import { getUserFeatures } from '@/lib/features'
 import { sendAlertEmail, type AlertItem } from '@/lib/email'
 import type { Profile, MinBand } from '@/types/database'
 
@@ -237,7 +238,17 @@ async function sendBatchedAlerts(
     if (!hasProAccess(profile)) continue
 
     const items = hits.map((h) => h.item)
-    const sent = await sendAlertEmail({ to: profile!.email, items, siteUrl: SITE_URL })
+    // Partner suggestions are opt-in and per-account. Resolved here from the
+    // profile rather than inside the email builder, so there is exactly one
+    // place that decides whether someone is in a partner network — the same
+    // getUserFeatures the UI uses.
+    const features = getUserFeatures(profile)
+    const sent = await sendAlertEmail({
+      to: profile!.email,
+      items,
+      siteUrl: SITE_URL,
+      partner: features.siteMonitoring ? features.partnershipProvider : null,
+    })
     if (!sent) continue
 
     sentCount++

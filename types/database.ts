@@ -26,8 +26,19 @@ export interface Profile {
   // lib/access.ts's effectiveTier() for how the null case is resolved.
   pro_tier: 'mid' | 'top' | null
   digest_day: DigestDay
+  // Partner network this account belongs to, or null for the standard
+  // experience. Gates partner-only UI and server actions — see lib/features.ts.
+  partnership_provider: PartnershipProvider | null
+  // Non-secret partner-side account identifier (a GabrielCAM Hub ID). Never a
+  // credential: this row is readable by its owner under RLS.
+  partner_hub_id: string | null
   created_at: string
 }
+
+// Declared in lib/features.ts alongside the gating logic that consumes it, and
+// re-exported here so callers importing Profile get its field types too.
+import type { PartnershipProvider } from '@/lib/features'
+export { PARTNERSHIP_PROVIDERS, type PartnershipProvider } from '@/lib/features'
 
 export interface TrackedArea {
   id: string

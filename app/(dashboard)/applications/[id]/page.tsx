@@ -11,7 +11,11 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { statusStyle } from '@/lib/statusStyle'
+import { getProfile } from '@/lib/access'
+import { getUserFeatures } from '@/lib/features'
+import { ChevronRight } from 'lucide-react'
 import Badge from '@/components/ui/Badge'
+import SiteMonitoringButton from '@/components/features/SiteMonitoringButton'
 import type { PlanningApplication } from '@/types/database'
 import Link from 'next/link'
 
@@ -37,6 +41,11 @@ export default async function ApplicationDetailPage({
   const { data: appRow } = await supabase.from('planning_applications').select('*').eq('id', id).maybeSingle()
   if (!appRow) notFound()
   const app = appRow as PlanningApplication
+
+  // getProfile is React-cached, so this shares the layout's fetch rather than
+  // adding a round trip.
+  const profile = await getProfile()
+  const features = getUserFeatures(profile)
 
   const [{ data: children }, parentResult] = await Promise.all([
     supabase
@@ -90,6 +99,15 @@ export default async function ApplicationDetailPage({
             </Badge>
           )}
         </div>
+
+        {/* Partner-only. Gated here on the server as well as inside the
+            component, so a non-partner never ships the markup at all — not
+            hidden with CSS, not rendered and then removed. */}
+        {features.siteMonitoring && (
+          <div className="mt-4">
+            <SiteMonitoringButton app={app} hubId={profile?.partner_hub_id ?? null} />
+          </div>
+        )}
       </div>
 
       {isDischarge && (
@@ -128,7 +146,7 @@ export default async function ApplicationDetailPage({
               <Link
                 key={child.id}
                 href={`/applications/${child.id}`}
-                className="flex items-center justify-between gap-3 py-2.5 hover:bg-primary-50"
+                className="group -mx-2 flex items-center justify-between gap-3 rounded-sm px-2 py-3 transition-colors duration-fast ease-standard hover:bg-primary-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45"
               >
                 <div className="min-w-0">
                   <p className="tabular-data text-xs text-ink-muted">{child.reference}</p>
@@ -143,6 +161,14 @@ export default async function ApplicationDetailPage({
                     </span>
                   )}
                   <span className="text-xs text-ink-muted">{child.status ?? 'Status not available'}</span>
+                  {/* The whole row is the link, so it needs something that says
+                      so — a hover background alone gives no cue until you're
+                      already on it. */}
+                  <ChevronRight
+                    size={15}
+                    aria-hidden="true"
+                    className="shrink-0 text-neutral-400 transition-[color,transform] duration-fast ease-standard group-hover:translate-x-0.5 group-hover:text-primary-600"
+                  />
                 </div>
               </Link>
             ))}
