@@ -52,9 +52,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const params = new URL(request.url).searchParams
   // Support a no-send dry run, so this can be checked against real data before
   // it is ever pointed at real inboxes: ?dry=1
-  const dryRun = new URL(request.url).searchParams.get('dry') === '1'
+  const dryRun = params.get('dry') === '1'
+  // Escape hatch for re-testing a copy change within the same week. Behind
+  // CRON_SECRET, and deliberately not something the schedule can pass.
+  const force = params.get('force') === '1'
 
   const supabase = createAdminClient()
 
@@ -83,7 +87,7 @@ export async function GET(request: NextRequest) {
   const userIds = [...new Set(areaRows.map((a) => a.user_id))]
   const councilSlugs = [...new Set(areaRows.map((a) => a.council_slug))]
 
-  const [{ data: profiles }, { data: apps }] = await Promise.all([
+  const [{ data: profiles }, { data: apps }, { data: recentDigests }] = await Promise.all([
     supabase.from('profiles').select('id, email').in('id', userIds),
     supabase
       .from('planning_applications')
@@ -92,10 +96,24 @@ export async function GET(request: NextRequest) {
       .gte('application_date', periodStart)
       .lte('application_date', periodEnd)
       .order('application_date', { ascending: false }),
+    // Anyone who already has a digest covering any part of this window has
+    // already been told. period_end >= periodStart is the overlap test: on the
+    // normal weekly cadence windows never overlap, so this only ever catches a
+    // genuine repeat — a retried run, or a manual trigger landing on top of a
+    // scheduled one.
+    supabase
+      .from('digests')
+      .select('user_id, period_start, period_end')
+      .in('user_id', userIds)
+      .gte('period_end', periodStart),
   ])
 
   const emailById = new Map(
     ((profiles ?? []) as { id: string; email: string }[]).map((p) => [p.id, p.email]),
+  )
+
+  const alreadySent = new Set(
+    ((recentDigests ?? []) as { user_id: string }[]).map((d) => d.user_id),
   )
 
   const byCouncil = new Map<string, AppRow[]>()
@@ -106,10 +124,16 @@ export async function GET(request: NextRequest) {
   }
 
   const payloads: DigestPayload[] = []
+  let skippedAsDuplicate = 0
 
   for (const userId of userIds) {
     const email = emailById.get(userId)
     if (!email) continue
+
+    if (alreadySent.has(userId) && !force) {
+      skippedAsDuplicate++
+      continue
+    }
 
     const myAreas = areaRows.filter((a) => a.user_id === userId)
     // An application can sit in two areas that share a council. First area to
@@ -158,8 +182,10 @@ export async function GET(request: NextRequest) {
   if (dryRun) {
     return NextResponse.json({
       dry_run: true,
+      forced: force,
       period: { start: periodStart, end: periodEnd },
       recipients: payloads.length,
+      skipped_already_sent: skippedAsDuplicate,
       would_send: payloads.map((p) => ({ email: p.email, applications: p.items.length, areas: p.areaCount })),
     })
   }
@@ -187,8 +213,10 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     ran_at: new Date().toISOString(),
+    forced: force,
     period: { start: periodStart, end: periodEnd },
     recipients: payloads.length,
+    skipped_already_sent: skippedAsDuplicate,
     sent,
     failed: failures.length,
   })
