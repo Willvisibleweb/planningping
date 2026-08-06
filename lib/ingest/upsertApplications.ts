@@ -6,6 +6,7 @@
 import { createHash } from 'crypto'
 import { scoreApplication } from '@/lib/scoring/scoreApplication'
 import { classifyApplication } from '@/lib/classification/classifyApplication'
+import { classifyDecision, isDecided, type DecisionOutcome } from '@/lib/classification/decisionOutcome'
 import type { createAdminClient } from '@/lib/supabase/admin'
 
 type AdminClient = ReturnType<typeof createAdminClient>
@@ -37,11 +38,27 @@ export interface NewApplication {
   parent_application_reference: string | null
 }
 
+// An application that crossed from undecided to decided during this run. Only
+// the transition counts — see decision_alerted_at in migration 0017 for why
+// alerting on the state itself would announce years of history as news.
+export interface DecidedApplication {
+  id: string | null
+  council_slug: string
+  reference: string
+  description: string | null
+  address: string | null
+  status: string | null
+  decision_date: string | null
+  outcome: DecisionOutcome
+  band: string | null
+}
+
 export interface UpsertResult {
   received: number
   changed: number
   new_refs: string[]
   new_applications: NewApplication[]
+  decided_applications: DecidedApplication[]
 }
 
 // Only status + decision_date drive a "meaningful change" (matches the webhook).
@@ -65,16 +82,29 @@ export async function upsertApplications(
   const rows: Record<string, unknown>[] = []
   const new_refs: string[] = []
   const new_applications: NewApplication[] = []
+  const decided_applications: DecidedApplication[] = []
 
   for (const [council, list] of byCouncil) {
+    // status comes back alongside the hash so a decision can be detected as a
+    // transition. The hash alone says "something changed", not what it changed
+    // from — and "was it already approved" is the entire question.
     const { data: existing } = await supabase
       .from('planning_applications')
-      .select('reference, state_hash')
+      .select('reference, state_hash, status, decision_alerted_at')
       .eq('council_slug', council)
 
     const existingHash: Record<string, string> = {}
-    for (const e of (existing ?? []) as { reference: string; state_hash: string | null }[]) {
+    const previousStatus: Record<string, string | null> = {}
+    const alreadyAlerted: Record<string, boolean> = {}
+    for (const e of (existing ?? []) as {
+      reference: string
+      state_hash: string | null
+      status: string | null
+      decision_alerted_at: string | null
+    }[]) {
       existingHash[e.reference] = e.state_hash ?? ''
+      previousStatus[e.reference] = e.status
+      alreadyAlerted[e.reference] = e.decision_alerted_at !== null
     }
 
     // De-dupe references within this batch (radius queries can repeat).
@@ -116,6 +146,30 @@ export async function upsertApplications(
         parent_application_reference: parentReferenceRaw,
         parent_reference_needs_review: needsReview,
       })
+      // Decision detection. Four guards, all necessary:
+      //   !isNew            — a brand-new row arriving already decided is
+      //                       history we never saw undecided, not news.
+      //   !alreadyAlerted   — at-most-once, even if a council rewrites the
+      //                       status text again later.
+      //   !wasDecided       — the transition, not the state. Without this,
+      //                       any reword of an approved status re-alerts.
+      //   outcome           — it actually reads as a decision now.
+      const outcome = classifyDecision(a.status)
+      const wasDecided = isDecided(previousStatus[a.reference] ?? null)
+      if (!isNew && !alreadyAlerted[a.reference] && !wasDecided && outcome) {
+        decided_applications.push({
+          id: null, // attached below, once the upsert returns real ids
+          council_slug: a.council_slug,
+          reference: a.reference,
+          description: a.description,
+          address: a.address,
+          status: a.status,
+          decision_date: a.decision_date,
+          outcome,
+          band,
+        })
+      }
+
       if (isNew) {
         new_refs.push(a.reference)
         new_applications.push({
@@ -152,7 +206,16 @@ export async function upsertApplications(
     for (const na of new_applications) {
       na.id = idByKey.get(`${na.council_slug}|${na.reference}`) ?? null
     }
+    for (const da of decided_applications) {
+      da.id = idByKey.get(`${da.council_slug}|${da.reference}`) ?? null
+    }
   }
 
-  return { received: apps.length, changed: rows.length, new_refs, new_applications }
+  return {
+    received: apps.length,
+    changed: rows.length,
+    new_refs,
+    new_applications,
+    decided_applications,
+  }
 }
