@@ -34,6 +34,7 @@ export default function SignupForm({
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [userType, setUserType] = useState<string>(defaultType)
+  const [isPartner, setIsPartner] = useState(false)
   const [password, setPassword] = useState('')
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -87,7 +88,12 @@ export default function SignupForm({
                   name="user_type"
                   value={t.value}
                   checked={userType === t.value}
-                  onChange={() => setUserType(t.value)}
+                  onChange={() => {
+                    setUserType(t.value)
+                    // Switching to homeowner clears the partner answer so it
+                    // can't be submitted from a hidden field.
+                    if (t.value !== 'professional') setIsPartner(false)
+                  }}
                   className="sr-only"
                 />
                 <span className="block text-sm font-medium text-ink">{t.title}</span>
@@ -98,6 +104,37 @@ export default function SignupForm({
             ))}
           </div>
         </fieldset>
+
+        {/* Partner question, professional accounts only. GabrielCAM's customers
+            are construction firms, and showing this to homeowners would
+            advertise a partnership almost none of them have any relationship
+            with — which is the opposite of keeping the standard product clean.
+            Answering "no" is the same as not answering: the field is simply
+            absent from the form data. */}
+        {userType === 'professional' && (
+          <div className="rounded-sm border border-border bg-primary-50/50 p-4">
+            <label className="flex cursor-pointer items-start gap-3 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary-500/45 has-[:focus-visible]:ring-offset-2">
+              <input
+                type="checkbox"
+                name="partnership_provider"
+                value="gabrielcam"
+                checked={isPartner}
+                onChange={(e) => setIsPartner(e.target.checked)}
+                className="mt-0.5 size-4 shrink-0 accent-primary-500 focus-visible:outline-none"
+              />
+              <span>
+                <span className="block text-sm font-medium text-ink">
+                  I&rsquo;m a GabrielCAM partner or client
+                </span>
+                <span className="mt-1 block text-xs leading-relaxed text-ink-muted">
+                  Adds site-monitoring options to applications you track. Leave this
+                  unticked if you don&rsquo;t work with GabrielCAM — you can change it
+                  later in Settings.
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
 
         <Field label="Email" required>
           {(p) => (

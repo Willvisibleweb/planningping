@@ -4,6 +4,8 @@
 
 import { redirect } from 'next/navigation'
 import { getProfile, isProfessional, hasProAccess, trialDaysLeft } from '@/lib/access'
+import { getUserFeatures } from '@/lib/features'
+import { FeaturesProvider } from '@/components/features/FeaturesProvider'
 import Sidebar from '@/components/dashboard/Sidebar'
 import Link from 'next/link'
 
@@ -28,7 +30,13 @@ export default async function DashboardLayout({
   const daysLeft = trialDaysLeft(profile)
   const onTrial = professional && hasProAccess(profile) && daysLeft !== null
 
+  // Flags are resolved once, server-side, from the profile the layout already
+  // loaded — see components/features/FeaturesProvider for why they aren't
+  // fetched again in the browser.
+  const features = getUserFeatures(profile)
+
   return (
+    <FeaturesProvider features={features}>
     <div className="min-h-screen bg-surface lg:flex">
       <Sidebar
         userEmail={profile.email}
@@ -59,5 +67,6 @@ export default async function DashboardLayout({
         </footer>
       </div>
     </div>
+    </FeaturesProvider>
   )
 }

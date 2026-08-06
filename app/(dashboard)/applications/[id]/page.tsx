@@ -11,7 +11,10 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { statusStyle } from '@/lib/statusStyle'
+import { getProfile } from '@/lib/access'
+import { getUserFeatures } from '@/lib/features'
 import Badge from '@/components/ui/Badge'
+import SiteMonitoringButton from '@/components/features/SiteMonitoringButton'
 import type { PlanningApplication } from '@/types/database'
 import Link from 'next/link'
 
@@ -37,6 +40,11 @@ export default async function ApplicationDetailPage({
   const { data: appRow } = await supabase.from('planning_applications').select('*').eq('id', id).maybeSingle()
   if (!appRow) notFound()
   const app = appRow as PlanningApplication
+
+  // getProfile is React-cached, so this shares the layout's fetch rather than
+  // adding a round trip.
+  const profile = await getProfile()
+  const features = getUserFeatures(profile)
 
   const [{ data: children }, parentResult] = await Promise.all([
     supabase
@@ -90,6 +98,15 @@ export default async function ApplicationDetailPage({
             </Badge>
           )}
         </div>
+
+        {/* Partner-only. Gated here on the server as well as inside the
+            component, so a non-partner never ships the markup at all — not
+            hidden with CSS, not rendered and then removed. */}
+        {features.siteMonitoring && (
+          <div className="mt-4">
+            <SiteMonitoringButton app={app} hubId={profile?.partner_hub_id ?? null} />
+          </div>
+        )}
       </div>
 
       {isDischarge && (

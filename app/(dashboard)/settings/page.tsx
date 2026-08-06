@@ -4,6 +4,7 @@ import DigestHistory from './DigestHistory'
 import AccountSection from './AccountSection'
 import BillingSection from './BillingSection'
 import FirmProfileSection from './FirmProfileSection'
+import PartnershipSection from './PartnershipSection'
 import type { Profile, FirmProfile } from '@/types/database'
 
 export default async function SettingsPage() {
@@ -41,6 +42,10 @@ export default async function SettingsPage() {
         <>
           <BillingSection profile={profile as Profile} />
           <FirmProfileSection firmProfile={firm} logoDataUri={logoDataUri} />
+          {/* Professional-only: this is where an existing account opts into a
+              partner integration, since the signup question only ever reaches
+              new sign-ups. */}
+          <PartnershipSection profile={profile as Profile} />
         </>
       )}
       <SettingsForm />

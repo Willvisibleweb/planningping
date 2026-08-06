@@ -3,8 +3,10 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { getProfile, hasProAccess } from '@/lib/access'
+import { getUserFeatures } from '@/lib/features'
 import TrackedAreasList from '@/components/dashboard/TrackedAreasList'
 import AddAreaForm from '@/components/dashboard/AddAreaForm'
+import PartnerStatusWidget from '@/components/features/PartnerStatusWidget'
 import type { TrackedArea } from '@/types/database'
 
 function StatTile({ label, value, sub }: { label: string; value: number; sub: string }) {
@@ -101,6 +103,12 @@ export default async function DashboardPage() {
           </>
         )}
       </div>
+
+      {/* Renders nothing for non-partners — see PartnerStatusWidget. */}
+      <PartnerStatusWidget
+        features={getUserFeatures(profile)}
+        hubId={profile?.partner_hub_id ?? null}
+      />
 
       <AddAreaForm />
 
