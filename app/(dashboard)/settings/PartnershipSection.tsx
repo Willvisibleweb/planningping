@@ -85,11 +85,14 @@ export default function PartnershipSection({ profile }: { profile: Profile }) {
             I&rsquo;m a {META.name} partner or client
           </label>
 
+          {/* Label carries "optional", not just the hint — the hint sits below
+              the input, so anyone scanning top-down reads the label and
+              assumes it's required. */}
           {isPartner && (
             <Field
-              label={`${META.name} Hub ID`}
+              label={`${META.name} Hub ID (optional)`}
               className="mt-4 max-w-xs"
-              hint="Optional. Helps GabrielCAM match an enquiry to your account."
+              hint="Leave blank if you don't have one. It only helps GabrielCAM match an enquiry to your account."
             >
               {(p) => (
                 <Input

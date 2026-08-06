@@ -28,15 +28,16 @@ export default function PartnerStatusWidget({
 
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-ink">{meta.name} partner</p>
+        {/* No nag when there's no Hub ID. It's genuinely optional, and an
+            "Add Hub ID" prompt sitting on the dashboard reads as an unfinished
+            setup step rather than a spare field. */}
         <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">
           Site monitoring options appear on every application you open.
-          {hubId ? (
+          {hubId && (
             <>
               {' '}
               Hub ID <span className="tabular-data text-ink">{hubId}</span>.
             </>
-          ) : (
-            ' Add your Hub ID in Settings so enquiries reach the right account.'
           )}
         </p>
       </div>
@@ -51,14 +52,9 @@ export default function PartnerStatusWidget({
         <ArrowUpRight size={14} className="shrink-0" aria-hidden="true" />
       </a>
 
-      {!hubId && (
-        <Link
-          href="/settings"
-          className="pp-link shrink-0 text-xs font-medium"
-        >
-          Add Hub ID
-        </Link>
-      )}
+      <Link href="/settings" className="pp-link shrink-0 text-xs font-medium">
+        Partner settings
+      </Link>
     </section>
   )
 }
