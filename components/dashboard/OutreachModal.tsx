@@ -12,8 +12,13 @@
 // shared daily generation cap on repeat generations of the same lead.
 
 import { useEffect, useRef, useState, useTransition } from 'react'
+import { X } from 'lucide-react'
 import { markAsSent } from './leadActions'
+import Button from '@/components/ui/Button'
+import Pill from '@/components/ui/Pill'
+import { useToast } from '@/components/ui/Toast'
 import type { TrackedLead } from '@/types/database'
+import Link from 'next/link'
 
 type Mode = 'email' | 'letter'
 
@@ -54,15 +59,18 @@ export default function OutreachModal({
   const [error, setError] = useState<string | null>(null)
 
   const [sent, setSent] = useState(false)
+  const { toast } = useToast()
   const [isPending, startTransition] = useTransition()
 
   const [isDownloading, setIsDownloading] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
 
-  async function loadMode(m: Mode) {
+  // Split from loadMode so the mount effect can start a fetch without running
+  // any setState synchronously in its body — `loading` already initialises to
+  // true and `error` to null, so the initial call has nothing to reset. Every
+  // setState below happens after an await. Same requests, same caching.
+  async function fetchMode(m: Mode) {
     if (fetchedModes.current.has(m)) return
-    setLoading(true)
-    setError(null)
     try {
       const res = await fetch('/api/outreach', {
         method: 'POST',
@@ -88,24 +96,47 @@ export default function OutreachModal({
     }
   }
 
+  // Resets the visible state, then fetches. Used when the user switches mode;
+  // the mount effect calls fetchMode directly instead.
+  function loadMode(m: Mode) {
+    setLoading(true)
+    setError(null)
+    void fetchMode(m)
+  }
+
   useEffect(() => {
-    loadMode('email')
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadMode is stable for this modal's lifetime
+    // set-state-in-effect flags any call that transitively setStates, but every
+    // setState inside fetchMode happens after an await — there is no cascading
+    // render here. Fetching a draft when the modal opens for a given lead is
+    // exactly what an effect is for, absent a data-fetching library.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- see above
+    void fetchMode('email')
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchMode is stable for this modal's lifetime
   }, [lead.id])
 
   function handleModeChange(m: Mode) {
     setMode(m)
     setError(null)
-    if (!fetchedModes.current.has(m)) void loadMode(m)
+    if (!fetchedModes.current.has(m)) loadMode(m)
   }
 
   function handleMarkSent() {
     startTransition(async () => {
       const result = await markAsSent(lead.id)
-      if (!result?.error) {
-        setSent(true)
-        setTimeout(onClose, 800)
+      if (result?.error) {
+        // Previously silent: the modal simply stayed open with the button
+        // still saying "Mark as Sent", so a failure was indistinguishable
+        // from a mis-click.
+        toast({ title: 'Couldn’t log that contact', description: result.error, variant: 'error' })
+        return
       }
+      setSent(true)
+      toast({
+        title: 'Logged as contacted',
+        description: `${lead.reference} moved to Contacted, dated today.`,
+        variant: 'success',
+      })
+      setTimeout(onClose, 800)
     })
   }
 
@@ -149,52 +180,48 @@ export default function OutreachModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-xl rounded-lg bg-white p-5 shadow-xl"
+        className="w-full max-w-xl rounded-lg bg-surface p-5 sm:p-6 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-start justify-between">
           <div>
-            <h3 className="text-base font-semibold text-[#202124]">Opportunity brief</h3>
-            <p className="font-mono text-xs text-[#A0A1A6]">{lead.reference}</p>
+            <h3 className="text-base font-semibold text-ink">Opportunity brief</h3>
+            <p className="tabular-data text-xs text-ink-muted">{lead.reference}</p>
           </div>
-          <button onClick={onClose} className="text-sm text-[#A0A1A6] hover:text-[#202124]">
-            ✕
+          <button
+            onClick={onClose}
+            aria-label="Close opportunity brief"
+            className="-m-1 rounded-sm p-1 text-neutral-500 transition-colors duration-fast ease-standard hover:bg-neutral-100 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45"
+          >
+            <X size={16} />
           </button>
         </div>
 
         <div className="mb-3 flex gap-1.5">
           {(['email', 'letter'] as const).map((m) => (
-            <button
-              key={m}
-              onClick={() => handleModeChange(m)}
-              className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                m === mode
-                  ? 'border-[#2563EB] bg-[#2563EB] text-white'
-                  : 'border-[#D6E4FB] bg-white text-[#6B6C70] hover:border-[#2563EB]'
-              }`}
-            >
+            <Pill key={m} selected={m === mode} onClick={() => handleModeChange(m)}>
               {m === 'email' ? 'Email' : 'Formal letter'}
-            </button>
+            </Pill>
           ))}
         </div>
 
         {loading ? (
-          <div className="py-12 text-center text-sm text-[#6B6C70]">Analysing…</div>
+          <div className="py-12 text-center text-sm text-ink-muted">Analysing…</div>
         ) : error ? (
-          <p className="py-8 text-center text-sm text-red-600">{error}</p>
+          <p className="py-8 text-center text-sm text-danger-600">{error}</p>
         ) : (
           <>
             {activeBrief && (
-              <div className="mb-4 rounded-md border border-[#D6E4FB] bg-[#F7F9FF] p-3">
+              <div className="mb-4 rounded-md border border-border bg-primary-50 p-3">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="rounded bg-[#2563EB] px-2 py-0.5 text-xs font-semibold text-white">
+                  <span className="rounded-sm bg-primary-500 px-2 py-0.5 text-xs font-semibold text-white">
                     {activeBrief.scope}
                   </span>
-                  <span className="rounded bg-[#F7F7F8] px-2 py-0.5 text-xs text-[#6B6C70]">
+                  <span className="rounded-sm bg-surface-sunken px-2 py-0.5 text-xs text-ink-muted">
                     {activeBrief.valueSignal}
                   </span>
                 </div>
-                <p className="mt-2 text-sm text-[#202124]">{activeBrief.reasoning}</p>
+                <p className="mt-2 text-sm text-ink">{activeBrief.reasoning}</p>
               </div>
             )}
 
@@ -203,17 +230,9 @@ export default function OutreachModal({
                 {angles.length > 1 && (
                   <div className="mb-3 flex flex-wrap gap-1.5">
                     {angles.map((angle, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setSelected(i)}
-                        className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                          i === selected
-                            ? 'border-[#2563EB] bg-[#2563EB] text-white'
-                            : 'border-[#D6E4FB] bg-white text-[#6B6C70] hover:border-[#2563EB]'
-                        }`}
-                      >
+                      <Pill key={i} selected={i === selected} onClick={() => setSelected(i)}>
                         {angle.label}
-                      </button>
+                      </Pill>
                     ))}
                   </div>
                 )}
@@ -221,9 +240,9 @@ export default function OutreachModal({
                   value={emailDraftText}
                   onChange={(e) => setEdits((prev) => ({ ...prev, [selected]: e.target.value }))}
                   rows={11}
-                  className="w-full rounded-md border border-[#D6E4FB] p-3 text-sm text-[#202124] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+                  className="w-full rounded-sm border border-border-control bg-surface p-3.5 text-sm text-ink transition-[border-color,box-shadow] duration-fast ease-standard hover:border-primary-300 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15"
                 />
-                <p className="mt-1 text-xs text-[#A0A1A6]">
+                <p className="mt-1 text-xs text-ink-muted">
                   Edit freely, then copy into your email client. Marking as sent logs today
                   as the contact date.
                 </p>
@@ -234,43 +253,44 @@ export default function OutreachModal({
                   value={letterEdit}
                   onChange={(e) => setLetterEdit(e.target.value)}
                   rows={11}
-                  className="w-full rounded-md border border-[#D6E4FB] p-3 text-sm text-[#202124] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+                  className="w-full rounded-sm border border-border-control bg-surface p-3.5 text-sm text-ink transition-[border-color,box-shadow] duration-fast ease-standard hover:border-primary-300 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15"
                 />
-                <p className="mt-1 text-xs text-[#A0A1A6]">
+                <p className="mt-1 text-xs text-ink-muted">
                   Edit freely, then download as a PDF to print and post. Uses the firm
                   letterhead saved in{' '}
-                  <a href="/settings" className="font-medium text-[#2563EB] hover:underline">
+                  <Link href="/settings" className="pp-link font-medium">
                     Settings
-                  </a>{' '}
+                  </Link>{' '}
                   — optional, the letter still downloads fine without one.
                 </p>
-                {downloadError && <p className="mt-1 text-xs text-red-600">{downloadError}</p>}
+                {downloadError && <p className="mt-1 text-xs text-danger-600">{downloadError}</p>}
               </>
             )}
 
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                onClick={onClose}
-                className="rounded-md px-3 py-1.5 text-sm text-[#6B6C70] hover:text-[#202124]"
-              >
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={onClose}>
                 Close
-              </button>
+              </Button>
               {mode === 'letter' && (
-                <button
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={handleDownloadPdf}
-                  disabled={isDownloading}
-                  className="rounded-md border border-[#2563EB] px-3 py-1.5 text-sm font-medium text-[#2563EB] transition-colors hover:bg-[#2563EB] hover:text-white disabled:opacity-50"
+                  loading={isDownloading}
+                  loadingLabel="Preparing PDF"
                 >
-                  {isDownloading ? 'Preparing…' : 'Download PDF'}
-                </button>
+                  Download PDF
+                </Button>
               )}
-              <button
+              <Button
+                size="sm"
                 onClick={handleMarkSent}
-                disabled={isPending || sent}
-                className="rounded-md bg-[#2563EB] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#1D4ED8] transition-colors disabled:opacity-50"
+                disabled={sent}
+                loading={isPending}
+                loadingLabel="Marking as sent"
               >
-                {sent ? 'Marked ✓' : isPending ? 'Saving…' : 'Mark as Sent'}
-              </button>
+                {sent ? 'Marked ✓' : 'Mark as Sent'}
+              </Button>
             </div>
           </>
         )}

@@ -2,9 +2,19 @@
 
 import { useState, useTransition } from 'react'
 import { addTrackedArea } from './actions'
+import Button from '@/components/ui/Button'
+import { Field, Input } from '@/components/ui/Input'
+import { Alert } from '@/components/ui/ErrorState'
+
+// Loose UK postcode shape — deliberately permissive. This only catches obvious
+// typos before a round trip; the server action stays the authority on whether
+// a postcode actually resolves to a planning authority.
+const UK_POSTCODE = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i
 
 export default function AddAreaForm() {
   const [error, setError] = useState<string | null>(null)
+  const [postcode, setPostcode] = useState('')
+  const [postcodeError, setPostcodeError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   async function handleSubmit(formData: FormData) {
@@ -16,39 +26,70 @@ export default function AddAreaForm() {
   }
 
   return (
-    <div className="rounded-lg border border-[#D6E4FB] bg-white p-5 shadow-[0_1px_2px_rgba(32,33,36,.04)]">
-      <h3 className="text-sm font-medium text-[#202124] mb-3">Add a territory to track</h3>
-      <form action={handleSubmit} className="flex flex-col sm:flex-row gap-3">
-        <div className="flex-1">
-          <input
-            name="postcode"
-            type="text"
-            placeholder="Postcode, e.g. SW1A 1AA"
-            required
-            className="w-full rounded-md border border-[#D6E4FB] px-3 py-2 text-sm text-[#202124] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/40"
-          />
-        </div>
-        <div className="flex-1">
-          <input
-            name="label"
-            type="text"
-            placeholder="Label, e.g. Midlands Patch, Client Site A"
-            required
-            className="w-full rounded-md border border-[#D6E4FB] px-3 py-2 text-sm text-[#202124] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/40"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded-md bg-[#2563EB] px-4 py-2 text-sm font-medium text-white hover:bg-[#1D4ED8] disabled:opacity-50 whitespace-nowrap"
-        >
-          {isPending ? 'Adding…' : 'Add territory'}
-        </button>
-      </form>
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-      <p className="mt-2 text-xs text-[#A0A1A6]">
+    <div className="rounded-md border border-border bg-surface p-5 sm:p-6 shadow-sm">
+      <h3 className="text-sm font-semibold text-ink">Add a territory to track</h3>
+      <p className="mt-1 text-xs text-ink-muted">
         We&rsquo;ll identify the planning authority for this postcode automatically.
       </p>
+
+      <form action={handleSubmit} className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-start">
+        <Field
+          label="Postcode"
+          required
+          error={postcodeError}
+          className="flex-1"
+        >
+          {(p) => (
+            <Input
+              {...p}
+              name="postcode"
+              type="text"
+              required
+              placeholder="e.g. SW1A 1AA"
+              autoComplete="postal-code"
+              value={postcode}
+              onChange={(e) => {
+                setPostcode(e.target.value)
+                if (postcodeError) setPostcodeError(null)
+              }}
+              // Checked on blur, not per keystroke — every partially typed
+              // postcode is invalid, and saying so while someone types is
+              // nagging rather than helping.
+              onBlur={() =>
+                setPostcodeError(
+                  postcode.trim() && !UK_POSTCODE.test(postcode.trim())
+                    ? 'That doesn’t look like a UK postcode. Try the full code, e.g. SW1A 1AA.'
+                    : null,
+                )
+              }
+            />
+          )}
+        </Field>
+
+        <Field label="Label" required hint="How you'll recognise it in your list." className="flex-1">
+          {(p) => (
+            <Input {...p} name="label" type="text" required placeholder="e.g. Midlands Patch" />
+          )}
+        </Field>
+
+        {/* Aligned to the inputs rather than their labels, and pushed clear of
+            the hint line so the row doesn't jump when a validation message
+            appears under either field. */}
+        <Button
+          type="submit"
+          loading={isPending}
+          loadingLabel="Adding territory"
+          className="sm:mt-[26px]"
+        >
+          Add territory
+        </Button>
+      </form>
+
+      {error && (
+        <Alert tone="danger" className="mt-4">
+          {error}
+        </Alert>
+      )}
     </div>
   )
 }

@@ -10,8 +10,8 @@ export default async function LoginPage() {
   return (
     <div className="w-full max-w-sm">
       <div className="mb-8 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight text-[#111827]">Sign in</h1>
-        <p className="mt-1 text-sm text-[#6B7280]">Welcome back</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">Sign in</h1>
+        <p className="mt-1 text-sm text-ink-muted">Welcome back</p>
       </div>
       <AuthForm />
     </div>

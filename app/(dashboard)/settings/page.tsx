@@ -4,7 +4,7 @@ import DigestHistory from './DigestHistory'
 import AccountSection from './AccountSection'
 import BillingSection from './BillingSection'
 import FirmProfileSection from './FirmProfileSection'
-import type { Profile, Digest, FirmProfile } from '@/types/database'
+import type { Profile, FirmProfile } from '@/types/database'
 
 export default async function SettingsPage() {
   const supabase = await createClient()
@@ -31,10 +31,10 @@ export default async function SettingsPage() {
   }
 
   return (
-    <div className="space-y-8 max-w-lg">
+    <div className="pp-stagger max-w-lg space-y-8">
       <div>
-        <h2 className="text-xl font-semibold text-[#202124]">Settings</h2>
-        <p className="text-sm text-[#6B6C70] mt-1">Manage your account and digest preferences.</p>
+        <h2 className="text-xl font-semibold text-ink">Settings</h2>
+        <p className="text-sm text-ink-muted mt-1">Manage your account and digest preferences.</p>
       </div>
       <AccountSection profile={profile as Profile} />
       {(profile as Profile).user_type === 'professional' && (

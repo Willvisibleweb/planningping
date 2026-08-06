@@ -1,20 +1,394 @@
 @import "tailwindcss";
 
+/* ---------------------------------------------------------------------------
+   Design tokens — the single source of truth for the whole app.
+
+   Tailwind v4 is CSS-first: there is no tailwind.config.ts. Everything declared
+   in @theme below becomes a real Tailwind utility (--color-primary-500 →
+   bg-primary-500 / text-primary-500 / border-primary-500, --radius-md →
+   rounded-md, and so on).
+
+   Rule of thumb when working in components: if you are about to type a hex
+   value, a px font size, or a one-off shadow, the token you want either exists
+   here already or belongs here. Nothing outside this block.
+--------------------------------------------------------------------------- */
+
+@theme {
+  /* --- Type ---------------------------------------------------------------
+     IBM Plex: drawn for technical products. Sans carries the interface, Mono
+     is reserved for data that should read as data — planning references,
+     dates, coordinates, counts. Both are self-hosted by next/font (see
+     app/layout.tsx), so these vars are always defined on <html>. */
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Scale. Replaces the ten arbitrary px sizes (9px–17px) that were in use —
+     sizes that differed by half a pixel were noise, not hierarchy.
+     2xs exists for the uppercase micro-labels on stat tiles and table headers. */
+  --text-2xs: 0.6875rem;      /* 11px */
+  --text-2xs--line-height: 1.45;
+  --text-xs: 0.75rem;         /* 12px */
+  --text-xs--line-height: 1.5;
+  --text-sm: 0.875rem;        /* 14px */
+  --text-sm--line-height: 1.6;
+  --text-base: 1rem;          /* 16px */
+  --text-base--line-height: 1.65;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.5;
+  --text-xl: 1.3125rem;
+  --text-xl--line-height: 1.4;
+  --text-2xl: 1.625rem;
+  --text-2xl--line-height: 1.3;
+  --text-3xl: 2rem;
+  --text-3xl--line-height: 1.2;
+  --text-4xl: 2.5rem;
+  --text-4xl--line-height: 1.12;
+  --text-5xl: 3.25rem;
+  --text-5xl--line-height: 1.05;
+  --text-6xl: 3.875rem;
+  --text-6xl--line-height: 1.02;
+
+  /* Headings tighten as they grow; body copy stays open at 1.65. */
+  --tracking-tight: -0.011em;
+  --tracking-tighter: -0.021em;
+  --leading-body: 1.65;
+
+  /* --- Neutral ramp -------------------------------------------------------
+     One ramp, replacing the fifteen greys previously in play (a Google-ish set
+     on the dashboard, Tailwind's default set on the auth pages, three stray
+     slates on top). Anchored on the greys that already dominated the dashboard
+     — 400/600/900 are unchanged — so the app moves toward what it mostly was,
+     not somewhere new.
+
+     Contrast rules, all measured against white and verified in the audit
+     script rather than eyeballed:
+       neutral-400 (2.58:1) — decorative only. Dividers, skeleton fills. Never
+                              text, and never an icon that carries meaning.
+       neutral-500 (4.65:1) — the lightest tone allowed on text. Deliberately
+                              darker than a "true" 500 would be, so that
+                              timestamps, prices and placeholders clear AA
+                              rather than sitting just under it at 3.9:1.
+       neutral-600 (5.24:1) — default muted body text. */
+  --color-neutral-50: #f8f8f9;
+  --color-neutral-100: #f1f1f3;
+  --color-neutral-200: #e3e3e7;
+  --color-neutral-300: #cbccd1;
+  --color-neutral-400: #a0a1a6;
+  --color-neutral-500: #757579;
+  --color-neutral-600: #6b6c70;
+  --color-neutral-700: #55565b;
+  --color-neutral-800: #3a3b3f;
+  --color-neutral-900: #202124;
+  --color-neutral-950: #121316;
+
+  /* --- Primary ------------------------------------------------------------
+     Brand blue, unchanged at 500/600. The three tints collapse the ten
+     near-identical pale blues that were in the codebase (#D6E4FB #DCE7FF
+     #EFF4FF #E9F0FD #EAF0FF #F5F8FF #F7F9FF #EFF6FF #EEF3FF #F6F9FF) —
+     several differed by a single hex digit, so no two panels agreed.
+     200 is the blue-tinted border tone the app already used everywhere. */
+  --color-primary-50: #f5f8ff;
+  --color-primary-100: #eaf0ff;
+  --color-primary-200: #d6e4fb;
+  --color-primary-300: #93b4f8;
+  --color-primary-400: #5b8df3;
+  --color-primary-500: #2563eb;
+  --color-primary-600: #1d4ed8;
+  --color-primary-700: #1e40af;
+  --color-primary-800: #1e3a8a;
+  --color-primary-900: #1b3474;
+  --color-primary-950: #142450;
+
+  /* --- Semantic -----------------------------------------------------------
+     Every foreground tone here clears WCAG AA on its own surface and on white
+     (success 5.7:1, warning 5.1:1, danger 6.5:1, info 5.1:1). */
+  --color-success-50: #ecfdf5;
+  --color-success-200: #a7f3d0;
+  --color-success-600: #047857;
+  --color-success-700: #036049;
+
+  --color-warning-50: #fffbeb;
+  --color-warning-200: #fde68a;
+  --color-warning-600: #b45309;
+  --color-warning-700: #92400e;
+
+  --color-danger-50: #fef2f2;
+  --color-danger-200: #fecaca;
+  --color-danger-600: #b91c1c;
+  --color-danger-700: #991b1b;
+
+  --color-info-50: #f5f8ff;
+  --color-info-200: #d6e4fb;
+  --color-info-600: #2563eb;
+  --color-info-700: #1d4ed8;
+
+  /* Named surfaces — so components say what they mean rather than picking a
+     number off the ramp and drifting apart over time. */
+  --color-surface: #ffffff;
+  --color-surface-sunken: var(--color-neutral-50);
+  --color-border: var(--color-primary-200);
+  --color-border-strong: var(--color-neutral-300);
+  /* Form controls need a boundary that clears WCAG 1.4.11's 3:1 for non-text
+     UI, because on a white card the border is the only thing identifying the
+     field. The decorative card border (1.28:1) is fine where it is — it isn't
+     identifying a control — but it can't do this job. 3.23:1 measured. */
+  --color-border-control: #8e8f93;
+  --color-ink: var(--color-neutral-900);
+  --color-ink-muted: var(--color-neutral-600);
+
+  /* --- Radius -------------------------------------------------------------
+     Three values, replacing seven. sm = inputs/buttons/badges,
+     md = cards/tiles, lg = modals/panels. (rounded-full stays for avatars and
+     pills — a circle isn't a point on a radius scale.) */
+  --radius-sm: 0.375rem;  /* 6px  */
+  --radius-md: 0.625rem;  /* 10px */
+  --radius-lg: 0.875rem;  /* 14px */
+
+  /* --- Shadow -------------------------------------------------------------
+     Two layers each: one tight and dark-ish to seat the edge, one wide and
+     very faint to give the element air. Never a single flat drop. */
+  --shadow-sm:
+    0 1px 2px -1px rgb(32 33 36 / 0.10),
+    0 2px 6px -2px rgb(32 33 36 / 0.05);
+  --shadow-md:
+    0 2px 4px -2px rgb(32 33 36 / 0.11),
+    0 8px 20px -6px rgb(32 33 36 / 0.08);
+  --shadow-lg:
+    0 4px 8px -4px rgb(32 33 36 / 0.13),
+    0 24px 48px -12px rgb(32 33 36 / 0.13);
+  /* Primary buttons lift into their own colour rather than into grey. */
+  --shadow-primary:
+    0 1px 2px -1px rgb(30 58 138 / 0.30),
+    0 6px 16px -6px rgb(37 99 235 / 0.42);
+
+  /* --- Motion -------------------------------------------------------------
+     One easing, two durations: 150ms for micro-interactions (hover, focus,
+     colour), 250ms for anything that moves or resizes. */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-slow: 250ms;
+
+  --animate-enter: pp-enter 200ms var(--ease-standard) both;
+  --animate-enter-fade: pp-enter-fade 200ms var(--ease-standard) both;
+  /* Panels anchored to the left edge slide in from it — a drawer that fades
+     up from the bottom reads as unrelated to the edge it's attached to. */
+  --animate-drawer: pp-drawer-in var(--duration-slow) var(--ease-standard) both;
+}
+
+/* ---------------------------------------------------------------------------
+   Custom utilities
+
+   Tailwind v4 has no `--duration-*` theme namespace — duration utilities take
+   bare values (duration-150), which would put raw numbers back in components
+   and defeat the point of tokenising motion. These two map the tokens to real
+   utilities so `duration-fast` / `duration-slow` are the only durations any
+   component ever names.
+--------------------------------------------------------------------------- */
+
+@utility duration-fast {
+  transition-duration: var(--duration-fast);
+}
+
+@utility duration-slow {
+  transition-duration: var(--duration-slow);
+}
+
+/* ---------------------------------------------------------------------------
+   Base
+--------------------------------------------------------------------------- */
+
+@layer base {
+  html {
+    /* Tailwind v4 ships no default focus ring colour; set it once here so
+       every focus-visible: ring in the app is brand-coloured by default. */
+    --tw-ring-color: var(--color-primary-500);
+  }
+
+  body {
+    line-height: var(--leading-body);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* Safety net, not a substitute for fixing layouts: council-supplied
+       descriptions and references can be long unbroken strings, and one of
+       those should wrap rather than give the whole page a horizontal
+       scrollbar at 375px. */
+    overflow-wrap: break-word;
+  }
+
+  /* Headings tighten as they scale up. Set once, so no component has to
+     remember to add tracking-tight. */
+  h1, h2, h3, h4 {
+    letter-spacing: var(--tracking-tight);
+    line-height: 1.25;
+  }
+  h1, h2 {
+    letter-spacing: var(--tracking-tighter);
+  }
+
+  /* Text links. A class rather than a component because most links here sit
+     inside prose, and wrapping every one in a component would be noisier than
+     the problem. The underline is present but faint by default and solidifies
+     on hover — links stay discoverable without the page looking stitched
+     together, which matters on pages that are largely body copy. */
+  .pp-link {
+    color: var(--color-primary-600);
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--color-primary-600) 28%, transparent);
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+    transition:
+      color var(--duration-fast) var(--ease-standard),
+      text-decoration-color var(--duration-fast) var(--ease-standard);
+  }
+  .pp-link:hover {
+    color: var(--color-primary-700);
+    text-decoration-color: currentColor;
+  }
+
+  /* Quieter variant for links in muted/footer text, where a blue link would
+     shout louder than the content around it. */
+  .pp-link-muted {
+    color: var(--color-ink-muted);
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--color-ink-muted) 25%, transparent);
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+    transition:
+      color var(--duration-fast) var(--ease-standard),
+      text-decoration-color var(--duration-fast) var(--ease-standard);
+  }
+  .pp-link-muted:hover {
+    color: var(--color-ink);
+    text-decoration-color: currentColor;
+  }
+
+  /* Planning references, dates and counts should line up in columns. */
+  .tabular-data {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
+  /* Keyboard focus, everywhere, without each component opting in. Components
+     that want a designed ring use focus-visible: utilities and this is
+     overridden; anything that forgets still gets a visible, branded ring
+     instead of nothing. Mouse clicks don't trigger it (:focus-visible). */
+  :focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
+    /* Deliberately no border-radius here. Browsers already curve the outline to
+       follow the element's own radius, and setting one would square off every
+       rounded-full control (the account avatar, badges, filter pills) the
+       moment it took keyboard focus. */
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Entrance motion
+
+   One coherent moment on page load, not effects scattered around. Put
+   `pp-stagger` on a container and its direct children fade up in sequence,
+   40ms apart, finishing inside ~450ms.
+--------------------------------------------------------------------------- */
+
+@keyframes pp-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes pp-enter-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes pp-drawer-in {
+  from { transform: translateX(-100%); }
+  to   { transform: none; }
+}
+
+.pp-stagger > * {
+  animation: var(--animate-enter);
+}
+.pp-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.pp-stagger > *:nth-child(2) { animation-delay: 40ms; }
+.pp-stagger > *:nth-child(3) { animation-delay: 80ms; }
+.pp-stagger > *:nth-child(4) { animation-delay: 120ms; }
+.pp-stagger > *:nth-child(5) { animation-delay: 160ms; }
+.pp-stagger > *:nth-child(6) { animation-delay: 200ms; }
+.pp-stagger > *:nth-child(7) { animation-delay: 240ms; }
+.pp-stagger > *:nth-child(n + 8) { animation-delay: 280ms; }
+
+/* Skeleton shimmer — calmer than animate-pulse's full-opacity blink. */
+@keyframes pp-shimmer {
+  100% { transform: translateX(100%); }
+}
+
+/* ---------------------------------------------------------------------------
+   Reduced motion
+
+   Global and unconditional: no entrance animation, no transform, no transition
+   of consequence for anyone who has asked their OS to reduce motion. Opacity
+   is forced to 1 so `both`-filled entrance animations can't leave content
+   invisible.
+--------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .pp-stagger > *,
+  .motion-safe-fade {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* Kill the hover/active lift specifically — a 1px jump is still a jump. */
+  .pp-lift:hover,
+  .pp-lift:active {
+    transform: none !important;
+  }
+
+  /* Deliberate exception. Reduced motion means "don't decorate with movement",
+     not "hide whether the app is working". Forced to 0.01ms the spinner would
+     read as a static smear, so it keeps turning — just calmly. */
+  .pp-spinner {
+    animation-duration: 900ms !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Legacy / page-specific
+--------------------------------------------------------------------------- */
+
 /* Highlights the application row a map pin's "View full details" link jumps
    to (id="app-<id>", set only on the territory detail page). Plain CSS
    :target — no JS state needed, works with any element whose id the URL
    fragment matches. */
 [id^="app-"]:target {
-  background-color: #eff4ff;
-  outline: 2px solid #93b4f8;
+  background-color: var(--color-primary-100);
+  outline: 2px solid var(--color-primary-300);
   outline-offset: 2px;
-  border-radius: 6px;
-  animation: territory-target-fade 2.5s ease-out forwards;
+  border-radius: var(--radius-sm);
+  animation: territory-target-fade 2.5s var(--ease-standard) forwards;
 }
 
 @keyframes territory-target-fade {
-  0%, 60% { background-color: #eff4ff; outline-color: #93b4f8; }
-  100% { background-color: transparent; outline-color: transparent; }
+  0%, 60% {
+    background-color: var(--color-primary-100);
+    outline-color: var(--color-primary-300);
+  }
+  100% {
+    background-color: transparent;
+    outline-color: transparent;
+  }
 }
 
 /* Landing hero: rotating headline word + entrance fade-up. */
@@ -29,15 +403,4 @@
 @keyframes hero-fade-up {
   from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-/* Belt-and-braces: even if a component's JS motion-gating is ever bypassed,
-   this neutralises every hero entrance/rotation animation at the CSS layer
-   for anyone who has asked their OS to reduce motion. */
-@media (prefers-reduced-motion: reduce) {
-  .motion-safe-fade {
-    animation: none !important;
-    opacity: 1 !important;
-    transform: none !important;
-  }
 }

@@ -11,7 +11,9 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { statusStyle } from '@/lib/statusStyle'
+import Badge from '@/components/ui/Badge'
 import type { PlanningApplication } from '@/types/database'
+import Link from 'next/link'
 
 type ChildRow = Pick<PlanningApplication, 'id' | 'reference' | 'status' | 'application_date' | 'is_stale'>
 type ParentRow = Pick<PlanningApplication, 'id' | 'reference' | 'address' | 'description'>
@@ -54,62 +56,61 @@ export default async function ApplicationDetailPage({
   const childRows = (children ?? []) as ChildRow[]
   const parent = parentResult.data as ParentRow | null
 
-  const { cls: badgeClass, Icon: StatusIcon } = statusStyle(app.status)
+  const { tone: statusTone, Icon: StatusIcon } = statusStyle(app.status)
   const isDischarge = app.application_type === 'discharge_of_condition'
 
   return (
-    <div className="space-y-6">
+    <div className="pp-stagger space-y-6">
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <p className="font-mono text-sm text-[#6B6C70]">{app.reference}</p>
-          {app.application_date && <p className="text-xs text-[#A0A1A6]">{niceDate(app.application_date)}</p>}
+          <p className="tabular-data text-sm text-ink-muted">{app.reference}</p>
+          {app.application_date && <p className="text-xs text-ink-muted">{niceDate(app.application_date)}</p>}
         </div>
-        <h2 className="text-xl font-semibold text-[#202124]">{app.description ?? 'No description'}</h2>
-        {app.address && <p className="mt-1 text-sm text-[#6B6C70]">{app.address}</p>}
+        <h2 className="text-xl font-semibold text-ink">{app.description ?? 'No description'}</h2>
+        {app.address && <p className="mt-1 text-sm text-ink-muted">{app.address}</p>}
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {app.status ? (
-            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${badgeClass}`}>
-              <StatusIcon size={13} className="shrink-0" />
+            <Badge tone={statusTone} icon={StatusIcon} className="px-2.5 py-1 text-xs">
               {app.status}
-            </span>
+            </Badge>
           ) : (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#F7F7F8] px-2.5 py-1 text-xs font-medium text-[#A0A1A6]">
+            <Badge tone="neutral" className="px-2.5 py-1 text-xs">
               Status not available
-            </span>
+            </Badge>
           )}
           {isDischarge && (
-            <span className="rounded-full bg-[#EFF4FF] px-2.5 py-1 text-xs font-medium text-[#2563EB]">
+            <Badge tone="primary" className="px-2.5 py-1 text-xs">
               Discharge of condition
-            </span>
+            </Badge>
           )}
           {app.is_stale && (
-            <span className="rounded-full bg-[#FFFBEB] px-2.5 py-1 text-xs font-medium text-[#B45309]">
+            <Badge tone="warning" className="px-2.5 py-1 text-xs">
               Stale — no decision yet
-            </span>
+            </Badge>
           )}
         </div>
       </div>
 
       {isDischarge && (
-        <div className="rounded-lg border border-[#D6E4FB] bg-white p-4">
-          <h3 className="text-sm font-medium text-[#202124]">Parent application</h3>
+        <div className="rounded-md border border-border bg-surface p-4 sm:p-5 shadow-sm">
+          <h3 className="text-sm font-medium text-ink">Parent application</h3>
           {parent ? (
-            <a
+            <Link
               href={`/applications/${parent.id}`}
-              className="mt-2 block rounded-md border border-[#D6E4FB] p-3 hover:border-[#2563EB]"
+              className="pp-lift mt-3 block rounded-sm border border-border p-4 transition-[border-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:border-primary-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
             >
-              <p className="font-mono text-xs text-[#6B6C70]">{parent.reference}</p>
-              <p className="mt-1 text-sm text-[#202124]">{parent.description ?? 'No description'}</p>
-              {parent.address && <p className="mt-0.5 text-xs text-[#A0A1A6]">{parent.address}</p>}
-            </a>
+              <p className="tabular-data text-xs text-ink-muted">{parent.reference}</p>
+              <p className="mt-1.5 text-sm text-ink">{parent.description ?? 'No description'}</p>
+              {parent.address && <p className="mt-1 text-xs text-ink-muted">{parent.address}</p>}
+            </Link>
           ) : app.parent_application_reference ? (
-            <p className="mt-2 text-sm text-[#6B6C70]">
-              Parent application <span className="font-mono">{app.parent_application_reference}</span> not
+            <p className="mt-2 text-sm text-ink-muted">
+              Parent application <span className="tabular-data">{app.parent_application_reference}</span> not
               found in our records yet — it may not have been tracked, or hasn&rsquo;t been ingested.
             </p>
           ) : (
-            <p className="mt-2 text-sm text-[#6B6C70]">
+            <p className="mt-2 text-sm text-ink-muted">
               The parent application reference could not be automatically identified from this
               application&rsquo;s description.
             </p>
@@ -118,32 +119,32 @@ export default async function ApplicationDetailPage({
       )}
 
       {childRows.length > 0 && (
-        <div className="rounded-lg border border-[#D6E4FB] bg-white p-4">
-          <h3 className="text-sm font-medium text-[#202124]">
+        <div className="rounded-md border border-border bg-surface p-4 sm:p-5 shadow-sm">
+          <h3 className="text-sm font-medium text-ink">
             Linked discharge application{childRows.length === 1 ? '' : 's'}
           </h3>
-          <div className="mt-2 divide-y divide-[#E9F0FD]">
+          <div className="mt-2 divide-y divide-border">
             {childRows.map((child) => (
-              <a
+              <Link
                 key={child.id}
                 href={`/applications/${child.id}`}
-                className="flex items-center justify-between gap-3 py-2.5 hover:bg-[#F7F9FF]"
+                className="flex items-center justify-between gap-3 py-2.5 hover:bg-primary-50"
               >
                 <div className="min-w-0">
-                  <p className="font-mono text-xs text-[#6B6C70]">{child.reference}</p>
+                  <p className="tabular-data text-xs text-ink-muted">{child.reference}</p>
                   {child.application_date && (
-                    <p className="text-xs text-[#A0A1A6]">Submitted {niceDate(child.application_date)}</p>
+                    <p className="text-xs text-ink-muted">Submitted {niceDate(child.application_date)}</p>
                   )}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {child.is_stale && (
-                    <span className="rounded-full bg-[#FFFBEB] px-2 py-0.5 text-[11px] font-medium text-[#B45309]">
+                    <span className="rounded-full bg-warning-50 px-2 py-0.5 text-2xs font-medium text-warning-600">
                       Stale
                     </span>
                   )}
-                  <span className="text-xs text-[#6B6C70]">{child.status ?? 'Status not available'}</span>
+                  <span className="text-xs text-ink-muted">{child.status ?? 'Status not available'}</span>
                 </div>
-              </a>
+              </Link>
             ))}
           </div>
         </div>

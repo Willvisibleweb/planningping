@@ -4,7 +4,10 @@ import { useState, useTransition } from 'react'
 import { MapPin, Inbox, ArrowRight } from 'lucide-react'
 import { deleteTrackedArea } from './actions'
 import ApplicationRow from './ApplicationRow'
+import EmptyState from '@/components/ui/EmptyState'
+import { useToast } from '@/components/ui/Toast'
 import type { TrackedArea, PlanningApplication } from '@/types/database'
+import Link from 'next/link'
 
 interface Props {
   areas: TrackedArea[]
@@ -20,12 +23,12 @@ export default function TrackedAreasList({ areas, applications, trackedIds, show
 
   if (areas.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-[#D6E4FB] p-10 text-center">
-        <div className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-full bg-[#EAF0FF] text-[#2563EB]">
-          <MapPin size={20} />
-        </div>
-        <p className="text-sm font-medium text-[#202124]">No territory tracked yet</p>
-        <p className="mt-1 text-sm text-[#6B6C70]">Add a postcode above and we&rsquo;ll start monitoring that planning authority for you.</p>
+      <div className="rounded-md border border-dashed border-border bg-surface">
+        <EmptyState
+          icon={MapPin}
+          title="No territory tracked yet"
+          description="Add a postcode above and PlanningPing starts monitoring every application that authority publishes within your radius. First results usually land within the hour."
+        />
       </div>
     )
   }
@@ -76,36 +79,66 @@ function AreaCard({
 }) {
   const [isPending, startTransition] = useTransition()
   const [showAll, setShowAll] = useState(false)
+  const { toast } = useToast()
 
   function handleDelete() {
-    startTransition(() => { void deleteTrackedArea(area.id) })
+    startTransition(async () => {
+      // Previously fire-and-forget: the card vanished with no confirmation,
+      // and a failure was silent — the row simply stayed put with no
+      // explanation.
+      const result = await deleteTrackedArea(area.id)
+      if (result?.error) {
+        toast({
+          title: 'Couldn’t remove that territory',
+          description: result.error,
+          variant: 'error',
+        })
+        return
+      }
+      toast({
+        title: `${area.label} removed`,
+        description: 'We’ve stopped monitoring that area.',
+        variant: 'success',
+      })
+    })
   }
 
   const visible = showAll ? applications : applications.slice(0, 5)
 
   return (
-    <div className="rounded-lg border border-[#D6E4FB] bg-white p-5 shadow-[0_1px_2px_rgba(32,33,36,.04)]">
-      <div className="flex items-start justify-between">
-        <div>
-          <a href={`/dashboard/${area.id}`} className="font-medium text-[#202124] hover:text-[#2563EB] hover:underline">
+    <div className="rounded-md border border-border bg-surface p-5 sm:p-6 shadow-sm">
+      {/* Stacks below sm: at 375px the label, the button and Remove can't share
+          a row without the council slug being squeezed to nothing. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <Link
+            href={`/dashboard/${area.id}`}
+            className="block truncate rounded-sm font-medium text-ink transition-colors duration-fast ease-standard hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
+          >
             {area.label}
-          </a>
-          <p className="text-sm text-[#6B6C70] mt-0.5">
+          </Link>
+          <p className="mt-1 truncate text-sm text-ink-muted">
             {area.postcode} — {area.council_slug}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-3">
-          <a
+          {/* A link styled as a button — the Button component renders a
+              <button>, and this navigates, so it stays an anchor and borrows
+              the secondary variant's look instead. */}
+          <Link
             href={`/dashboard/${area.id}`}
-            className="inline-flex items-center gap-1.5 rounded-md border border-[#D6E4FB] px-3 py-1.5 text-sm font-medium text-[#2563EB] transition-colors hover:border-[#2563EB] hover:bg-[#EAF0FF]"
+            className="pp-lift group inline-flex h-9 items-center gap-1.5 rounded-sm border border-border bg-surface px-3.5 text-sm font-medium text-primary-600 shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:border-primary-300 hover:bg-primary-50 hover:shadow-md active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
           >
             View territory
-            <ArrowRight size={14} className="shrink-0" />
-          </a>
+            <ArrowRight
+              size={14}
+              className="shrink-0 transition-transform duration-fast ease-standard group-hover:translate-x-0.5"
+            />
+          </Link>
           <button
             onClick={handleDelete}
             disabled={isPending}
-            className="text-xs text-red-500 hover:text-red-700 disabled:opacity-40"
+            className="rounded-sm text-xs text-ink-muted transition-colors duration-fast ease-standard hover:text-danger-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2 disabled:opacity-40"
           >
             {isPending ? 'Removing…' : 'Remove'}
           </button>
@@ -113,7 +146,7 @@ function AreaCard({
       </div>
 
       {applications.length > 0 ? (
-        <div className="mt-4 divide-y divide-[#E9F0FD]">
+        <div className="mt-4 divide-y divide-border">
           {visible.map((app) => (
             <ApplicationRow
               key={app.id}
@@ -125,7 +158,7 @@ function AreaCard({
           {applications.length > 5 && (
             <button
               onClick={() => setShowAll((v) => !v)}
-              className="pt-2 text-xs font-medium text-[#2563EB] hover:underline"
+              className="mt-1 w-full rounded-sm py-2.5 text-xs font-medium text-primary-600 transition-colors duration-fast ease-standard hover:bg-primary-50 hover:text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45"
             >
               {showAll
                 ? 'Show less'
@@ -134,10 +167,12 @@ function AreaCard({
           )}
         </div>
       ) : (
-        <div className="mt-3 flex items-center gap-2 text-xs text-[#A0A1A6]">
-          <Inbox size={14} className="shrink-0" />
-          No planning applications found in this territory yet.
-        </div>
+        <EmptyState
+          size="sm"
+          icon={Inbox}
+          title="Nothing here yet"
+          description="No applications published in this territory since monitoring began. New ones appear as the council releases them."
+        />
       )}
     </div>
   )

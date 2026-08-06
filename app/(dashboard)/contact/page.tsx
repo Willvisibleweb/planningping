@@ -9,24 +9,24 @@ const CONTACT_EMAIL = 'william.kelwave@gmail.com'
 
 export default function ContactPage() {
   return (
-    <div className="max-w-lg space-y-6">
+    <div className="pp-stagger max-w-lg space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-[#202124] mb-1">Contact us</h2>
-        <p className="text-sm text-[#6B6C70]">
+        <h2 className="text-xl font-semibold text-ink mb-1">Contact us</h2>
+        <p className="text-sm text-ink-muted">
           Questions, a council we don&rsquo;t cover yet, or something not working as expected —
           get in touch and we&rsquo;ll get back to you.
         </p>
       </div>
 
-      <div className="rounded-lg border border-[#D6E4FB] bg-white p-5">
-        <p className="text-sm text-[#6B6C70]">Email us directly at</p>
+      <div className="rounded-md border border-border bg-surface p-5 sm:p-6 shadow-sm">
+        <p className="text-sm text-ink-muted">Email us directly at</p>
         <a
           href={`mailto:${CONTACT_EMAIL}`}
-          className="mt-1 inline-block text-base font-semibold text-[#2563EB] hover:underline"
+          className="mt-1 inline-block text-base font-semibold text-primary-500 hover:underline"
         >
           {CONTACT_EMAIL}
         </a>
-        <p className="mt-3 text-xs text-[#A0A1A6]">
+        <p className="mt-3 text-xs text-ink-muted">
           We typically reply within a day or two.
         </p>
       </div>

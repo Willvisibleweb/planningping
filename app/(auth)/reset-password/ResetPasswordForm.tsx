@@ -1,7 +1,12 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { MailCheck } from 'lucide-react'
 import { sendResetEmail } from './actions'
+import Button from '@/components/ui/Button'
+import { Field, Input } from '@/components/ui/Input'
+import { Alert } from '@/components/ui/ErrorState'
+import Link from 'next/link'
 
 export default function ResetPasswordForm() {
   const [error, setError] = useState<string | null>(null)
@@ -19,48 +24,45 @@ export default function ResetPasswordForm() {
 
   if (sent) {
     return (
-      <div className="rounded-lg border border-[#E5E7EB] bg-white p-6 text-center shadow-sm">
-        <p className="text-sm text-[#374151]">
-          If that address is registered, you'll receive a reset link shortly.
+      <div className="rounded-md border border-border bg-surface p-5 sm:p-7 text-center shadow-sm">
+        <div className="mx-auto mb-4 grid size-11 place-items-center rounded-full bg-success-50 text-success-600 ring-1 ring-inset ring-success-200">
+          <MailCheck size={20} aria-hidden="true" />
+        </div>
+        <p className="text-sm font-semibold tracking-tight text-ink">Check your email</p>
+        <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
+          If that address is registered, a reset link is on its way.
         </p>
       </div>
     )
   }
 
   return (
-    <div className="rounded-lg border border-[#E5E7EB] bg-white p-6 shadow-sm">
+    <div className="rounded-md border border-border bg-surface p-5 sm:p-7 shadow-sm">
       <form action={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-[#374151] mb-1">
-            Email
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            autoComplete="email"
-            className="w-full rounded-md border border-[#E5E7EB] px-3 py-2 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
-          />
-        </div>
+        <Field label="Email" hint="We'll send a reset link to this address.">
+          {(p) => (
+            <Input
+              {...p}
+              name="email"
+              type="email"
+              required
+              autoComplete="email"
+              placeholder="you@firm.co.uk"
+            />
+          )}
+        </Field>
 
-        {error && (
-          <p className="text-sm text-red-600">{error}</p>
-        )}
+        {error && <Alert tone="danger">{error}</Alert>}
 
-        <button
-          type="submit"
-          disabled={isPending}
-          className="w-full rounded-md bg-[#2563EB] px-4 py-2 text-sm font-medium text-white hover:bg-[#1D4ED8] transition-colors disabled:opacity-50"
-        >
-          {isPending ? 'Sending…' : 'Send reset link'}
-        </button>
+        <Button type="submit" fullWidth loading={isPending} loadingLabel="Sending reset link">
+          Send reset link
+        </Button>
       </form>
 
-      <p className="mt-4 text-center text-xs text-[#6B7280]">
-        <a href="/login" className="text-[#2563EB] hover:underline">
+      <p className="mt-5 text-center text-xs text-ink-muted">
+        <Link href="/login" className="pp-link">
           Back to sign in
-        </a>
+        </Link>
       </p>
     </div>
   )

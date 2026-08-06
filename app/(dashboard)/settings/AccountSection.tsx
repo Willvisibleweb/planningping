@@ -5,7 +5,10 @@
 
 import { useState, useTransition } from 'react'
 import { switchToProfessional } from './actions'
+import Button from '@/components/ui/Button'
+import { Alert } from '@/components/ui/ErrorState'
 import type { Profile } from '@/types/database'
+import { PRICING } from '@/lib/stripe'
 
 function planLabel(profile: Profile): string {
   if (profile.user_type === 'homeowner') return 'Homeowner — free'
@@ -34,34 +37,41 @@ export default function AccountSection({ profile }: { profile: Profile }) {
   }
 
   return (
-    <div className="rounded-lg border border-[#D6E4FB] bg-white p-5">
-      <h3 className="text-sm font-semibold text-[#202124]">Account</h3>
-      <p className="mt-1 text-sm text-[#6B6C70]">{planLabel(profile)}</p>
+    <div className="rounded-md border border-border bg-surface p-5 sm:p-6 shadow-sm">
+      <h3 className="text-sm font-semibold text-ink">Account</h3>
+      <p className="mt-1 text-sm text-ink-muted">{planLabel(profile)}</p>
 
       {profile.user_type === 'homeowner' && (
-        <div className="mt-3">
-          <button
+        <div className="mt-4">
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={handleSwitch}
-            disabled={isPending}
-            className="rounded-md border border-[#2563EB] px-3 py-1.5 text-sm font-medium text-[#2563EB] transition-colors hover:bg-[#2563EB] hover:text-white disabled:opacity-50"
+            loading={isPending}
+            loadingLabel="Switching account type"
           >
-            {isPending ? 'Switching…' : 'Switch to a professional account'}
-          </button>
-          <p className="mt-2 text-xs leading-relaxed text-[#A0A1A6]">
+            Switch to a professional account
+          </Button>
+          <p className="mt-2.5 text-xs leading-relaxed text-ink-muted">
             Unlocks the pipeline, opportunity tracking and AI outreach for pursuing
             planning-application leads.
-            {profile.trial_ends_at === null && ' Includes a 14-day free trial — no card required.'}
+            {profile.trial_ends_at === null &&
+              ` Includes a ${PRICING.trialDays}-day free trial — no card required.`}
           </p>
         </div>
       )}
 
       {profile.user_type === 'professional' && (
-        <p className="mt-2 text-xs text-[#A0A1A6]">
+        <p className="mt-2 text-xs text-ink-muted">
           Want to downgrade to a homeowner account? Contact us and we&rsquo;ll sort it.
         </p>
       )}
 
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {error && (
+        <Alert tone="danger" className="mt-4">
+          {error}
+        </Alert>
+      )}
     </div>
   )
 }

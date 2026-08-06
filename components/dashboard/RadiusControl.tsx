@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from 'react'
 import { updateTrackedAreaRadius } from './actions'
+import Button from '@/components/ui/Button'
+import { Alert } from '@/components/ui/ErrorState'
 
 const MIN = 250
 const STEP = 250
@@ -48,16 +50,16 @@ export default function RadiusControl({
   }
 
   return (
-    <div className="rounded-lg border border-[#D6E4FB] bg-white p-4">
+    <div className="rounded-md border border-border bg-surface p-4 sm:p-5 shadow-sm">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-[#202124]">Tracking radius</h3>
-        <span className="font-mono text-sm text-[#6B6C70]">{formatMetres(radius)}</span>
+        <h3 className="text-sm font-medium text-ink">Tracking radius</h3>
+        <span className="tabular-data text-sm text-ink-muted">{formatMetres(radius)}</span>
       </div>
-      <p className="mt-1 text-xs text-[#A0A1A6]">
+      <p className="mt-1 text-xs text-ink-muted">
         How far from the postcode to pull planning applications from.
       </p>
       {overCap && (
-        <p className="mt-1 text-xs text-amber-700">
+        <p className="mt-1 text-xs text-warning-600">
           Currently set to {formatMetres(initialRadiusMetres)} from a previous plan. Moving this
           slider will reduce it to fit your current plan (up to {formatMetres(maxRadiusMetres)}).
         </p>
@@ -70,26 +72,27 @@ export default function RadiusControl({
         value={radius}
         onChange={(e) => setRadius(Number(e.target.value))}
         disabled={isPending}
-        className="mt-3 w-full accent-[#2563EB] disabled:opacity-50"
+        aria-label="Tracking radius in metres"
+        className="mt-4 w-full cursor-pointer accent-primary-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-4 disabled:cursor-not-allowed disabled:opacity-50"
       />
-      <div className="mt-1 flex justify-between text-[10px] text-[#A0A1A6]">
+      <div className="mt-1 flex justify-between text-2xs text-ink-muted">
         <span>{formatMetres(MIN)}</span>
         <span>{formatMetres(maxRadiusMetres)}</span>
       </div>
 
       {dirty && (
-        <button
-          onClick={handleSave}
-          disabled={isPending}
-          className="mt-3 rounded-md bg-[#2563EB] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#1D4ED8] disabled:opacity-50"
-        >
-          {isPending ? 'Saving…' : 'Save radius'}
-        </button>
+        <Button size="sm" className="mt-4" onClick={handleSave} loading={isPending} loadingLabel="Saving radius">
+          Save radius
+        </Button>
       )}
       {justSaved && !dirty && (
-        <p className="mt-3 text-xs font-medium text-green-700">Saved — territory re-fetched.</p>
+        <p className="mt-4 text-xs font-medium text-success-600">Saved — territory re-fetched.</p>
       )}
-      {error && <p className="mt-3 text-xs text-red-600">{error}</p>}
+      {error && (
+        <Alert tone="danger" className="mt-4 text-xs">
+          {error}
+        </Alert>
+      )}
     </div>
   )
 }

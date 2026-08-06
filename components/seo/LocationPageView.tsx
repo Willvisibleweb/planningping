@@ -24,10 +24,10 @@ import {
 
 function statusClasses(status: string | null): string {
   const s = (status ?? '').toLowerCase()
-  if (/approv|grant|permit/.test(s)) return 'bg-[#ECFDF5] text-[#047857]'
-  if (/refus|reject|withdraw|dismiss/.test(s)) return 'bg-[#FEF2F2] text-[#B91C1C]'
-  if (/pending|await|consult|valid|registered/.test(s)) return 'bg-[#FFFBEB] text-[#B45309]'
-  return 'bg-gray-100 text-gray-600'
+  if (/approv|grant|permit/.test(s)) return 'bg-success-50 text-success-600'
+  if (/refus|reject|withdraw|dismiss/.test(s)) return 'bg-danger-50 text-danger-600'
+  if (/pending|await|consult|valid|registered/.test(s)) return 'bg-warning-50 text-warning-600'
+  return 'bg-neutral-100 text-ink-muted'
 }
 
 function niceDate(iso: string | null): string {
@@ -57,12 +57,12 @@ function presentation(location: SeoLocation, councilName?: string) {
 
 function ApplicationCard({ app, portalUrl }: { app: PublicApplication; portalUrl: string | null }) {
   return (
-    <li className="border-t border-[#E5E7EB] py-4 first:border-t-0">
+    <li className="border-t border-border py-4 first:border-t-0">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-xs font-semibold text-[#2563EB]">{app.reference}</span>
+          <span className="tabular-data text-xs font-semibold text-primary-500">{app.reference}</span>
           {app.application_date && (
-            <span className="text-xs text-[#9CA3AF]">{niceDate(app.application_date)}</span>
+            <span className="text-xs text-neutral-500">{niceDate(app.application_date)}</span>
           )}
         </div>
         {app.status && (
@@ -71,14 +71,14 @@ function ApplicationCard({ app, portalUrl }: { app: PublicApplication; portalUrl
           </span>
         )}
       </div>
-      {app.address && <p className="mt-1.5 text-sm font-semibold text-[#111827]">{app.address}</p>}
-      {app.description && <p className="mt-1 text-sm leading-relaxed text-[#4B5563]">{app.description}</p>}
+      {app.address && <p className="mt-1.5 text-sm font-semibold text-ink">{app.address}</p>}
+      {app.description && <p className="mt-1 text-sm leading-relaxed text-ink-muted">{app.description}</p>}
       {portalUrl && (
         <a
           href={portalUrl}
           target="_blank"
           rel="nofollow noopener"
-          className="mt-2 inline-block text-xs font-medium text-[#2563EB] hover:underline"
+          className="mt-2 inline-block text-xs font-medium text-primary-500 hover:underline"
         >
           Look up on the council planning portal &rarr;
         </a>
@@ -91,11 +91,11 @@ function LinkSection({ title, links }: { title: string; links: LinkItem[] }) {
   if (links.length === 0) return null
   return (
     <div>
-      <h3 className="text-sm font-semibold text-[#111827]">{title}</h3>
+      <h3 className="text-sm font-semibold text-ink">{title}</h3>
       <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5">
         {links.map((l) => (
           <li key={l.href}>
-            <a href={l.href} className="text-sm text-[#2563EB] hover:underline">
+            <a href={l.href} className="text-sm text-primary-500 hover:underline">
               {l.label}
             </a>
           </li>
@@ -183,19 +183,19 @@ export default async function LocationPageView({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
       />
 
-      <p className="text-xs font-semibold uppercase tracking-wider text-[#2563EB]">{eyebrow}</p>
-      <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#111827] text-balance">
+      <p className="text-xs font-semibold uppercase tracking-wider text-primary-500">{eyebrow}</p>
+      <h1 className="mt-2 text-3xl font-bold tracking-tight text-ink text-balance">
         Planning applications in {location.name}
       </h1>
 
-      <p className="mt-3 text-[15px] leading-relaxed text-[#4B5563]">{summary}</p>
+      <p className="mt-3 text-base leading-relaxed text-ink-muted">{summary}</p>
 
       <div className="mt-6">
         <AlertForm locationSlug={location.slug} locationType={location.tier} placeName={location.name} />
       </div>
 
       <section className="mt-10">
-        <h2 className="text-lg font-semibold text-[#111827]">
+        <h2 className="text-lg font-semibold text-ink">
           {recent.length === 1 ? 'Most recent application' : `${recent.length} most recent applications`}
         </h2>
         {recent.length > 0 ? (
@@ -205,11 +205,11 @@ export default async function LocationPageView({
             ))}
           </ul>
         ) : (
-          <p className="mt-3 text-sm text-[#6B7280]">No applications on record for this area yet.</p>
+          <p className="mt-3 text-sm text-ink-muted">No applications on record for this area yet.</p>
         )}
       </section>
 
-      <nav className="mt-12 space-y-6 border-t border-[#E5E7EB] pt-8" aria-label="Related areas">
+      <nav className="mt-12 space-y-6 border-t border-border pt-8" aria-label="Related areas">
         {linkData.sections.map((s) => (
           <LinkSection key={s.title} title={s.title} links={s.links} />
         ))}

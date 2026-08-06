@@ -1,20 +1,27 @@
 'use client'
 
 // Band-filtered list of scored applications, with reasons shown per row.
-// Plain and functional — this is the demo surface for prospects, not polished
-// production UI. The filter is just links that set ?band= on the URL.
+// The filter is just links that set ?band= on the URL.
 
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
+import { Check, Target, Filter } from 'lucide-react'
 import { trackOpportunity } from './leadActions'
+import Button from '@/components/ui/Button'
+import Badge from '@/components/ui/Badge'
+import EmptyState from '@/components/ui/EmptyState'
+import { useToast } from '@/components/ui/Toast'
 import type { PlanningApplication } from '@/types/database'
 
 type BandFilter = 'HOT' | 'WARM' | 'COLD' | 'ALL'
 
-const BAND_STYLE: Record<'HOT' | 'WARM' | 'COLD', string> = {
-  HOT: 'text-red-700 bg-red-50 border-red-200',
-  WARM: 'text-amber-700 bg-amber-50 border-amber-200',
-  COLD: 'text-slate-600 bg-slate-50 border-slate-200',
-}
+// Band → Badge tone. Previously three separate Tailwind default palettes
+// (red/amber/slate) that matched nothing else in the app.
+const BAND_TONE = {
+  HOT: 'danger',
+  WARM: 'warning',
+  COLD: 'neutral',
+} as const
 
 const FILTERS: BandFilter[] = ['ALL', 'HOT', 'WARM', 'COLD']
 
@@ -38,7 +45,7 @@ export default function LeadsList({
   return (
     <div className="space-y-4">
       {/* Score disclaimer — visible at the point scores are read. */}
-      <p className="text-xs leading-relaxed text-[#A0A1A6]">{SCORE_DISCLAIMER}</p>
+      <p className="text-xs leading-relaxed text-ink-muted">{SCORE_DISCLAIMER}</p>
 
       {/* Band filter */}
       <div className="flex gap-2">
@@ -49,10 +56,11 @@ export default function LeadsList({
             <a
               key={f}
               href={href}
-              className={`rounded-full border px-3 py-1 text-xs font-medium ${
+              aria-current={active ? 'page' : undefined}
+              className={`rounded-full border px-3 py-1 text-xs font-medium transition-[background-color,border-color,color,box-shadow] duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2 ${
                 active
-                  ? 'border-gray-900 bg-gray-900 text-white'
-                  : 'border-[#D6E4FB] bg-white text-[#6B6C70] hover:border-[#D6E4FB]'
+                  ? 'border-neutral-900 bg-neutral-900 text-white shadow-sm'
+                  : 'border-border bg-surface text-ink-muted hover:border-primary-300 hover:bg-primary-50 hover:text-ink'
               }`}
             >
               {f}
@@ -62,11 +70,39 @@ export default function LeadsList({
       </div>
 
       {applications.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-[#D6E4FB] p-10 text-center">
-          <p className="text-sm text-[#6B6C70]">
-            No scored applications{activeBand !== 'ALL' ? ` in ${activeBand}` : ''} yet.
-            Run <code className="font-mono text-xs">/api/score</code> after the scraper has stored data.
-          </p>
+        <div className="rounded-md border border-dashed border-border bg-surface">
+          {/* This previously read "Run /api/score after the scraper has stored
+              data" — an internal instruction shown to paying customers. */}
+          {activeBand === 'ALL' ? (
+            <EmptyState
+              icon={Target}
+              title="No scored applications yet"
+              description="Once applications land in your tracked territories we score them for civils relevance, and the strongest ones appear here."
+              action={
+                <Link
+                  href="/dashboard"
+                  className="pp-lift inline-flex h-8 items-center rounded-sm border border-border bg-surface px-3 text-xs font-medium text-ink shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:border-primary-300 hover:bg-primary-50 hover:shadow-md active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
+                >
+                  Check your territories
+                </Link>
+              }
+            />
+          ) : (
+            <EmptyState
+              size="sm"
+              icon={Filter}
+              title={`Nothing in ${activeBand} right now`}
+              description="Your territories have scored applications, just none at this relevance band yet."
+              action={
+                <Link
+                  href="/leads"
+                  className="pp-lift inline-flex h-8 items-center rounded-sm border border-border bg-surface px-3 text-xs font-medium text-ink shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:border-primary-300 hover:bg-primary-50 hover:shadow-md active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
+                >
+                  Show all leads
+                </Link>
+              }
+            />
+          )}
         </div>
       ) : (
         <div className="space-y-3">
@@ -98,54 +134,73 @@ function LeadCard({
   // Local optimistic flag so the button flips to "Tracked ✓" without a reload.
   const [tracked, setTracked] = useState(isTracked)
   const [isPending, startTransition] = useTransition()
+  const { toast } = useToast()
 
   function handleTrack() {
     startTransition(async () => {
       const result = await trackOpportunity(app.id)
       // Treat "already tracking" as success too — the row is tracked either way.
-      if (!result?.error || result.error.startsWith('Already')) setTracked(true)
+      if (!result?.error || result.error.startsWith('Already')) {
+        setTracked(true)
+        toast({
+          title: 'Added to your pipeline',
+          description: `${app.reference} is now tracked at the Identified stage.`,
+          variant: 'success',
+        })
+        return
+      }
+      toast({
+        title: 'Couldn’t track that opportunity',
+        description: result.error,
+        variant: 'error',
+      })
     })
   }
 
   return (
-    <div className="rounded-lg border border-[#D6E4FB] bg-white p-4">
+    <div className="rounded-md border border-border bg-surface p-4 sm:p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-0.5">
-            <span
+            <Badge
+              tone={BAND_TONE[band]}
               title={SCORE_DISCLAIMER}
-              className={`cursor-help rounded border px-2 py-0.5 text-xs font-semibold ${BAND_STYLE[band]}`}
+              className="cursor-help font-semibold"
             >
               {band}
-            </span>
-            <span className="text-xs text-[#A0A1A6]">score {app.score ?? 0}</span>
-            <a href={`/applications/${app.id}`} className="font-mono text-xs text-[#6B6C70] hover:text-[#2563EB] hover:underline">
+            </Badge>
+            <span className="tabular-data text-xs text-ink-muted">score {app.score ?? 0}</span>
+            <Link
+              href={`/applications/${app.id}`}
+              className="tabular-data rounded-sm text-xs text-ink-muted transition-colors duration-fast ease-standard hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
+            >
               {app.reference}
-            </a>
+            </Link>
             {app.application_date && (
-              <span className="text-xs text-[#A0A1A6]">{app.application_date}</span>
+              <span className="text-xs text-ink-muted">{app.application_date}</span>
             )}
           </div>
-          <p className="text-sm text-[#202124] line-clamp-2" title={app.description ?? undefined}>
+          <p className="text-sm text-ink line-clamp-2" title={app.description ?? undefined}>
             {app.description ?? 'No description'}
           </p>
-          {app.address && <p className="text-xs text-[#A0A1A6] mt-0.5">{app.address}</p>}
+          {app.address && <p className="text-xs text-ink-muted mt-0.5">{app.address}</p>}
         </div>
 
         {showTrackActions && (
           <div className="shrink-0">
             {tracked ? (
-              <span className="rounded border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
-                Tracked ✓
-              </span>
+              <Badge tone="success" icon={Check}>Tracked</Badge>
             ) : (
-              <button
+              <Button
+                size="sm"
+                variant="secondary"
                 onClick={handleTrack}
-                disabled={isPending}
-                className="rounded border border-[#2563EB] px-2 py-0.5 text-xs font-medium text-[#2563EB] hover:bg-[#2563EB] hover:text-white transition-colors disabled:opacity-40"
+                loading={isPending}
+                loadingLabel="Tracking opportunity"
+                className="h-7 px-2.5 text-2xs"
               >
-                {isPending ? 'Tracking…' : 'Track Opportunity'}
-              </button>
+                Track Opportunity
+              </Button>
             )}
           </div>
         )}
@@ -157,7 +212,7 @@ function LeadCard({
           {app.score_reasons.map((reason, i) => (
             <span
               key={i}
-              className="rounded bg-[#F7F7F8] px-2 py-0.5 text-xs text-[#6B6C70]"
+              className="rounded-sm bg-surface-sunken px-2 py-0.5 text-xs text-ink-muted ring-1 ring-inset ring-neutral-200"
             >
               {reason}
             </span>

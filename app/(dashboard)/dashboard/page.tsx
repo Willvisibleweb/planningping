@@ -5,14 +5,16 @@ import { createClient } from '@/lib/supabase/server'
 import { getProfile, hasProAccess } from '@/lib/access'
 import TrackedAreasList from '@/components/dashboard/TrackedAreasList'
 import AddAreaForm from '@/components/dashboard/AddAreaForm'
-import type { TrackedArea, PlanningApplication } from '@/types/database'
+import type { TrackedArea } from '@/types/database'
 
 function StatTile({ label, value, sub }: { label: string; value: number; sub: string }) {
   return (
-    <div className="rounded-[10px] border border-[#D6E4FB] bg-white p-3.5 shadow-[0_1px_2px_rgba(32,33,36,.04)]">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-[#A0A1A6]">{label}</p>
-      <p className="mt-1.5 text-2xl font-bold tabular-nums text-[#202124]">{value.toLocaleString()}</p>
-      <p className="mt-0.5 text-[11.5px] text-[#6B6C70]">{sub}</p>
+    <div className="rounded-md border border-border bg-surface p-4 sm:p-5 shadow-sm">
+      <p className="text-2xs font-semibold uppercase tracking-wider text-ink-muted">{label}</p>
+      {/* Mono + tabular so figures line up across the four tiles rather than
+          jittering as the digit widths change. */}
+      <p className="tabular-data mt-2 text-2xl font-semibold text-ink">{value.toLocaleString()}</p>
+      <p className="mt-1 text-2xs leading-relaxed text-ink-muted">{sub}</p>
     </div>
   )
 }
@@ -73,10 +75,10 @@ export default async function DashboardPage() {
   const councilCount = councilSlugs.length
 
   return (
-    <div className="space-y-8">
+    <div className="pp-stagger space-y-8">
       <div>
-        <h2 className="text-xl font-semibold text-[#202124] mb-1">Your territory</h2>
-        <p className="text-sm text-[#6B6C70]">
+        <h2 className="text-xl font-semibold text-ink mb-1">Your territory</h2>
+        <p className="text-sm text-ink-muted">
           PlanningPing monitors these areas and keeps your dashboard current as new applications land.
         </p>
       </div>
@@ -103,7 +105,7 @@ export default async function DashboardPage() {
       <AddAreaForm />
 
       {areasError ? (
-        <p className="text-sm text-red-600">Could not load tracked areas. Please refresh.</p>
+        <p className="text-sm text-danger-600">Could not load tracked areas. Please refresh.</p>
       ) : (
         <TrackedAreasList
           areas={areas ?? []}

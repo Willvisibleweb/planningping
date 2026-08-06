@@ -7,6 +7,9 @@
 
 import { useRef, useState, useTransition } from 'react'
 import { saveFirmProfile, uploadFirmLogo, removeFirmLogo } from './firmProfileActions'
+import Button from '@/components/ui/Button'
+import { Field, Input, Textarea } from '@/components/ui/Input'
+import { Alert } from '@/components/ui/ErrorState'
 import type { FirmProfile } from '@/types/database'
 
 export default function FirmProfileSection({
@@ -69,9 +72,9 @@ export default function FirmProfileSection({
   }
 
   return (
-    <div className="rounded-lg border border-[#D6E4FB] bg-white p-5">
-      <h3 className="text-sm font-semibold text-[#202124]">Firm letterhead</h3>
-      <p className="mt-1 text-xs text-[#A0A1A6]">
+    <div className="rounded-md border border-border bg-surface p-5 sm:p-6 shadow-sm">
+      <h3 className="text-sm font-semibold text-ink">Firm letterhead</h3>
+      <p className="mt-1 text-xs text-ink-muted">
         Used on formal letters drafted from a tracked lead — business name, address and logo
         appear on the printed letterhead. Optional: letters still generate fine without this.
       </p>
@@ -82,15 +85,15 @@ export default function FirmProfileSection({
           <img
             src={logoDataUri}
             alt="Firm logo"
-            className="h-12 w-auto max-w-[96px] rounded border border-[#D6E4FB] object-contain"
+            className="h-12 w-auto max-w-[96px] rounded-sm border border-border object-contain"
           />
         ) : (
-          <div className="flex h-12 w-12 items-center justify-center rounded border border-dashed border-[#D6E4FB] text-[9px] text-[#A0A1A6]">
+          <div className="flex h-12 w-12 items-center justify-center rounded-sm border border-dashed border-border text-2xs text-ink-muted">
             No logo
           </div>
         )}
         <div>
-          <label className="cursor-pointer rounded-md border border-[#D6E4FB] px-3 py-1.5 text-xs font-medium text-[#202124] hover:bg-[#F7F7F8]">
+          <label className="cursor-pointer rounded-md border border-border px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-sunken">
             {isLogoPending ? 'Uploading…' : logoDataUri ? 'Replace logo' : 'Upload logo'}
             <input
               ref={fileInputRef}
@@ -105,62 +108,61 @@ export default function FirmProfileSection({
             <button
               onClick={handleRemoveLogo}
               disabled={isLogoPending}
-              className="ml-2 text-xs text-red-500 hover:text-red-700 disabled:opacity-40"
+              className="ml-2 rounded-sm text-xs text-ink-muted transition-colors duration-fast ease-standard hover:text-danger-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2 disabled:opacity-40"
             >
               Remove
             </button>
           )}
         </div>
       </div>
-      {logoError && <p className="mt-1 text-xs text-red-600">{logoError}</p>}
+      {logoError && (
+        <Alert tone="danger" className="mt-3 text-xs">
+          {logoError}
+        </Alert>
+      )}
 
-      <div className="mt-4 space-y-3">
-        <div>
-          <label className="block text-xs font-medium text-[#6B6C70]">Business name</label>
-          <input
-            value={businessName}
-            onChange={(e) => setBusinessName(e.target.value)}
-            className="mt-1 w-full rounded-md border border-[#D6E4FB] px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-[#6B6C70]">Address</label>
-          <textarea
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            rows={3}
-            className="mt-1 w-full rounded-md border border-[#D6E4FB] px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-[#6B6C70]">Phone</label>
-          <input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            className="mt-1 w-full rounded-md border border-[#D6E4FB] px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-[#6B6C70]">Contact email</label>
-          <input
-            type="email"
-            value={contactEmail}
-            onChange={(e) => setContactEmail(e.target.value)}
-            placeholder="Defaults to your account email"
-            className="mt-1 w-full rounded-md border border-[#D6E4FB] px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
-          />
-        </div>
+      <div className="mt-5 space-y-4">
+        <Field label="Business name">
+          {(p) => (
+            <Input {...p} value={businessName} onChange={(e) => setBusinessName(e.target.value)} />
+          )}
+        </Field>
+        <Field label="Address">
+          {(p) => (
+            <Textarea {...p} rows={3} value={address} onChange={(e) => setAddress(e.target.value)} />
+          )}
+        </Field>
+        <Field label="Phone">
+          {(p) => (
+            <Input {...p} type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          )}
+        </Field>
+        <Field label="Contact email" hint="Leave blank to use your account email.">
+          {(p) => (
+            <Input
+              {...p}
+              type="email"
+              value={contactEmail}
+              onChange={(e) => setContactEmail(e.target.value)}
+              placeholder="Defaults to your account email"
+            />
+          )}
+        </Field>
       </div>
 
-      <button
-        onClick={handleSave}
-        disabled={isPending}
-        className="mt-4 rounded-md bg-[#2563EB] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#1D4ED8] disabled:opacity-50"
-      >
-        {isPending ? 'Saving…' : 'Save firm details'}
-      </button>
-      {saved && <p className="mt-2 text-xs font-medium text-green-700">Saved.</p>}
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      <Button size="sm" className="mt-5" onClick={handleSave} loading={isPending} loadingLabel="Saving firm details">
+        Save firm details
+      </Button>
+      {saved && (
+        <p className="mt-2.5 text-xs font-medium text-success-600">
+          Saved — new letters will use these details.
+        </p>
+      )}
+      {error && (
+        <Alert tone="danger" className="mt-3">
+          {error}
+        </Alert>
+      )}
     </div>
   )
 }

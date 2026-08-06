@@ -1,6 +1,7 @@
 import { MapPin, Mail, CheckCircle, Check } from 'lucide-react'
 import RotatingWord from '@/components/landing/RotatingWord'
 import { PRICING } from '@/lib/stripe'
+import Link from 'next/link'
 
 // Small presentational helpers for the product mockups in the hero / inbox band.
 // These are pure markup (no real data) — a "screenshot" of the app rendered in
@@ -9,12 +10,12 @@ import { PRICING } from '@/lib/stripe'
 
 function Pill({ tone, children }: { tone: 'ok' | 'warn' | 'bad'; children: React.ReactNode }) {
   const tones = {
-    ok: 'bg-[#ECFDF5] text-[#047857]',
-    warn: 'bg-[#FFFBEB] text-[#B45309]',
-    bad: 'bg-[#FEF2F2] text-[#B91C1C]',
+    ok: 'bg-success-50 text-success-600',
+    warn: 'bg-warning-50 text-warning-600',
+    bad: 'bg-danger-50 text-danger-600',
   }
   return (
-    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${tones[tone]}`}>
+    <span className={`shrink-0 rounded-full px-2 py-0.5 text-2xs font-semibold ${tones[tone]}`}>
       {children}
     </span>
   )
@@ -36,14 +37,14 @@ function AppRow({
   status: string
 }) {
   return (
-    <div className="flex items-start gap-3 border-t border-[#E5E7EB] py-2.5 first:border-t-0">
+    <div className="flex items-start gap-3 border-t border-border py-2.5 first:border-t-0">
       <div className="min-w-0 flex-1">
         <div className="mb-0.5 flex items-center gap-2">
-          <span className="font-mono text-[11px] font-semibold text-[#2563EB]">{reference}</span>
-          <span className="text-[10px] text-[#9CA3AF]">{when}</span>
+          <span className="tabular-data text-2xs font-semibold text-primary-500">{reference}</span>
+          <span className="text-2xs text-neutral-500">{when}</span>
         </div>
-        <p className="text-xs leading-snug text-[#111827]">{description}</p>
-        <p className="mt-0.5 text-[10px] text-[#9CA3AF]">{address}</p>
+        <p className="text-xs leading-snug text-ink">{description}</p>
+        <p className="mt-0.5 text-2xs text-neutral-500">{address}</p>
       </div>
       <Pill tone={tone}>{status}</Pill>
     </div>
@@ -52,105 +53,114 @@ function AppRow({
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-surface">
       {/* Nav */}
-      <header className="border-b border-[#E5E7EB]">
-        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-          <span className="text-sm font-semibold tracking-tight text-[#111827]">
-            Planning<span className="text-[#2563EB]">Ping</span>
+      <header className="border-b border-border">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-6">
+          <span className="text-sm font-semibold tracking-tight text-ink">
+            Planning<span className="text-primary-500">Ping</span>
           </span>
           <div className="flex items-center gap-5">
-            <a
+            <Link
               href="/blog"
-              className="text-sm font-medium text-[#6B7280] hover:text-[#111827] transition-colors"
+              className="rounded-sm text-sm font-medium text-ink-muted transition-colors duration-fast ease-standard hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
             >
               Blog
-            </a>
-            <a
+            </Link>
+            <Link
               href="/login"
-              className="text-sm font-medium text-[#6B7280] hover:text-[#111827] transition-colors"
+              className="rounded-sm text-sm font-medium text-ink-muted transition-colors duration-fast ease-standard hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
             >
               Sign in
-            </a>
+            </Link>
           </div>
         </div>
       </header>
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-[#EEF3FF] via-[#F6F9FF] to-white">
+      <section className="relative overflow-hidden bg-gradient-to-b from-primary-100 via-primary-50 to-surface">
         {/* soft blue glow behind the product mockup */}
-        <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 h-[460px] w-[460px] rounded-full bg-[#2563EB]/15 blur-3xl" />
-        <div className="relative max-w-6xl mx-auto px-6 py-20 w-full">
+        <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 h-[460px] w-[460px] rounded-full bg-primary-500/15 blur-3xl" />
+        <div className="relative mx-auto w-full max-w-6xl px-5 py-16 sm:px-6 sm:py-20">
           <div className="grid items-center gap-14 lg:grid-cols-[1.02fr_1.18fr]">
             {/* Copy */}
             <div className="motion-safe-fade" style={{ animation: 'hero-fade-up 600ms cubic-bezier(.2,.7,.3,1) 100ms both' }}>
-              <p className="inline-flex items-center rounded-full border border-[#DCE7FF] bg-[#EFF4FF] px-3 py-1 text-xs font-semibold text-[#2563EB] mb-5 tracking-wide uppercase">
+              <p className="inline-flex items-center rounded-full border border-border bg-primary-100 px-3 py-1 text-xs font-semibold text-primary-500 mb-5 tracking-wide uppercase">
                 UK Planning Application Tracker
               </p>
-              <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-[#111827] leading-[1.04] mb-5 text-balance">
+              {/* 52px at 375px overflowed on "applications"; steps up from 40px. */}
+              <h1 className="mb-5 text-balance text-4xl font-bold leading-[1.06] tracking-tighter text-ink sm:text-5xl lg:text-6xl">
                 Spot planning applications
                 <br />
                 for <RotatingWord /> first.
               </h1>
-              <p className="text-lg text-[#6B7280] mb-7 leading-relaxed max-w-lg">
+              <p className="text-lg text-ink-muted mb-7 leading-relaxed max-w-lg">
                 Track planning applications across any UK council area. Get a weekly digest every Monday — whether you&rsquo;re watching your own street or sourcing new opportunities.
               </p>
               <div className="flex flex-wrap gap-3">
-                <a
+                {/* Flat brand colour rather than the old gradient: this is a
+                    data tool, and the primary shadow token already gives the
+                    button depth without a colour ramp doing the work. */}
+                <Link
                   href="/signup"
-                  className="inline-flex items-center px-5 py-2.5 rounded-md bg-gradient-to-b from-[#3B82F6] to-[#2563EB] text-sm font-medium text-white shadow-sm shadow-blue-600/25 transition-[transform,box-shadow,background] hover:from-[#2563EB] hover:to-[#1D4ED8] hover:-translate-y-px hover:shadow-md hover:shadow-blue-600/40"
+                  className="pp-lift inline-flex items-center rounded-sm bg-primary-500 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-[background-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:bg-primary-600 hover:shadow-primary active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
                 >
                   Get started free
-                </a>
-                <a
+                </Link>
+                <Link
                   href="/login"
-                  className="inline-flex items-center px-5 py-2.5 rounded-md border border-[#E5E7EB] bg-white text-sm font-medium text-[#374151] hover:bg-[#F9FAFB] transition-colors"
+                  className="pp-lift inline-flex items-center rounded-sm border border-border bg-surface px-5 py-2.5 text-sm font-medium text-ink shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:border-primary-300 hover:bg-primary-50 hover:shadow-md active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
                 >
                   Sign in
-                </a>
+                </Link>
               </div>
-              <div className="mt-6 flex items-center gap-2 text-[13px] text-[#9CA3AF]">
-                <span className="h-[5px] w-[5px] rounded-full bg-[#047857] ring-4 ring-[#ECFDF5]" />
-                Covering 20+ councils · new applications every week
+              {/* "400+" rather than a live figure: 410 authorities are
+                  supported and any UK postcode auto-provisions its council on
+                  first use (see addTrackedArea), so this stays true without
+                  needing a query on a static page — and without going stale
+                  the way "20+ councils" did. */}
+              <div className="mt-6 flex items-center gap-2 text-xs text-neutral-500">
+                <span className="h-[5px] w-[5px] rounded-full bg-success-600 ring-4 ring-success-50" />
+                Covering 400+ UK planning authorities · new applications every week
               </div>
             </div>
 
             {/* Dashboard mockup */}
             <div
-              className="motion-safe-fade overflow-hidden rounded-2xl border border-[#DCE7FF] bg-white ring-1 ring-[#2563EB]/10 shadow-[0_1px_2px_rgba(16,24,40,.04),0_24px_48px_-16px_rgba(37,99,235,.28)]"
+              className="motion-safe-fade overflow-hidden rounded-lg border border-border bg-surface ring-1 ring-primary-500/10 shadow-lg"
               style={{ animation: 'hero-fade-up 600ms cubic-bezier(.2,.7,.3,1) 250ms both' }}
             >
-              <div className="flex h-9 items-center gap-1.5 border-b border-[#E5E7EB] bg-[#F9FAFB] px-3.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-[#E5E7EB]" />
-                <span className="h-2.5 w-2.5 rounded-full bg-[#E5E7EB]" />
-                <span className="h-2.5 w-2.5 rounded-full bg-[#E5E7EB]" />
-                <span className="ml-2.5 font-mono text-[11px] text-[#9CA3AF]">planningping.app/dashboard</span>
+              <div className="flex h-9 items-center gap-1.5 border-b border-border bg-surface-sunken px-3.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-neutral-200" />
+                <span className="h-2.5 w-2.5 rounded-full bg-neutral-200" />
+                <span className="h-2.5 w-2.5 rounded-full bg-neutral-200" />
+                <span className="ml-2.5 tabular-data text-2xs text-neutral-500">planningping.app/dashboard</span>
               </div>
-              <div className="grid grid-cols-[132px_1fr] sm:grid-cols-[148px_1fr]">
+              <div className="grid grid-cols-[104px_1fr] sm:grid-cols-[148px_1fr]">
                 {/* sidebar */}
-                <aside className="border-r border-[#E5E7EB] bg-[#F9FAFB] p-3">
-                  <div className="mb-3.5 px-1 text-xs font-bold tracking-tight text-[#111827]">
-                    Planning<span className="text-[#2563EB]">Ping</span>
+                <aside className="border-r border-border bg-surface-sunken p-3">
+                  <div className="mb-3.5 px-1 text-xs font-bold tracking-tight text-ink">
+                    Planning<span className="text-primary-500">Ping</span>
                   </div>
-                  <nav className="flex flex-col gap-0.5 text-[12.5px]">
-                    <span className="rounded-md bg-[#EFF4FF] px-2.5 py-1.5 font-semibold text-[#2563EB]">Dashboard</span>
-                    <span className="rounded-md px-2.5 py-1.5 text-[#6B7280]">Leads</span>
-                    <span className="rounded-md px-2.5 py-1.5 text-[#6B7280]">Pipeline</span>
-                    <span className="rounded-md px-2.5 py-1.5 text-[#6B7280]">Settings</span>
+                  <nav className="flex flex-col gap-0.5 text-xs">
+                    <span className="rounded-md bg-primary-100 px-2.5 py-1.5 font-semibold text-primary-500">Dashboard</span>
+                    <span className="rounded-md px-2.5 py-1.5 text-ink-muted">Leads</span>
+                    <span className="rounded-md px-2.5 py-1.5 text-ink-muted">Pipeline</span>
+                    <span className="rounded-md px-2.5 py-1.5 text-ink-muted">Settings</span>
                   </nav>
-                  <div className="mt-3.5 rounded-md bg-[#FFFBEB] px-2 py-1.5 text-center text-[10.5px] font-semibold text-[#B45309]">
+                  <div className="mt-3.5 rounded-md bg-warning-50 px-2 py-1.5 text-center text-2xs font-semibold text-warning-600">
                     Trial · 9 days left
                   </div>
                 </aside>
                 {/* main */}
                 <div className="p-4">
-                  <h2 className="mb-0.5 text-sm font-semibold text-[#111827]">Your tracked areas</h2>
-                  <p className="mb-3.5 text-[11.5px] text-[#9CA3AF]">Monitored weekly · digest every Monday</p>
-                  <div className="rounded-xl border border-[#E5E7EB] bg-white p-3.5 shadow-sm">
+                  <h2 className="mb-0.5 text-sm font-semibold text-ink">Your tracked areas</h2>
+                  <p className="mb-3.5 text-2xs text-neutral-500">Monitored weekly · digest every Monday</p>
+                  <div className="rounded-md border border-border bg-surface p-4 sm:p-5 shadow-sm">
                     <div className="mb-2.5 flex items-center justify-between">
                       <div>
-                        <div className="text-[13px] font-semibold text-[#111827]">Croydon town centre</div>
-                        <div className="mt-px text-[11px] text-[#9CA3AF]">CR0 1EA · croydon</div>
+                        <div className="text-xs font-semibold text-ink">Croydon town centre</div>
+                        <div className="mt-px text-2xs text-neutral-500">CR0 1EA · croydon</div>
                       </div>
                       <Pill tone="warn">6 new</Pill>
                     </div>
@@ -172,17 +182,17 @@ export default function HomePage() {
       </section>
 
       {/* Inbox band */}
-      <section className="border-t border-[#DCE7FF] bg-[#F5F8FF]">
+      <section className="border-t border-border bg-primary-50">
         <div className="max-w-6xl mx-auto px-6 py-16">
           <div className="grid items-center gap-14 lg:grid-cols-2">
             <div>
-              <p className="text-xs font-semibold text-[#2563EB] mb-3 tracking-wider uppercase">
+              <p className="text-xs font-semibold text-primary-500 mb-3 tracking-wider uppercase">
                 Every Monday, 6am
               </p>
-              <h2 className="text-3xl font-bold tracking-tight text-[#111827] leading-tight mb-3.5 text-balance">
+              <h2 className="text-3xl font-bold tracking-tight text-ink leading-tight mb-3.5 text-balance">
                 The whole week, waiting in your inbox.
               </h2>
-              <p className="text-[15.5px] text-[#6B7280] leading-relaxed mb-5 max-w-lg">
+              <p className="text-base text-ink-muted leading-relaxed mb-5 max-w-lg">
                 No dashboards to check, no portals to trawl. One clean email per area — new applications, status changes and decisions, with the reference, address and description already pulled out.
               </p>
               <ul className="flex flex-col gap-2.5">
@@ -191,8 +201,8 @@ export default function HomePage() {
                   'A preview of the top items, the rest one tap away',
                   'Straight to your dashboard from any application',
                 ].map((t) => (
-                  <li key={t} className="flex items-start gap-2.5 text-sm text-[#111827]">
-                    <span className="mt-px grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full bg-[#ECFDF5] text-[#047857]">
+                  <li key={t} className="flex items-start gap-2.5 text-sm text-ink">
+                    <span className="mt-px grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full bg-success-50 text-success-600">
                       <Check size={11} strokeWidth={3} />
                     </span>
                     {t}
@@ -202,37 +212,37 @@ export default function HomePage() {
             </div>
 
             {/* Email mockup */}
-            <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_1px_2px_rgba(16,24,40,.04),0_12px_32px_-12px_rgba(16,24,40,.18)]">
-              <div className="flex items-center justify-between border-b border-[#E5E7EB] px-5 py-4">
-                <span className="text-sm font-semibold tracking-tight text-[#111827]">
-                  Planning<span className="text-[#2563EB]">Ping</span>
+            <div className="overflow-hidden rounded-lg border border-border bg-surface shadow-lg">
+              <div className="flex items-center justify-between border-b border-border px-5 py-4">
+                <span className="text-sm font-semibold tracking-tight text-ink">
+                  Planning<span className="text-primary-500">Ping</span>
                 </span>
-                <span className="text-xs text-[#9CA3AF]">to you · notifications@planningping</span>
+                <span className="text-xs text-neutral-500">to you · notifications@planningping</span>
               </div>
               <div className="px-5 py-[18px]">
-                <p className="text-[17px] font-bold tracking-tight text-[#111827]">5 new planning applications</p>
-                <p className="mb-4 text-[12.5px] text-[#6B7280]">
-                  Near <strong className="text-[#111827]">SW1A 0RS</strong> — new since your last digest
+                <p className="text-lg font-bold tracking-tight text-ink">5 new planning applications</p>
+                <p className="mb-4 text-xs text-ink-muted">
+                  Near <strong className="text-ink">SW1A 0RS</strong> — new since your last digest
                 </p>
-                <div className="mb-2.5 rounded-[10px] border border-[#E5E7EB] p-3.5">
+                <div className="mb-2.5 rounded-md border border-border p-4">
                   <div className="mb-1.5 flex items-center gap-2">
-                    <span className="font-mono text-[11px] font-semibold text-[#2563EB]">26/04306/LBC</span>
-                    <span className="text-[10px] text-[#9CA3AF]">30 Jun</span>
+                    <span className="tabular-data text-2xs font-semibold text-primary-500">26/04306/LBC</span>
+                    <span className="text-2xs text-neutral-500">30 Jun</span>
                     <span className="ml-auto"><Pill tone="warn">Pending</Pill></span>
                   </div>
-                  <p className="mb-0.5 text-[12.5px] font-semibold text-[#111827]">16A Bedford Street, London WC2E 9HE</p>
-                  <p className="text-xs leading-relaxed text-[#6B7280]">Replacement shopfront and associated works, including new fenestration, wall lights and a fixed canopy.</p>
+                  <p className="mb-0.5 text-xs font-semibold text-ink">16A Bedford Street, London WC2E 9HE</p>
+                  <p className="text-xs leading-relaxed text-ink-muted">Replacement shopfront and associated works, including new fenestration, wall lights and a fixed canopy.</p>
                 </div>
-                <div className="mb-3 rounded-[10px] border border-[#E5E7EB] p-3.5">
+                <div className="mb-3 rounded-md border border-border p-4">
                   <div className="mb-1.5 flex items-center gap-2">
-                    <span className="font-mono text-[11px] font-semibold text-[#2563EB]">26/03998/FULL</span>
-                    <span className="text-[10px] text-[#9CA3AF]">28 Jun</span>
+                    <span className="tabular-data text-2xs font-semibold text-primary-500">26/03998/FULL</span>
+                    <span className="text-2xs text-neutral-500">28 Jun</span>
                     <span className="ml-auto"><Pill tone="ok">Approved</Pill></span>
                   </div>
-                  <p className="mb-0.5 text-[12.5px] font-semibold text-[#111827]">42 Marsham Street, London SW1P 3EU</p>
-                  <p className="text-xs leading-relaxed text-[#6B7280]">Change of use of ground floor from office to retail with new shopfront.</p>
+                  <p className="mb-0.5 text-xs font-semibold text-ink">42 Marsham Street, London SW1P 3EU</p>
+                  <p className="text-xs leading-relaxed text-ink-muted">Change of use of ground floor from office to retail with new shopfront.</p>
                 </div>
-                <span className="block rounded-lg bg-[#2563EB] py-2.5 text-center text-[13px] font-semibold text-white">
+                <span className="block rounded-sm bg-primary-500 py-2.5 text-center text-xs font-semibold text-white">
                   View on your dashboard →
                 </span>
               </div>
@@ -242,33 +252,33 @@ export default function HomePage() {
       </section>
 
       {/* Features */}
-      <section className="border-t border-[#E5E7EB]">
+      <section className="border-t border-border">
         <div className="max-w-6xl mx-auto px-6 py-16">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
             <div>
-              <div className="w-9 h-9 rounded-lg bg-[#EFF4FF] border border-[#DCE7FF] flex items-center justify-center mb-4 shadow-sm">
-                <MapPin size={16} className="text-[#2563EB]" />
+              <div className="w-9 h-9 rounded-sm bg-primary-100 border border-border flex items-center justify-center mb-4 shadow-sm">
+                <MapPin size={16} className="text-primary-500" />
               </div>
-              <h3 className="text-sm font-semibold text-[#111827] mb-2">Monitor any area</h3>
-              <p className="text-sm text-[#6B7280] leading-relaxed">
+              <h3 className="text-sm font-semibold text-ink mb-2">Monitor any area</h3>
+              <p className="text-sm text-ink-muted leading-relaxed">
                 Add any UK postcode. We resolve the council automatically and start tracking every planning application in that area.
               </p>
             </div>
             <div>
-              <div className="w-9 h-9 rounded-lg bg-[#EFF4FF] border border-[#DCE7FF] flex items-center justify-center mb-4 shadow-sm">
-                <Mail size={16} className="text-[#2563EB]" />
+              <div className="w-9 h-9 rounded-sm bg-primary-100 border border-border flex items-center justify-center mb-4 shadow-sm">
+                <Mail size={16} className="text-primary-500" />
               </div>
-              <h3 className="text-sm font-semibold text-[#111827] mb-2">Weekly digests</h3>
-              <p className="text-sm text-[#6B7280] leading-relaxed">
+              <h3 className="text-sm font-semibold text-ink mb-2">Weekly digests</h3>
+              <p className="text-sm text-ink-muted leading-relaxed">
                 Every Monday morning, get a clean email summary of what&apos;s new — application references, addresses, descriptions, and current status.
               </p>
             </div>
             <div>
-              <div className="w-9 h-9 rounded-lg bg-[#EFF4FF] border border-[#DCE7FF] flex items-center justify-center mb-4 shadow-sm">
-                <CheckCircle size={16} className="text-[#2563EB]" />
+              <div className="w-9 h-9 rounded-sm bg-primary-100 border border-border flex items-center justify-center mb-4 shadow-sm">
+                <CheckCircle size={16} className="text-primary-500" />
               </div>
-              <h3 className="text-sm font-semibold text-[#111827] mb-2">Never miss a decision</h3>
-              <p className="text-sm text-[#6B7280] leading-relaxed">
+              <h3 className="text-sm font-semibold text-ink mb-2">Never miss a decision</h3>
+              <p className="text-sm text-ink-muted leading-relaxed">
                 Status changes and decisions are flagged the moment we detect them — approved, refused, or pending. No manual checking required.
               </p>
             </div>
@@ -277,74 +287,74 @@ export default function HomePage() {
       </section>
 
       {/* Pricing */}
-      <section className="border-t border-[#DCE7FF] bg-[#F5F8FF]">
+      <section className="border-t border-border bg-primary-50">
         <div className="max-w-6xl mx-auto px-6 py-16">
-          <h2 className="text-center text-xl font-semibold text-[#111827]">Pricing</h2>
-          <p className="mt-1 text-center text-sm text-[#6B7280]">
+          <h2 className="text-center text-xl font-semibold text-ink">Pricing</h2>
+          <p className="mt-1 text-center text-sm text-ink-muted">
             Free for homeowners. Built to pay for itself for professionals.
           </p>
           <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-3 max-w-5xl mx-auto">
-            <div className="rounded-lg border border-[#E5E7EB] bg-white p-6 shadow-sm">
-              <h3 className="text-sm font-semibold text-[#111827]">Free</h3>
-              <p className="mt-2 text-2xl font-semibold text-[#111827]">Free</p>
-              <p className="mt-1 text-xs text-[#9CA3AF]">forever</p>
-              <ul className="mt-4 space-y-2 text-sm text-[#6B7280]">
+            <div className="rounded-md border border-border bg-surface p-5 sm:p-7 shadow-sm">
+              <h3 className="text-sm font-semibold text-ink">Free</h3>
+              <p className="mt-2 text-2xl font-semibold text-ink">Free</p>
+              <p className="mt-1 text-xs text-neutral-500">forever</p>
+              <ul className="mt-4 space-y-2 text-sm text-ink-muted">
                 <li>Track planning applications near you</li>
                 <li>{PRICING.free.radiusKm}km radius, {PRICING.free.maxAreas} tracked area</li>
                 <li>Weekly email digest</li>
               </ul>
-              <a
+              <Link
                 href="/signup"
-                className="mt-6 block rounded-md border border-[#2563EB] px-4 py-2 text-center text-sm font-medium text-[#2563EB] transition-colors hover:bg-blue-50"
+                className="mt-6 block rounded-md border border-primary-500 px-4 py-2 text-center text-sm font-medium text-primary-500 transition-[background-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:bg-primary-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
               >
                 Start free
-              </a>
+              </Link>
             </div>
-            <div className="rounded-lg border border-[#E5E7EB] bg-white p-6 shadow-sm">
-              <h3 className="text-sm font-semibold text-[#111827]">Pro</h3>
-              <p className="mt-2 text-2xl font-semibold text-[#111827]">£{PRICING.mid.monthly.amount}<span className="text-sm font-normal text-[#6B7280]">/month</span></p>
-              <p className="mt-1 text-xs text-[#9CA3AF]">or £{PRICING.mid.annual.amount}/year ({PRICING.mid.annual.note}) · 14-day free trial, no card required</p>
-              <ul className="mt-4 space-y-2 text-sm text-[#6B7280]">
+            <div className="rounded-md border border-border bg-surface p-5 sm:p-7 shadow-sm">
+              <h3 className="text-sm font-semibold text-ink">Pro</h3>
+              <p className="mt-2 text-2xl font-semibold text-ink">£{PRICING.mid.monthly.amount}<span className="text-sm font-normal text-ink-muted">/month</span></p>
+              <p className="mt-1 text-xs text-neutral-500">or £{PRICING.mid.annual.amount}/year ({PRICING.mid.annual.note}) · {PRICING.trialDays}-day free trial, no card required</p>
+              <ul className="mt-4 space-y-2 text-sm text-ink-muted">
                 <li>Everything in Free</li>
                 <li>Lead scoring, pipeline (CRM), AI outreach</li>
                 <li>{PRICING.mid.radiusKm}km radius, {PRICING.mid.maxAreas} tracked areas</li>
                 <li>{PRICING.mid.support}</li>
               </ul>
-              <a
+              <Link
                 href="/signup?type=professional"
-                className="mt-6 block rounded-md border border-[#2563EB] px-4 py-2 text-center text-sm font-medium text-[#2563EB] transition-colors hover:bg-blue-50"
+                className="mt-6 block rounded-md border border-primary-500 px-4 py-2 text-center text-sm font-medium text-primary-500 transition-[background-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:bg-primary-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
               >
                 Start free trial
-              </a>
+              </Link>
             </div>
-            <div className="relative rounded-lg border-2 border-[#2563EB] bg-white p-6 shadow-sm">
-              <span className="absolute -top-2.5 right-5 rounded-full bg-[#2563EB] px-2.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-white">
-                14-day trial
+            <div className="relative rounded-md border-2 border-primary-500 bg-surface p-5 sm:p-6 shadow-sm">
+              <span className="absolute -top-2.5 right-5 rounded-full bg-primary-500 px-2.5 py-0.5 text-2xs font-bold uppercase tracking-wide text-white">
+                {PRICING.trialDays}-day trial
               </span>
-              <h3 className="text-sm font-semibold text-[#111827]">Max</h3>
-              <p className="mt-2 text-2xl font-semibold text-[#111827]">£{PRICING.top.monthly.amount}<span className="text-sm font-normal text-[#6B7280]">/month</span></p>
-              <p className="mt-1 text-xs text-[#9CA3AF]">or £{PRICING.top.annual.amount}/year ({PRICING.top.annual.note}) · 14-day free trial, no card required</p>
-              <ul className="mt-4 space-y-2 text-sm text-[#6B7280]">
+              <h3 className="text-sm font-semibold text-ink">Max</h3>
+              <p className="mt-2 text-2xl font-semibold text-ink">£{PRICING.top.monthly.amount}<span className="text-sm font-normal text-ink-muted">/month</span></p>
+              <p className="mt-1 text-xs text-neutral-500">or £{PRICING.top.annual.amount}/year ({PRICING.top.annual.note}) · {PRICING.trialDays}-day free trial, no card required</p>
+              <ul className="mt-4 space-y-2 text-sm text-ink-muted">
                 <li>Everything in Pro</li>
                 <li>{PRICING.top.radiusKm}km radius, unlimited tracked areas</li>
                 <li>{PRICING.top.support}</li>
               </ul>
-              <a
+              <Link
                 href="/signup?type=professional"
-                className="mt-6 block rounded-md bg-[#2563EB] px-4 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-[#1D4ED8]"
+                className="mt-6 block rounded-md bg-primary-500 px-4 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-primary-600"
               >
                 Start free trial
-              </a>
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[#E5E7EB]">
-        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-          <span className="text-sm font-semibold text-[#111827]">PlanningPing</span>
-          <span className="text-xs text-[#9CA3AF]">Track planning. Stay ahead.</span>
+      <footer className="border-t border-border">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-6">
+          <span className="text-sm font-semibold text-ink">PlanningPing</span>
+          <span className="text-xs text-neutral-500">Track planning. Stay ahead.</span>
         </div>
       </footer>
     </div>

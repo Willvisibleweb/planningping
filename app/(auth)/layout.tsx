@@ -1,14 +1,16 @@
+import Link from 'next/link'
+
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex flex-col bg-[#F9FAFB]">
-      <header className="border-b border-[#E5E7EB] bg-white">
+    <div className="min-h-screen flex flex-col bg-surface-sunken">
+      <header className="border-b border-border bg-surface">
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center">
-          <a
+          <Link
             href="/"
-            className="text-sm font-semibold tracking-tight text-[#111827] hover:text-[#2563EB] transition-colors"
+            className="rounded-sm text-sm font-semibold tracking-tight text-ink transition-colors duration-fast ease-standard hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
           >
-            PlanningPing
-          </a>
+            Planning<span className="text-primary-500">Ping</span>
+          </Link>
         </div>
       </header>
 

@@ -6,7 +6,11 @@
 
 import { useState, useTransition } from 'react'
 import { updateTrackedAreaSettings } from './actions'
+import Button from '@/components/ui/Button'
+import Pill from '@/components/ui/Pill'
+import { Alert } from '@/components/ui/ErrorState'
 import type { MinBand } from '@/types/database'
+import Link from 'next/link'
 
 const BAND_OPTIONS: { value: MinBand; label: string; hint: string }[] = [
   { value: 'ALL', label: 'All', hint: 'Show every application' },
@@ -50,66 +54,64 @@ export default function TrackedAreaSettings({
   }
 
   return (
-    <div className="rounded-lg border border-[#D6E4FB] bg-white p-4">
-      <h3 className="text-sm font-medium text-[#202124]">Relevance & alerts</h3>
-      <p className="mt-1 text-xs text-[#A0A1A6]">
+    <div className="rounded-md border border-border bg-surface p-4 sm:p-5 shadow-sm">
+      <h3 className="text-sm font-medium text-ink">Relevance & alerts</h3>
+      <p className="mt-1 text-xs text-ink-muted">
         Applications are scored automatically — hide low-relevance noise like minor
         householder works from this territory.
       </p>
 
       <div className="mt-3 flex flex-wrap gap-1.5">
         {BAND_OPTIONS.map((opt) => (
-          <button
+          <Pill
             key={opt.value}
+            selected={opt.value === minBand}
             onClick={() => setMinBand(opt.value)}
             disabled={isPending}
             title={opt.hint}
-            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
-              opt.value === minBand
-                ? 'border-[#2563EB] bg-[#2563EB] text-white'
-                : 'border-[#D6E4FB] bg-white text-[#6B6C70] hover:border-[#2563EB]'
-            }`}
           >
             {opt.label}
-          </button>
+          </Pill>
         ))}
       </div>
 
-      <div className="mt-4 border-t border-[#E9F0FD] pt-3">
+      <div className="mt-4 border-t border-border pt-3">
         {hasProAccess ? (
-          <label className="flex items-center gap-2 text-sm text-[#202124]">
+          <label className="-m-2 flex cursor-pointer items-center gap-2.5 rounded-sm p-2 text-sm text-ink transition-colors duration-fast ease-standard hover:bg-primary-50/60 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary-500/45">
             <input
               type="checkbox"
               checked={alertsEnabled}
               onChange={(e) => setAlertsEnabled(e.target.checked)}
               disabled={isPending}
-              className="h-4 w-4 accent-[#2563EB]"
+              className="size-4 shrink-0 accent-primary-500 focus-visible:outline-none"
             />
             Email me when a new matching application appears
           </label>
         ) : (
-          <div className="text-xs text-[#A0A1A6]">
-            <span className="font-medium text-[#6B6C70]">Email alerts</span> — a professional-plan
+          <div className="text-xs text-ink-muted">
+            <span className="font-medium text-ink-muted">Email alerts</span> — a professional-plan
             feature.{' '}
-            <a href="/settings#billing" className="font-medium text-[#2563EB] hover:underline">
+            <Link href="/settings#billing" className="pp-link font-medium">
               Upgrade
-            </a>{' '}
+            </Link>{' '}
             to get emailed when a new matching application appears.
           </div>
         )}
       </div>
 
       {dirty && (
-        <button
-          onClick={handleSave}
-          disabled={isPending}
-          className="mt-3 rounded-md bg-[#2563EB] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#1D4ED8] disabled:opacity-50"
-        >
-          {isPending ? 'Saving…' : 'Save settings'}
-        </button>
+        <Button size="sm" className="mt-4" onClick={handleSave} loading={isPending} loadingLabel="Saving settings">
+          Save settings
+        </Button>
       )}
-      {justSaved && !dirty && <p className="mt-3 text-xs font-medium text-green-700">Saved.</p>}
-      {error && <p className="mt-3 text-xs text-red-600">{error}</p>}
+      {justSaved && !dirty && (
+        <p className="mt-4 text-xs font-medium text-success-600">Saved.</p>
+      )}
+      {error && (
+        <Alert tone="danger" className="mt-4 text-xs">
+          {error}
+        </Alert>
+      )}
     </div>
   )
 }
