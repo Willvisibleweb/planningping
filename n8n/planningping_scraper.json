@@ -24,7 +24,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const SUPABASE_URL = 'https://vinwnykuumifpctdjxbu.supabase.co';\nconst SUPABASE_KEY = $env.SUPABASE_SERVICE_ROLE_KEY; // set in n8n env/credentials — never hardcode\n\nconst headers = { apikey: SUPABASE_KEY };\n\n// 1. Fetch all active tracked areas\nconst areas = await this.helpers.httpRequest({\n  method: 'GET',\n  url: SUPABASE_URL + '/rest/v1/tracked_areas',\n  headers,\n  qs: {\n    select: 'council_slug'\n  }\n});\n\n// 2. Deduplicate council slugs\nconst seen = new Set();\nconst slugs = [];\nfor (const area of areas) {\n  if (area.council_slug && !seen.has(area.council_slug)) {\n    seen.add(area.council_slug);\n    slugs.push(area.council_slug);\n  }\n}\nif (slugs.length === 0) return [];\n\n// 3. Fetch council details for all slugs in one query\nconst councils = await this.helpers.httpRequest({\n  method: 'GET',\n  url: SUPABASE_URL + '/rest/v1/councils',\n  headers,\n  qs: {\n    slug: 'in.(' + slugs.join(',') + ')',\n    select: 'slug,name,portal_url,portal_type'\n  }\n});\nif (councils.length === 0) return [];\n\n// 4. Calculate date range — last 7 days in DD/MM/YYYY\nconst now = new Date();\nconst weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);\nfunction fmt(d) {\n  const dd = String(d.getDate()).padStart(2, '0');\n  const mm = String(d.getMonth() + 1).padStart(2, '0');\n  return dd + '/' + mm + '/' + d.getFullYear();\n}\nconst dateFrom = fmt(weekAgo);\nconst dateTo = fmt(now);\n\n// 5. Return one item per supported council\nreturn councils.map(function(c) {\n  return {\n    json: {\n      council_slug: c.slug,\n      council_name: c.name,\n      portal_url:   c.portal_url,\n      portal_type:  c.portal_type || 'idox_search_do',\n      date_from:    dateFrom,\n      date_to:      dateTo\n    }\n  };\n});"
+        "jsCode": "const SUPABASE_URL = 'https://vinwnykuumifpctdjxbu.supabase.co';\nconst SUPABASE_KEY = $env.SUPABASE_SERVICE_ROLE_KEY; // set in n8n env/credentials — never hardcode\n\nconst headers = { apikey: SUPABASE_KEY };\n\n// 1. Fetch all active tracked areas\nconst areas = await this.helpers.httpRequest({\n  method: 'GET',\n  url: SUPABASE_URL + '/rest/v1/tracked_areas',\n  headers,\n  qs: {\n    select: 'council_slug'\n  }\n});\n\n// 2. Deduplicate council slugs\nconst seen = new Set();\nconst slugs = [];\nfor (const area of areas) {\n  if (area.council_slug && !seen.has(area.council_slug)) {\n    seen.add(area.council_slug);\n    slugs.push(area.council_slug);\n  }\n}\nif (slugs.length === 0) return [];\n\n// 3. Fetch council details for all slugs in one query\nconst councils = await this.helpers.httpRequest({\n  method: 'GET',\n  url: SUPABASE_URL + '/rest/v1/councils',\n  headers,\n  qs: {\n    slug: 'in.(' + slugs.join(',') + ')',\n    select: 'slug,name,portal_url,portal_type',\n    supported: 'eq.true'\n  }\n});\nif (councils.length === 0) return [];\n\n// 4. Calculate date range — last 7 days in DD/MM/YYYY\nconst now = new Date();\nconst weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);\nfunction fmt(d) {\n  const dd = String(d.getDate()).padStart(2, '0');\n  const mm = String(d.getMonth() + 1).padStart(2, '0');\n  return dd + '/' + mm + '/' + d.getFullYear();\n}\nconst dateFrom = fmt(weekAgo);\nconst dateTo = fmt(now);\n\n// 5. Return one item per supported council\nreturn councils.map(function(c) {\n  return {\n    json: {\n      council_slug: c.slug,\n      council_name: c.name,\n      portal_url:   c.portal_url,\n      portal_type:  c.portal_type || 'idox_search_do',\n      date_from:    dateFrom,\n      date_to:      dateTo\n    }\n  };\n});"
       },
       "id": "fetch-and-prepare",
       "name": "Fetch Areas & Build Council List",
@@ -60,96 +60,6 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "={{ $json.portal_url }}",
-        "sendBody": true,
-        "contentType": "form-urlencoded",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "ReceivedDateFrom",
-              "value": "={{ $json.date_from }}"
-            },
-            {
-              "name": "ReceivedDateTo",
-              "value": "={{ $json.date_to }}"
-            }
-          ]
-        },
-        "options": {
-          "response": {
-            "response": {
-              "responseFormat": "text"
-            }
-          },
-          "timeout": 30000
-        }
-      },
-      "id": "scrape-servlet",
-      "name": "Scrape: POST Servlet",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        660,
-        -150
-      ],
-      "notes": "POSTs a date-range search to the servlet portal. No address filter — returns all applications for the council in the period."
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "={{ $json.portal_url }}/search.do",
-        "sendBody": true,
-        "contentType": "form-urlencoded",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "action",
-              "value": "advanced"
-            },
-            {
-              "name": "searchType",
-              "value": "Application"
-            },
-            {
-              "name": "dateType",
-              "value": "DC_Received"
-            },
-            {
-              "name": "dateFrom",
-              "value": "={{ $json.date_from }}"
-            },
-            {
-              "name": "dateTo",
-              "value": "={{ $json.date_to }}"
-            },
-            {
-              "name": "_csrf",
-              "value": ""
-            }
-          ]
-        },
-        "options": {
-          "response": {
-            "response": {
-              "responseFormat": "text"
-            }
-          },
-          "timeout": 30000
-        }
-      },
-      "id": "scrape-searchdo",
-      "name": "Scrape: POST Search.do",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        660,
-        150
-      ],
-      "notes": "GETs the standard Idox search.do endpoint. Used by most modern councils."
-    },
-    {
-      "parameters": {
         "jsCode": "const html    = $input.first().json.data;\nconst context = $input.first().json;\n\nif (!html || typeof html !== 'string') {\n  return [{ json: { applications: [], council_slug: $('Fetch Areas & Build Council List').itemMatching(0).json.council_slug, parse_error: 'No HTML received' } }];\n}\n\nfunction stripTags(h) {\n  return h\n    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ')\n    .replace(/&#(\\d+);/g, function(_, n) { return String.fromCharCode(Number(n)); })\n    .replace(/<[^>]+>/g, '');\n}\n\nfunction parseAddress(cellHtml) {\n  return stripTags(cellHtml)\n    .split(/[\\n,]+/)\n    .map(function(s) { return s.trim(); })\n    .filter(function(s) { return s.length > 0; })\n    .join(', ');\n}\n\nfunction parseDate(cellHtml) {\n  const text = stripTags(cellHtml).trim();\n  const m = text.match(/(\\d{2})\\/(\\d{2})\\/(\\d{4})/);\n  return m ? (m[3] + '-' + m[2] + '-' + m[1]) : null;\n}\n\nif (/your query did not return any results/i.test(html)) {\n  return [{ json: { applications: [], council_slug: $('Fetch Areas & Build Council List').itemMatching(0).json.council_slug, scraped_count: 0 } }];\n}\n\nconst tableStart = html.indexOf('<th><strong>Application number');\nif (tableStart === -1) {\n  return [{ json: { applications: [], council_slug: $('Fetch Areas & Build Council List').itemMatching(0).json.council_slug, parse_error: 'Results table not found' } }];\n}\n\nconst tableOpenPos = html.lastIndexOf('<table', tableStart);\nconst tableEndPos  = html.indexOf('</table>', tableStart);\nif (tableOpenPos === -1 || tableEndPos === -1) {\n  return [{ json: { applications: [], council_slug: $('Fetch Areas & Build Council List').itemMatching(0).json.council_slug, parse_error: 'Table boundaries not found' } }];\n}\n\nconst tableHtml  = html.slice(tableOpenPos, tableEndPos + 8);\nconst rowChunks  = tableHtml.split(/<tr[^>]*>/i).slice(1);\nconst applications = [];\n\nfor (var i = 0; i < rowChunks.length; i++) {\n  const chunk = rowChunks[i];\n  if (/<th/i.test(chunk) || chunk.indexOf('PKID=') === -1) continue;\n  const cellChunks = chunk.split(/<td[^>]*>/i).slice(1);\n  if (cellChunks.length < 6) continue;\n  const cells    = cellChunks.map(function(c) { return c.replace(/<\\/td>[\\s\\S]*/i, ''); });\n  const refMatch = /<a[^>]+href=\"([^\"]*PKID=[^\"]*)\"[^>]*>([^<]+)<\\/a>/i.exec(cells[0]);\n  if (!refMatch) continue;\n  applications.push({\n    reference:        refMatch[2].trim(),\n    address:          parseAddress(cells[3]),\n    description:      stripTags(cells[4]).trim(),\n    status:           stripTags(cells[5]).trim(),\n    application_date: parseDate(cells[1]),\n    decision_date:    cells[6] ? parseDate(cells[6]) : null\n  });\n}\n\nreturn [{ json: { council_slug: $('Fetch Areas & Build Council List').itemMatching(0).json.council_slug, applications: applications, scraped_count: applications.length } }];"
       },
       "id": "parse-servlet",
@@ -164,21 +74,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const html    = $input.first().json.data;\nconst context = $input.first().json;\n\nif (!html || typeof html !== 'string') {\n  return [{ json: { applications: [], council_slug: context.council_slug, parse_error: 'No HTML received' } }];\n}\n\nconst applications = [];\nconst rowRegex = /<tr[^>]+class=[\"'](?:odd|even)[\"'][^>]*>([\\s\\S]*?)<\\/tr>/gi;\nlet rowMatch;\n\nwhile ((rowMatch = rowRegex.exec(html)) !== null) {\n  const row = rowMatch[1];\n  const refMatch = /<td[^>]*class=[\"'][^\"']*number[^\"']*[\"'][^>]*>[\\s\\S]*?<a[^>]*href=[\"']([^\"']*)[\"'][^>]*>\\s*([^<]+)\\s*<\\/a>/i.exec(row);\n  if (!refMatch) continue;\n  const addrMatch   = /<td[^>]*class=[\"'][^\"']*address[^\"']*[\"'][^>]*>([\\s\\S]*?)<\\/td>/i.exec(row);\n  const address     = addrMatch ? addrMatch[1].replace(/<[^>]+>/g, '').trim() : null;\n  const descMatch   = /<td[^>]*class=[\"'][^\"']*description[^\"']*[\"'][^>]*>([\\s\\S]*?)<\\/td>/i.exec(row);\n  const description = descMatch ? descMatch[1].replace(/<[^>]+>/g, '').trim() : null;\n  const statusMatch = /<td[^>]*class=[\"'][^\"']*status[^\"']*[\"'][^>]*>([\\s\\S]*?)<\\/td>/i.exec(row);\n  const status      = statusMatch ? statusMatch[1].replace(/<[^>]+>/g, '').trim() : null;\n  const dateMatch   = /<td[^>]*class=[\"'][^\"']*date[^\"']*[\"'][^>]*>([\\s\\S]*?)<\\/td>/i.exec(row);\n  let application_date = null;\n  if (dateMatch) {\n    const raw   = dateMatch[1].replace(/<[^>]+>/g, '').trim();\n    const parts = raw.match(/(\\d{2})\\/(\\d{2})\\/(\\d{4})/);\n    if (parts) application_date = parts[3] + '-' + parts[2] + '-' + parts[1];\n  }\n  applications.push({\n    reference:        refMatch[2].trim(),\n    address:          address,\n    description:      description,\n    status:           status,\n    application_date: application_date,\n    decision_date:    null\n  });\n}\n\nreturn [{ json: { council_slug: context.council_slug, applications: applications, scraped_count: applications.length } }];"
-      },
-      "id": "parse-searchdo",
-      "name": "Parse: Search.do HTML",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        880,
-        150
-      ],
-      "notes": "CSS-class parser for modern Idox search.do portals (Westminster, Camden, etc)."
-    },
-    {
-      "parameters": {
-        "jsCode": "const item = $input.first().json;\nif (!item.applications || item.applications.length === 0) {\n  return [];\n}\nreturn [{\n  json: {\n    council_slug: item.council_slug,\n    applications: item.applications\n  }\n}];"
+        "jsCode": "// Forward EVERY council that has applications — not just the first item.\n// (The Idox node outputs all councils in one batch; the old $input.first()\n// silently dropped every council after the first.)\nconst out = [];\nfor (const item of $input.all()) {\n  const j = item.json;\n  if (j.applications && j.applications.length > 0) {\n    out.push({ json: { council_slug: j.council_slug, applications: j.applications } });\n  }\n}\nreturn out;"
       },
       "id": "skip-empty",
       "name": "Skip If No Applications",
@@ -223,6 +119,36 @@
         0
       ],
       "notes": "POSTs scraped applications to the Next.js webhook. The webhook deduplicates via state_hash before writing to Supabase."
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== Idox Scrape (GET + cookie pagination) =====\n// Replaces the broken POST path. Works for BOTH Idox skins:\n//   - newer: <li class=\"searchresult\">  (e.g. Westminster)\n//   - older: <tr class=\"odd|even\">\n// ScraperAPI premium GB proxy + sticky session_number + JSESSIONID cookie,\n// so Idox pagination (pagedSearchResults.do) survives across proxied requests.\n\nconst SCRAPER_KEY = $env.SCRAPERAPI_KEY;\nconst httpRequest = (opts) => this.helpers.httpRequest(opts);\n\n// Shared hard deadline (set below). No request starts after it, so the node\n// always returns before n8n's 300s kill — worst overshoot is one in-flight request.\nlet DEADLINE = Infinity;\n\nfunction proxied(target, session) {\n  return 'http://api.scraperapi.com'\n    + '?api_key=' + SCRAPER_KEY\n    + '&premium=true&country_code=gb'\n    + '&session_number=' + session\n    + '&keep_headers=true'\n    + '&url=' + encodeURIComponent(target);\n}\n\nfunction cookieFrom(headers) {\n  let sc = headers && (headers['set-cookie'] || headers['Set-Cookie']);\n  if (!sc) return '';\n  if (!Array.isArray(sc)) sc = [sc];\n  return sc.map((c) => String(c).split(';')[0]).filter((c) => /JSESSIONID/i.test(c)).join('; ');\n}\n\nconst sleep = (ms) => new Promise((r) => setTimeout(r, ms));\n\nasync function getPage(target, cookie, session) {\n  if (Date.now() > DEADLINE) throw new Error('time budget reached — skipping remaining requests');\n  const headers = {};\n  if (cookie) headers['Cookie'] = cookie;\n  // ScraperAPI returns the odd transient 500 — retry the SAME session (keeps the Idox cookie valid)\n  let lastErr;\n  for (let attempt = 0; attempt < 2; attempt++) {\n    try {\n      const res = await httpRequest({\n        method: 'GET',\n        url: proxied(target, session),\n        headers,\n        returnFullResponse: true,\n        timeout: 30000,\n      });\n      const code = res.statusCode || 200;\n      const body = typeof res.body === 'string' ? res.body : String(res.body || '');\n      if (code >= 500) throw new Error('ScraperAPI status ' + code + ' :: ' + body.slice(0, 200));\n      return { body, cookie: cookieFrom(res.headers) };\n    } catch (e) {\n      // capture the underlying ScraperAPI response body if n8n attached it\n      const detail = (e && (e.message || '')) + ' :: ' + (e && e.response && (typeof e.response.body === 'string' ? e.response.body.slice(0, 200) : JSON.stringify(e.response.body || {}).slice(0, 200)) || '');\n      lastErr = new Error(detail);\n      await sleep(1500 * (attempt + 1));\n    }\n  }\n  throw lastErr;\n}\n\nfunction stripTags(s) {\n  return String(s).replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&#39;/g, \"'\")\n    .replace(/&quot;/g, '\"').replace(/&nbsp;/g, ' ').replace(/\\s+/g, ' ').trim();\n}\n\nconst MONTHS = { Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12' };\nfunction parseTextDate(raw) {\n  // \"Tue 30 Jun 2026\" or \"30 Jun 2026\"\n  const m = String(raw).match(/(\\d{1,2})\\s+([A-Za-z]{3})\\s+(\\d{4})/);\n  if (!m) return null;\n  return m[3] + '-' + (MONTHS[m[2]] || '01') + '-' + String(m[1]).padStart(2, '0');\n}\nfunction parseSlashDate(raw) {\n  const m = String(raw).match(/(\\d{2})\\/(\\d{2})\\/(\\d{4})/);\n  return m ? m[3] + '-' + m[2] + '-' + m[1] : null;\n}\n\n// ---- newer skin: <li class=\"searchresult\"> ----\nfunction parseLiFormat(html) {\n  const out = [];\n  const items = html.split('<li class=\"searchresult\">').slice(1);\n  for (const chunk of items) {\n    const block = chunk.split('</li>')[0];\n    const refM = block.match(/Ref\\.\\s*No:\\s*([0-9A-Za-z\\/]+)/);\n    if (!refM) continue;\n    const descM = block.match(/class=\"summaryLink\"[^>]*>\\s*<div[^>]*>([\\s\\S]*?)<\\/div>/i)\n      || block.match(/class=\"summaryLink\"[^>]*>([\\s\\S]*?)<\\/a>/i);\n    const addrM = block.match(/<p class=\"address\">([\\s\\S]*?)<\\/p>/i);\n    // status: newer skin uses a coloured badge, others put \"Status: X\" in the metaInfo line\n    const statM = block.match(/badge-status[\\s\\S]*?class=\"value\">([^<]+)</i)\n      || block.match(/Status:\\s*([^<|]+?)\\s*(?:<|\\||$)/i);\n    // received/validated date label varies by Idox install (Received / Validated / Registered)\n    const recM = block.match(/(?:Received|Validated|Registered):\\s*([A-Za-z]{0,3}\\s*\\d{1,2}\\s+[A-Za-z]{3}\\s+\\d{4})/i);\n    const keyM = block.match(/applicationDetails\\.do\\?keyVal=([^&\"]+)/);\n    out.push({\n      reference: refM[1].trim(),\n      address: addrM ? stripTags(addrM[1]) : null,\n      description: descM ? stripTags(descM[1]) : null,\n      status: statM ? statM[1].trim() : null,\n      application_date: recM ? parseTextDate(recM[1]) : null,\n      decision_date: null,\n      key_val: keyM ? keyM[1] : null,\n    });\n  }\n  return out;\n}\n\n// ---- older skin: <tr class=\"odd|even\"> ----\nfunction parseTrFormat(html) {\n  const out = [];\n  const rowRegex = /<tr[^>]+class=[\"'](?:odd|even)[\"'][^>]*>([\\s\\S]*?)<\\/tr>/gi;\n  let m;\n  while ((m = rowRegex.exec(html)) !== null) {\n    const row = m[1];\n    const refMatch = /<td[^>]*class=[\"'][^\"']*number[^\"']*[\"'][^>]*>[\\s\\S]*?<a[^>]*href=[\"']([^\"']*)[\"'][^>]*>\\s*([^<]+)\\s*<\\/a>/i.exec(row);\n    if (!refMatch) continue;\n    const addrMatch = /<td[^>]*class=[\"'][^\"']*address[^\"']*[\"'][^>]*>([\\s\\S]*?)<\\/td>/i.exec(row);\n    const descMatch = /<td[^>]*class=[\"'][^\"']*description[^\"']*[\"'][^>]*>([\\s\\S]*?)<\\/td>/i.exec(row);\n    const statMatch = /<td[^>]*class=[\"'][^\"']*status[^\"']*[\"'][^>]*>([\\s\\S]*?)<\\/td>/i.exec(row);\n    const dateMatch = /<td[^>]*class=[\"'][^\"']*date[^\"']*[\"'][^>]*>([\\s\\S]*?)<\\/td>/i.exec(row);\n    const keyM = /keyVal=([^&\"']+)/.exec(refMatch[1]);\n    out.push({\n      reference: refMatch[2].trim(),\n      address: addrMatch ? stripTags(addrMatch[1]) : null,\n      description: descMatch ? stripTags(descMatch[1]) : null,\n      status: statMatch ? stripTags(statMatch[1]) : null,\n      application_date: dateMatch ? parseSlashDate(dateMatch[1]) : null,\n      decision_date: null,\n      key_val: keyM ? keyM[1] : null,\n    });\n  }\n  return out;\n}\n\n// ---- single-result redirect: Idox jumps straight to applicationDetails.do when a\n// search matches exactly one record, so there is no results list to parse ----\nfunction parseDetailsPage(html) {\n  if (html.indexOf('simpleDetailsTable') === -1) return [];\n  const tbl = (html.match(/<table[^>]*id=\"simpleDetailsTable\"[\\s\\S]*?<\\/table>/i) || [])[0] || '';\n  const map = {};\n  for (const m of tbl.matchAll(/<th[^>]*>([\\s\\S]*?)<\\/th>\\s*<td[^>]*>([\\s\\S]*?)<\\/td>/gi)) {\n    map[stripTags(m[1]).toLowerCase()] = stripTags(m[2]);\n  }\n  if (!map['reference']) return [];\n  const keyM = html.match(/keyVal=([A-Z0-9]+)/i);\n  return [{\n    reference: map['reference'],\n    address: map['address'] || null,\n    description: map['proposal'] || null,\n    status: map['status'] || null,\n    application_date: map['application received'] ? parseTextDate(map['application received']) : null,\n    decision_date: map['decision issued date'] ? parseTextDate(map['decision issued date']) : null,\n    key_val: keyM ? keyM[1] : null,\n  }];\n}\n\nfunction parseAny(html) {\n  if (html.indexOf('<li class=\"searchresult\">') !== -1) return parseLiFormat(html);\n  const tr = parseTrFormat(html);\n  if (tr.length > 0) return tr;\n  return parseDetailsPage(html);\n}\nfunction totalReported(html) {\n  const m = html.match(/of\\s+<[^>]*>?\\s*(\\d+)/i) || html.match(/of\\s+(\\d+)\\s*(?:results|<)/i) || html.match(/Showing[\\s\\S]{0,80}?of\\s+(\\d+)/i);\n  return m ? parseInt(m[1], 10) : 0;\n}\n\nasync function scrapeCouncil(ctx, deadline) {\n  // normalise: drop trailing slash, and a trailing /search.do that some councils store (e.g. haringey)\n  const portal = String(ctx.portal_url || '').replace(/\\/+$/, '').replace(/\\/search\\.do$/i, '');\n  const slug = ctx.council_slug;\n  const session = Math.floor(Math.random() * 100000);\n\n  // 1) advanced page -> _csrf + session cookie\n  const adv = await getPage(portal + '/search.do?action=advanced&searchType=Application', '', session);\n  const csrf = (adv.body.match(/name=\"_csrf\"\\s+value=\"([^\"]+)\"/) || adv.body.match(/<input[^>]+name=[\"']_csrf[\"'][^>]+value=[\"']([^\"']+)[\"']/i) || [])[1] || '';\n  const cookie = adv.cookie;\n\n  // Not an Idox search.do portal (e.g. Northgate / planning-register) -> skip fast, don't retry-storm\n  if (!csrf) {\n    return { council_slug: slug, applications: [], scraped_count: 0, node_version: 'v5-budget', skipped: 'no _csrf — not an Idox search.do portal' };\n  }\n\n  // 2) first page of results (keep cookie + same proxy session)\n  const searchUrl = portal + '/advancedSearchResults.do?action=firstPage'\n    + '&searchType=Application&caseAddressType=Application'\n    + '&date(applicationReceivedStart)=' + ctx.date_from\n    + '&date(applicationReceivedEnd)=' + ctx.date_to\n    + '&searchCriteria.resultsPerPage=100&_csrf=' + encodeURIComponent(csrf);\n  const first = await getPage(searchUrl, cookie, session);\n\n  const byRef = new Map();\n  for (const a of parseAny(first.body)) byRef.set(a.reference, a);\n  const tot = totalReported(first.body);\n\n  // 3) paginate via pagedSearchResults.do (cookie keeps the Idox search alive)\n  // Sequential on purpose: parallel requests share one Idox session and intermittently\n  // drop a page. Speed is fine because non-Idox councils are filtered out upstream.\n  const sessCookie = first.cookie || cookie;\n  const lastPage = Math.min(Math.ceil((tot || byRef.size) / 10), 50);\n  for (let p = 2; p <= lastPage; p++) {\n    if (deadline && Date.now() > deadline) break; // out of time budget — return what we have so far\n    const pageUrl = portal + '/pagedSearchResults.do?action=page&searchCriteria.page=' + p + '&_csrf=' + encodeURIComponent(csrf);\n    let rows = [];\n    // retry transient empty/expired pages before giving up on this page\n    for (let attempt = 0; attempt < 3 && rows.length === 0; attempt++) {\n      const pg = await getPage(pageUrl, sessCookie, session);\n      rows = parseAny(pg.body);\n    }\n    for (const a of rows) byRef.set(a.reference, a);\n  }\n\n  return {\n    council_slug: slug,\n    applications: Array.from(byRef.values()),\n    scraped_count: byRef.size,\n    total_reported: tot,\n    node_version: 'v5-budget',\n  };\n}\n\n// Hard time budget: n8n aborts the task at 300s. We stop starting new work well\n// before that so the node always returns cleanly with whatever it managed to scrape,\n// rather than being killed (which loses everything and emails nobody).\nDEADLINE = Date.now() + 220000;\n\nconst out = [];\nfor (const item of $input.all()) {\n  if (Date.now() > DEADLINE) {\n    out.push({ json: { council_slug: item.json.council_slug, applications: [], scraped_count: 0, node_version: 'v5-budget', skipped: 'time budget reached before this council' } });\n    continue;\n  }\n  try {\n    out.push({ json: await scrapeCouncil(item.json, DEADLINE) });\n  } catch (e) {\n    // surface the real failure instead of a bare 500, so it can be read in the node output\n    out.push({ json: {\n      council_slug: item.json.council_slug,\n      applications: [],\n      scraped_count: 0,\n      node_version: 'v5-budget',\n      error_detail: String(e && e.message || e),\n    }});\n  }\n}\nreturn out;\n"
+      },
+      "id": "13c7808f-4dc3-4058-882f-a31584be8057",
+      "name": "Idox Scrape (GET + paginate)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        416
+      ],
+      "onError": "continueRegularOutput",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== Fetch: Servlet (lenient HTTP) =====\n// Replaces the HTTP Request node for the old Idox *servlet* portals (e.g. Staffs Moorlands).\n// Those run an old Java server whose responses break Node's strict/undici parser\n// (\"Invalid character in chunk size\"). We fetch with the legacy http(s) module and\n// insecureHTTPParser:true (same leniency as curl), then hand the HTML to the existing\n// \"Parse: Servlet HTML\" node via json.data.\n// Requires env: NODE_FUNCTION_ALLOW_BUILTIN=http,https\n\nconst http = require('http');\nconst https = require('https');\n\nfunction fetchLenient(targetUrl, body) {\n  return new Promise((resolve, reject) => {\n    const u = new URL(targetUrl);\n    const lib = u.protocol === 'https:' ? https : http;\n    const req = lib.request({\n      hostname: u.hostname,\n      port: u.port || (u.protocol === 'https:' ? 443 : 80),\n      path: u.pathname + u.search,\n      method: 'POST',\n      insecureHTTPParser: true,\n      timeout: 60000,\n      headers: {\n        'Content-Type': 'application/x-www-form-urlencoded',\n        'Content-Length': Buffer.byteLength(body),\n        'User-Agent': 'Mozilla/5.0',\n      },\n    }, (res) => {\n      let d = '';\n      res.setEncoding('utf8');\n      res.on('data', (c) => { d += c; });\n      res.on('end', () => resolve(d));\n    });\n    req.on('error', reject);\n    req.on('timeout', () => { req.destroy(new Error('timeout')); });\n    req.end(body);\n  });\n}\n\nconst out = [];\nfor (const item of $input.all()) {\n  const ctx = item.json;\n  const body = new URLSearchParams({\n    ReceivedDateFrom: ctx.date_from,\n    ReceivedDateTo: ctx.date_to,\n    Submit: 'Search',\n  }).toString();\n  const data = await fetchLenient(ctx.portal_url, body);\n  out.push({ json: Object.assign({}, ctx, { data }) });\n}\nreturn out;\n"
+      },
+      "id": "2d76aba8-8205-49d2-93a2-356cf892f324",
+      "name": "Fetch: Servlet (lenient)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        -150
+      ],
+      "onError": "continueRegularOutput",
+      "continueOnFail": true
     }
   ],
   "connections": {
@@ -252,36 +178,14 @@
       "main": [
         [
           {
-            "node": "Scrape: POST Servlet",
+            "node": "Fetch: Servlet (lenient)",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Scrape: POST Search.do",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Scrape: POST Servlet": {
-      "main": [
-        [
-          {
-            "node": "Parse: Servlet HTML",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Scrape: POST Search.do": {
-      "main": [
-        [
-          {
-            "node": "Parse: Search.do HTML",
+            "node": "Idox Scrape (GET + paginate)",
             "type": "main",
             "index": 0
           }
@@ -299,7 +203,18 @@
         ]
       ]
     },
-    "Parse: Search.do HTML": {
+    "Skip If No Applications": {
+      "main": [
+        [
+          {
+            "node": "Send to PlanningPing Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Idox Scrape (GET + paginate)": {
       "main": [
         [
           {
@@ -310,11 +225,11 @@
         ]
       ]
     },
-    "Skip If No Applications": {
+    "Fetch: Servlet (lenient)": {
       "main": [
         [
           {
-            "node": "Send to PlanningPing Webhook",
+            "node": "Parse: Servlet HTML",
             "type": "main",
             "index": 0
           }
