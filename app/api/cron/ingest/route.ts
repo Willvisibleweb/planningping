@@ -26,6 +26,7 @@ import { upsertApplications, type IngestApplication } from '@/lib/ingest/upsertA
 import { resolveDischargeParents } from '@/lib/ingest/resolveDischargeParents'
 import { flagStaleDischarges } from '@/lib/ingest/flagStaleDischarges'
 import { sendDischargeAlerts } from '@/lib/alerts/dischargeAlerts'
+import { sendDecisionAlerts } from '@/lib/alerts/decisionAlerts'
 import { hasProAccess } from '@/lib/access'
 import { getUserFeatures } from '@/lib/features'
 import { sendAlertEmail, type AlertItem } from '@/lib/email'
@@ -167,6 +168,16 @@ export async function GET(request: NextRequest) {
     siteUrl: SITE_URL,
   })
 
+  // Decisions: a third independent fan-out. Applications that crossed from
+  // undecided to decided on this run — approvals, refusals and withdrawals.
+  // Its own email rather than a section in the alert above: "the thing you
+  // were tracking got consent" is a prompt to act today, and folding it into
+  // the browsing feed would bury it. See lib/alerts/decisionAlerts.ts.
+  const decisionAlertsSent = await sendDecisionAlerts(supabase, {
+    decided: result.decided_applications,
+    siteUrl: SITE_URL,
+  })
+
   return NextResponse.json({
     ran_at: new Date().toISOString(),
     source: 'planit',
@@ -178,6 +189,8 @@ export async function GET(request: NextRequest) {
     discharge_parents_resolved: resolvedParents,
     discharge_newly_stale: newlyStaleDischarges.length,
     discharge_alerts_sent: dischargeAlertsSent,
+    decisions_detected: result.decided_applications.length,
+    decision_alerts_sent: decisionAlertsSent,
     per_area: perArea,
   })
 }
