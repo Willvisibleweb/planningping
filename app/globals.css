@@ -176,6 +176,106 @@
 }
 
 /* ---------------------------------------------------------------------------
+   GabrielCAM partner theme
+
+   Applied by putting data-theme="gabrielcam" on the dashboard shell for
+   accounts in that partnership (see app/(dashboard)/layout.tsx).
+
+   Nothing below re-styles a component. Every surface in the app already reads
+   these semantic tokens, so re-pointing the tokens re-skins the whole product
+   — which is the entire reason the tokens exist.
+
+   Colours are GabrielCAM's own, taken from their site: #122147 navy,
+   #1c2444 deeper navy, #cf1d39 red, #cd102e darker red.
+
+   Two things needed care rather than a straight swap:
+
+   1. The ramp inverts. On white, "primary-600/700" are DARKER than 500
+      because they sit on light backgrounds. On navy they have to be LIGHTER,
+      or every link and badge label becomes unreadable.
+
+   2. Red is a background, not a text colour, here. #cf1d39 on #122147 is
+      2.91:1 — it fails AA badly. White on red is 5.40:1 and fine, so red
+      stays on buttons, and link/label text uses the lighter tints above it.
+      Every pairing below was measured, not eyeballed.
+--------------------------------------------------------------------------- */
+
+[data-theme='gabrielcam'] {
+  /* Surfaces: near-black page, brand navy cards. */
+  --color-surface: #122147;
+  --color-surface-sunken: #0d1834;
+  --color-neutral-50: #0a1024;
+  --color-neutral-100: #16213f;
+  --color-neutral-200: #26325c;
+  --color-neutral-300: #3d4b7d;
+  --color-neutral-400: #6b78a3;
+  --color-neutral-500: #93a0c4;   /* 6.05:1 on a card */
+  --color-neutral-600: #a8b3d1;   /* 7.52:1 — default muted text */
+  --color-neutral-700: #c3ccdf;
+  --color-neutral-800: #e2e7f0;
+  --color-neutral-900: #ffffff;   /* body ink, 15.74:1 */
+  --color-neutral-950: #ffffff;
+
+  /* Primary becomes GabrielCAM red — but only 500 is the red itself. */
+  --color-primary-50: #16213f;
+  --color-primary-100: #1b2a52;
+  --color-primary-200: #26325c;
+  --color-primary-300: #3d4b7d;
+  --color-primary-400: #e5324c;
+  --color-primary-500: #cf1d39;   /* button fills; white on it is 5.40:1 */
+  --color-primary-600: #ff8194;   /* link text, 6.61:1 — NOT darker, lighter */
+  --color-primary-700: #ffa3b0;   /* badge labels, 8.33:1 */
+  --color-primary-800: #ffb8c2;
+  --color-primary-900: #ffd3d9;
+  --color-primary-950: #ffe8eb;
+
+  --color-ink: #ffffff;
+  --color-ink-muted: #a8b3d1;
+  --color-border: #26325c;
+  --color-border-strong: #3d4b7d;
+  --color-border-control: #55628f;
+
+  /* Semantic tones, lightened so they read on navy rather than on white. */
+  --color-success-50: #0f2e22;
+  --color-success-200: #1c5540;
+  --color-success-600: #4ade80;
+  --color-success-700: #6ee7a8;
+
+  --color-warning-50: #2e2410;
+  --color-warning-200: #5a4718;
+  --color-warning-600: #fbbf24;
+  --color-warning-700: #fcd34d;
+
+  --color-danger-50: #33131a;
+  --color-danger-200: #6b2230;
+  --color-danger-600: #ff8189;
+  --color-danger-700: #fca5a5;
+
+  --color-info-50: #16213f;
+  --color-info-200: #26325c;
+  --color-info-600: #ff8194;
+  --color-info-700: #ffa3b0;
+
+  /* Shadows carry no weight on a dark surface — depth has to come from the
+     border instead, so they're dialled back to near-nothing rather than
+     leaving black smudges that read as dirt. */
+  --shadow-sm: 0 1px 2px -1px rgb(0 0 0 / 0.45);
+  --shadow-md: 0 2px 4px -2px rgb(0 0 0 / 0.5), 0 8px 20px -6px rgb(0 0 0 / 0.35);
+  --shadow-lg: 0 4px 8px -4px rgb(0 0 0 / 0.55), 0 24px 48px -12px rgb(0 0 0 / 0.45);
+  --shadow-primary: 0 1px 2px -1px rgb(0 0 0 / 0.5), 0 6px 16px -6px rgb(207 29 57 / 0.55);
+
+  color-scheme: dark;
+  background-color: #0a1024;
+}
+
+/* The themed shell doesn't cover the full viewport on short pages, so the page
+   behind it would flash white. */
+[data-theme='gabrielcam'] body,
+body:has([data-theme='gabrielcam']) {
+  background-color: #0a1024;
+}
+
+/* ---------------------------------------------------------------------------
    Custom utilities
 
    Tailwind v4 has no `--duration-*` theme namespace — duration utilities take

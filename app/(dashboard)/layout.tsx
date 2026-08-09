@@ -5,6 +5,7 @@
 import { redirect } from 'next/navigation'
 import { getProfile, isProfessional, hasProAccess, trialDaysLeft } from '@/lib/access'
 import { getUserFeatures } from '@/lib/features'
+import { getMfaState } from '@/lib/auth/mfa'
 import { FeaturesProvider } from '@/components/features/FeaturesProvider'
 import Sidebar from '@/components/dashboard/Sidebar'
 import Link from 'next/link'
@@ -24,6 +25,15 @@ export default async function DashboardLayout({
   // a real authenticated user) means no access, full stop.
   if (!profile) redirect('/login')
 
+  // Two-factor gate. A session that has passed the password but still owes a
+  // code is a valid session as far as Supabase is concerned, so nothing else
+  // would stop it — this is the check that makes 2FA mean anything. It sits in
+  // the layout rather than middleware because the layout is the authoritative
+  // auth gate for every dashboard route; middleware can be bypassed at the
+  // edges, and a 2FA gate that can be skipped is not a gate.
+  const mfa = await getMfaState()
+  if (mfa.challengeRequired) redirect('/two-factor')
+
   // Nav is tailored by account type. This is display only — every pro page
   // and server action re-checks access itself (see lib/access.ts).
   const professional = isProfessional(profile)
@@ -35,9 +45,15 @@ export default async function DashboardLayout({
   // fetched again in the browser.
   const features = getUserFeatures(profile)
 
+  // Partner theming is one attribute, not a second set of components. Every
+  // surface already reads the semantic colour tokens, so data-theme re-points
+  // those tokens and the whole dashboard re-skins — see the [data-theme] block
+  // in app/globals.css. Non-partners get no attribute and no change at all.
+  const theme = features.partnershipProvider ?? undefined
+
   return (
     <FeaturesProvider features={features}>
-    <div className="min-h-screen bg-surface lg:flex">
+    <div data-theme={theme} className="min-h-screen bg-surface lg:flex">
       <Sidebar
         userEmail={profile.email}
         professional={professional}

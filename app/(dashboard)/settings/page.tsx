@@ -1,20 +1,23 @@
 import { createClient } from '@/lib/supabase/server'
+import { getMfaState } from '@/lib/auth/mfa'
 import SettingsForm from './SettingsForm'
 import DigestHistory from './DigestHistory'
 import AccountSection from './AccountSection'
 import BillingSection from './BillingSection'
 import FirmProfileSection from './FirmProfileSection'
 import PartnershipSection from './PartnershipSection'
+import TwoFactorSection from './TwoFactorSection'
 import type { Profile, FirmProfile } from '@/types/database'
 
 export default async function SettingsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const [{ data: profile }, { data: digests }, { data: firmProfile }] = await Promise.all([
+  const [{ data: profile }, { data: digests }, { data: firmProfile }, mfa] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user!.id).single(),
     supabase.from('digests').select('*').order('sent_at', { ascending: false }).limit(10),
     supabase.from('firm_profiles').select('*').eq('user_id', user!.id).maybeSingle(),
+    getMfaState(),
   ])
 
   // Bucket is private (RLS-scoped, never a public URL) — base64-inline the
@@ -48,6 +51,7 @@ export default async function SettingsPage() {
           <PartnershipSection profile={profile as Profile} />
         </>
       )}
+      <TwoFactorSection enabled={mfa.enabled} />
       <SettingsForm />
       <DigestHistory digests={digests ?? []} />
     </div>
