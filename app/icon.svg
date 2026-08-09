@@ -1,11 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="PlanningPing">
-  <!-- Brand blue is --color-primary-500 from app/globals.css. A solid tile with
-       a knocked-out glyph is what survives at 16px in a browser tab; a thin
-       outline mark would turn to mush at that size. -->
+  <title>PlanningPing</title>
   <rect width="32" height="32" rx="7" fill="#2563eb"/>
   <g transform="translate(4 3)">
-    <!-- Map pin, matching the MapPin icon the dashboard already uses for
-         territories, so the tab icon and the product agree. -->
     <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" fill="#ffffff"/>
     <circle cx="12" cy="10" r="3.2" fill="#2563eb"/>
   </g>
