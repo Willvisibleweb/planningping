@@ -13,6 +13,12 @@ import { getMfaState } from '@/lib/auth/mfa'
 
 const FRIENDLY_NAME = 'Authenticator app'
 
+// What the authenticator app displays next to the code. Without it Supabase
+// falls back to the project's Site URL, which is why entries were appearing as
+// "planningping.vercel.app". Set explicitly so the label never depends on a
+// dashboard setting we don't control from here.
+const ISSUER = 'PlanningPing'
+
 export interface EnrolStart {
   factorId: string
   /** SVG data URL, ready to drop straight into an <img src>. */
@@ -37,6 +43,7 @@ export async function startTotpEnrolment(): Promise<EnrolResult> {
   const { data, error } = await supabase.auth.mfa.enroll({
     factorType: 'totp',
     friendlyName: FRIENDLY_NAME,
+    issuer: ISSUER,
   })
 
   if (error || !data) {
