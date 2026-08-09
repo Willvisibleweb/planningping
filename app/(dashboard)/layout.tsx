@@ -5,6 +5,7 @@
 import { redirect } from 'next/navigation'
 import { getProfile, isProfessional, hasProAccess, trialDaysLeft } from '@/lib/access'
 import { getUserFeatures } from '@/lib/features'
+import { getMfaState } from '@/lib/auth/mfa'
 import { FeaturesProvider } from '@/components/features/FeaturesProvider'
 import Sidebar from '@/components/dashboard/Sidebar'
 import Link from 'next/link'
@@ -23,6 +24,15 @@ export default async function DashboardLayout({
   // Hard redirect — no session (or no profile row, which shouldn't happen for
   // a real authenticated user) means no access, full stop.
   if (!profile) redirect('/login')
+
+  // Two-factor gate. A session that has passed the password but still owes a
+  // code is a valid session as far as Supabase is concerned, so nothing else
+  // would stop it — this is the check that makes 2FA mean anything. It sits in
+  // the layout rather than middleware because the layout is the authoritative
+  // auth gate for every dashboard route; middleware can be bypassed at the
+  // edges, and a 2FA gate that can be skipped is not a gate.
+  const mfa = await getMfaState()
+  if (mfa.challengeRequired) redirect('/two-factor')
 
   // Nav is tailored by account type. This is display only — every pro page
   // and server action re-checks access itself (see lib/access.ts).
