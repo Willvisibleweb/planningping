@@ -14,7 +14,31 @@ import { NextResponse, type NextRequest } from 'next/server'
 // Max time to wait for Supabase auth before giving up and failing open.
 const AUTH_TIMEOUT_MS = 3000
 
+// The canonical host. Anything else in production is an alias Vercel assigns
+// automatically (planningping.vercel.app and friends), which served the entire
+// site on a second address — a duplicate of the whole product that Google was
+// free to index, and the name users saw in places we don't control.
+const CANONICAL_HOST = 'planningping.com'
+
 export async function middleware(request: NextRequest) {
+  // Send production traffic to the real domain before anything else runs.
+  //
+  // Gated on VERCEL_ENV === 'production' deliberately: preview deployments are
+  // *.vercel.app by design, and redirecting those would make every pull-request
+  // preview bounce to the live site and be untestable.
+  if (process.env.VERCEL_ENV === 'production') {
+    const host = request.headers.get('host')
+    if (host && host !== CANONICAL_HOST && host !== `www.${CANONICAL_HOST}`) {
+      const url = request.nextUrl.clone()
+      url.host = CANONICAL_HOST
+      url.protocol = 'https'
+      url.port = ''
+      // 308 keeps the method and tells search engines the move is permanent,
+      // so link equity consolidates on the real domain instead of splitting.
+      return NextResponse.redirect(url, 308)
+    }
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
