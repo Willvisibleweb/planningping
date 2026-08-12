@@ -64,10 +64,14 @@ export async function GET(request: NextRequest) {
 
   const supabase = createAdminClient()
 
+  // Oldest-fetched first. A run can now stop early on its time budget, so a
+  // fixed order would leave the areas at the back permanently stale while the
+  // front updated daily. Nulls first means a brand-new area is fetched next.
   const { data: areas, error } = await supabase
     .from('tracked_areas')
-    .select('id, user_id, postcode, radius_metres, alerts_enabled, min_band, label')
+    .select('id, user_id, postcode, radius_metres, alerts_enabled, min_band, label, last_planit_fetch_at')
     .eq('is_active', true)
+    .order('last_planit_fetch_at', { ascending: true, nullsFirst: true })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   const areaRows = (areas ?? []) as AreaRow[]
@@ -115,7 +119,25 @@ export async function GET(request: NextRequest) {
   // upsert), keyed by the query that surfaced it.
   const queryKeyToApps = new Map<string, { council_slug: string; reference: string }[]>()
 
+  // Stop starting new queries with time to spare, and return what we have.
+  //
+  // This run used to fetch all fourteen areas and only then upsert, so once
+  // PlanIt slowed down and the function hit its 300s ceiling mid-loop, Vercel
+  // killed it before a single row was written — every successful fetch in that
+  // run was discarded. Data silently stopped updating on 31 July because of it.
+  //
+  // Ending early on our own terms means partial progress is always saved, and
+  // the areas that missed out are simply first in line next run (see the
+  // last_planit_fetch_at ordering above).
+  const QUERY_DEADLINE_MS = 200_000
+  const startedAt = Date.now()
+  let stoppedEarly = false
+
   for (const q of queries) {
+    if (Date.now() - startedAt > QUERY_DEADLINE_MS) {
+      stoppedEarly = true
+      break
+    }
     const queryKey = `${q.postcode}|${q.km}`
     try {
       const apps = await fetchNearby({ postcode: q.postcode, radiusKm: q.km, recentDays: RECENT_DAYS })
@@ -142,6 +164,14 @@ export async function GET(request: NextRequest) {
       }
       queryKeyToApps.set(queryKey, appList)
       perArea.push({ postcode: q.postcode, fetched: apps.length })
+
+      // Stamp only on success, so an area that errored stays at the front of
+      // the queue and is retried first next run rather than waiting its turn.
+      await supabase
+        .from('tracked_areas')
+        .update({ last_planit_fetch_at: new Date().toISOString() })
+        .eq('is_active', true)
+        .eq('postcode', q.postcode)
     } catch (e) {
       perArea.push({ postcode: q.postcode, fetched: 0, error: String(e) })
     }
@@ -181,7 +211,9 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     ran_at: new Date().toISOString(),
     source: 'planit',
-    areas_queried: queries.length,
+    areas_queried: perArea.length,
+    areas_pending: queries.length - perArea.length,
+    stopped_early: stoppedEarly,
     applications_fetched: collected.length,
     changed: result.changed,
     new: result.new_refs.length,
