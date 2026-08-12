@@ -96,16 +96,24 @@ export async function GET(request: NextRequest) {
       .gte('application_date', periodStart)
       .lte('application_date', periodEnd)
       .order('application_date', { ascending: false }),
-    // Anyone who already has a digest covering any part of this window has
-    // already been told. period_end >= periodStart is the overlap test: on the
-    // normal weekly cadence windows never overlap, so this only ever catches a
-    // genuine repeat — a retried run, or a manual trigger landing on top of a
-    // scheduled one.
+    // Skip anyone who already has a digest for exactly THIS window.
+    //
+    // This used to test for any overlap (period_end >= periodStart) on the
+    // reasoning that weekly windows never overlap. They don't — but only if
+    // every send lands on a Monday. A manual send on 6 Aug covering
+    // 30 Jul-5 Aug overlapped the 3-9 Aug window, so the following Monday's
+    // real digest was skipped for every user. A one-off test silently
+    // cancelled a scheduled send.
+    //
+    // Matching the exact window is what was actually wanted: a retry computes
+    // the same window and is blocked, while any later run computes a different
+    // one and goes out. A stray send can no longer poison the weeks after it.
     supabase
       .from('digests')
       .select('user_id, period_start, period_end')
       .in('user_id', userIds)
-      .gte('period_end', periodStart),
+      .eq('period_start', periodStart)
+      .eq('period_end', periodEnd),
   ])
 
   const emailById = new Map(

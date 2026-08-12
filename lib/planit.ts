@@ -48,6 +48,13 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 // that fails today just gets retried tomorrow via the last_planit_fetch_at
 // queue, so burning minutes retrying one council there only starves the
 // rest of the batch and makes the whole run look hung.
+// A healthy PlanIt query answers in about 3 seconds. When its own data source
+// stalls it sits for 45 and then returns a 400, and the ingest has a 300-second
+// budget for fourteen of these — so a handful of stalls used up the entire run.
+// Giving up at 18s costs nothing on a good day and keeps one bad upstream call
+// from starving every area behind it.
+const REQUEST_TIMEOUT_MS = 18_000
+
 async function getWithBackoff(
   url: string,
   opts?: { maxAttempts?: number; maxBackoffMs?: number },
@@ -55,7 +62,10 @@ async function getWithBackoff(
   const maxAttempts = opts?.maxAttempts ?? 4
   const maxBackoffMs = opts?.maxBackoffMs ?? 20_000
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const res = await fetch(url, { headers: { 'User-Agent': UA } })
+    const res = await fetch(url, {
+      headers: { 'User-Agent': UA },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    })
     if (res.status === 429) {
       const header = Number(res.headers.get('retry-after'))
       const backoff = Number.isFinite(header) && header > 0 ? header * 1000 : 2000 * 2 ** attempt

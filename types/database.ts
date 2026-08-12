@@ -52,6 +52,9 @@ export interface TrackedArea {
   // Professional-tier only — enforced server-side in updateTrackedAreaSettings,
   // not by RLS. See app/api/cron/ingest/route.ts for the fan-out that reads it.
   alerts_enabled: boolean
+  // Last successful PlanIt fetch. The ingest orders by this so a run that stops
+  // early on its time budget doesn't starve the same areas every time.
+  last_planit_fetch_at: string | null
   created_at: string
 }
 
