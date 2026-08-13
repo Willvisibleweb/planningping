@@ -16,6 +16,18 @@ export interface PlanItApplication {
   url: string | null // deep link straight to the council's application page
   lat: number | null
   lng: number | null
+  // The architect or planning consultant who submitted the application. For a
+  // civils firm this is the actual route in — you contact the agent, not the
+  // applicant. Populated on ~87% of records sampled across three councils.
+  //
+  // Note PlanIt redacts agent_name, applicant_name and case_officer to the
+  // literal string "See source", so agent_company is the only usable identity
+  // in the feed. mapRecord filters that placeholder out.
+  agentCompany: string | null
+  // The date the council must determine the application by. Turns "this was
+  // submitted" into "decide by 21 September", which is the difference between
+  // a notification and a reason to act. Present on ~99% of records.
+  targetDecisionDate: string | null // YYYY-MM-DD
 }
 
 interface PlanItRecord {
@@ -30,6 +42,33 @@ interface PlanItRecord {
   decided_date?: string | null
   url?: string
   location?: { coordinates?: [number, number] } | null
+  // PlanIt buries the richest per-council detail in here rather than promoting
+  // it to top-level fields. Only the two we use are typed; the rest are left
+  // untyped deliberately so this doesn't become a second schema to maintain.
+  other_fields?: {
+    agent_company?: string | null
+    target_decision_date?: string | null
+    [key: string]: unknown
+  } | null
+}
+
+// PlanIt writes this literal string where a council withholds a name. Storing
+// it would put "See source" on screen as if it were a company.
+const REDACTED = 'see source'
+
+function cleanText(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  if (!trimmed || trimmed.toLowerCase() === REDACTED) return null
+  return trimmed
+}
+
+// Councils publish dates in a few shapes; anything that isn't a plain
+// YYYY-MM-DD is dropped rather than stored as an unparseable string.
+function cleanDate(value: unknown): string | null {
+  const text = cleanText(value)
+  if (!text) return null
+  return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : null
 }
 
 const APPLICS_URL = 'https://www.planit.org.uk/api/applics/json'
@@ -106,6 +145,8 @@ function mapRecord(r: PlanItRecord): PlanItApplication | null {
     url: r.url || null,
     lat: coords ? coords[1] : null,
     lng: coords ? coords[0] : null,
+    agentCompany: cleanText(r.other_fields?.agent_company),
+    targetDecisionDate: cleanDate(r.other_fields?.target_decision_date),
   }
 }
 

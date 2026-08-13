@@ -67,6 +67,14 @@ export interface PlanningApplication {
   status: string | null
   application_date: string | null  // ISO date string
   decision_date: string | null     // ISO date string
+  // The architect or planning consultant who submitted it. For a civils firm
+  // this is the actual contact route — you approach the agent, not the
+  // applicant. Null where the council withholds it (PlanIt returns the literal
+  // "See source", which the mapper strips).
+  agent_company: string | null
+  // Date the authority must determine by. This is what turns "submitted" into
+  // "decide by 21 September".
+  target_decision_date: string | null
   state_hash: string | null
   raw_data: Record<string, unknown> | null
   last_scraped_at: string | null

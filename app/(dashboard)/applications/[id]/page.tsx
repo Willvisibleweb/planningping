@@ -30,6 +30,24 @@ function niceDate(iso: string | null): string {
   return `${d.getUTCDate()} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`
 }
 
+// "in 3 weeks" next to a target date is the bit that prompts action — a raw
+// date makes you do the arithmetic. Returns null once a decision has actually
+// been issued, since the target is then history, and null for a target that has
+// passed without one, because "overdue by 40 days" is normal in planning and
+// reads as an error rather than information.
+function decisionCountdown(target: string | null, decided: string | null): string | null {
+  if (!target || decided) return null
+  const days = Math.round(
+    (new Date(`${target}T00:00:00Z`).getTime() - Date.now()) / 86_400_000,
+  )
+  if (isNaN(days) || days < 0) return null
+  if (days === 0) return 'today'
+  if (days === 1) return 'tomorrow'
+  if (days < 14) return `in ${days} days`
+  if (days < 60) return `in ${Math.round(days / 7)} weeks`
+  return null
+}
+
 export default async function ApplicationDetailPage({
   params,
 }: {
@@ -99,6 +117,41 @@ export default async function ApplicationDetailPage({
             </Badge>
           )}
         </div>
+
+        {/* The two fields that make this a lead rather than a notification:
+            who to approach, and how long there is to do it. Both come from
+            PlanIt and were being discarded until migration 0021. Rendered only
+            when present — a council that withholds the agent shouldn't leave an
+            empty row implying we failed to find it. */}
+        {(app.agent_company || app.target_decision_date) && (
+          <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-3 rounded-md border border-border bg-surface-sunken px-4 py-3">
+            {app.agent_company && (
+              <div className="min-w-0">
+                <dt className="text-2xs font-semibold uppercase tracking-wider text-ink-muted">
+                  Submitted by
+                </dt>
+                <dd className="mt-0.5 truncate text-sm font-medium text-ink" title={app.agent_company}>
+                  {app.agent_company}
+                </dd>
+              </div>
+            )}
+            {app.target_decision_date && (
+              <div>
+                <dt className="text-2xs font-semibold uppercase tracking-wider text-ink-muted">
+                  Decision due
+                </dt>
+                <dd className="tabular-data mt-0.5 text-sm font-medium text-ink">
+                  {niceDate(app.target_decision_date)}
+                  {decisionCountdown(app.target_decision_date, app.decision_date) && (
+                    <span className="ml-2 font-sans text-xs font-normal text-ink-muted">
+                      {decisionCountdown(app.target_decision_date, app.decision_date)}
+                    </span>
+                  )}
+                </dd>
+              </div>
+            )}
+          </dl>
+        )}
 
         {/* Partner-only. Gated here on the server as well as inside the
             component, so a non-partner never ships the markup at all — not
