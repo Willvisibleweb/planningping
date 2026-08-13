@@ -44,13 +44,16 @@ const EMAIL_SYSTEM_PROMPT = `You are a business-development analyst for a UK civ
 Rules:
 ${BRIEF_FIELDS}
 - Produce 2-3 distinct outreach angles (e.g. leading with drainage risk, leading with programme/timeline, leading with cost-saving) — each a short, warm, direct email under ~150 words, with a subject line and body. Use [Your name] / [Firm] placeholders — do not invent contact details.
+- The context may name the agent/architect who submitted the application, and the council's target decision date. Both are public record and may inform the angle — but use them lightly. An email that opens by reciting what you know about the reader's own project reads as scraped, not researched. Never invent an individual's name; the agent is a company.
 - Call the submit_outreach tool exactly once with your analysis. No commentary outside the tool call.`
 
 const LETTER_SYSTEM_PROMPT = `You are a business-development analyst for a UK civil engineering firm, reviewing a planning application as a potential lead, drafting a formal letter to be printed and posted.
 
 Rules:
 ${BRIEF_FIELDS}
-- Draft ONE formal letter, ~200-300 words. There is no applicant/agent name available — open with "Dear Sir/Madam," and close with "Yours faithfully," (the correct UK pairing when the recipient isn't named — never invent a name). Use [Your name] / [Firm] placeholders for the signature — do not invent contact details.
+- Draft ONE formal letter, ~200-300 words. Always open "Dear Sir/Madam," and close "Yours faithfully," — the correct UK pairing when no individual is named. The context may give an agent/architect, but that is a COMPANY, never a person, so it must not be used as a salutation and a person's name must never be invented. Where the agent is known you may refer to the firm naturally in the body (e.g. acknowledging they are handling the application); where it isn't, say nothing about who submitted it.
+- If a target decision date is given you may refer to the determination timeline, since it is public record. Do not manufacture urgency around it.
+- Use [Your name] / [Firm] placeholders for the signature — do not invent contact details.
 - Formal register throughout (this is a printed, posted letter, not an email) — no subject line, no informal phrasing.
 - Call the submit_letter tool exactly once with your analysis. No commentary outside the tool call.`
 
@@ -170,19 +173,30 @@ export async function POST(request: NextRequest) {
   // Best-effort: pull the civils scoring reasons to sharpen the angle. Degrades
   // silently if unavailable (e.g. council no longer tracked).
   let reasons: string[] = []
+  let agentCompany: string | null = null
+  let targetDecisionDate: string | null = null
   if (lead.application_id) {
     const { data: app } = await supabase
       .from('planning_applications')
-      .select('score_reasons')
+      .select('score_reasons, agent_company, target_decision_date')
       .eq('id', lead.application_id)
       .single()
     reasons = (app?.score_reasons as string[] | null) ?? []
+    agentCompany = (app?.agent_company as string | null) ?? null
+    targetDecisionDate = (app?.target_decision_date as string | null) ?? null
   }
 
+  // The agent and the decision date are the two facts that turn a generic
+  // approach into a specific one: who actually submitted the scheme, and how
+  // long there is before it's determined. Both are stated as facts the model
+  // may use — not instructions to name-drop, since an email that leans on
+  // knowing the reader's firm reads as scraped rather than researched.
   const context = [
     `Development description: ${lead.description ?? 'Not provided'}`,
     `Site address: ${lead.address ?? 'Not provided'}`,
     `Planning reference: ${lead.reference}`,
+    agentCompany ? `Submitted by (agent/architect): ${agentCompany}` : null,
+    targetDecisionDate ? `Council's target decision date: ${targetDecisionDate}` : null,
     reasons.length > 0 ? `Likely civils scope signals: ${reasons.join('; ')}` : null,
   ].filter(Boolean).join('\n')
 

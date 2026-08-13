@@ -19,6 +19,8 @@ export interface IngestApplication {
   status: string | null
   application_date: string | null
   decision_date: string | null
+  agent_company: string | null
+  target_decision_date: string | null
   raw_data: Record<string, unknown> | null
 }
 
@@ -56,6 +58,8 @@ export interface DecidedApplication {
 export interface UpsertResult {
   received: number
   changed: number
+  /** Existing rows given agent/target-decision values they were missing. */
+  enriched: number
   new_refs: string[]
   new_applications: NewApplication[]
   decided_applications: DecidedApplication[]
@@ -83,6 +87,7 @@ export async function upsertApplications(
   const new_refs: string[] = []
   const new_applications: NewApplication[] = []
   const decided_applications: DecidedApplication[] = []
+  let enriched = 0
 
   for (const [council, list] of byCouncil) {
     // status comes back alongside the hash so a decision can be detected as a
@@ -90,22 +95,33 @@ export async function upsertApplications(
     // from — and "was it already approved" is the entire question.
     const { data: existing } = await supabase
       .from('planning_applications')
-      .select('reference, state_hash, status, decision_alerted_at')
+      .select('reference, state_hash, status, decision_alerted_at, agent_company, target_decision_date')
       .eq('council_slug', council)
 
     const existingHash: Record<string, string> = {}
     const previousStatus: Record<string, string | null> = {}
     const alreadyAlerted: Record<string, boolean> = {}
+    // Rows already stored that are missing the newer fields. Without this they
+    // would stay blank forever: an unchanged row is skipped below, and a row
+    // whose status never changes is never rewritten — so three thousand
+    // existing applications would never pick up agent or decision date.
+    const needsEnrichment = new Set<string>()
     for (const e of (existing ?? []) as {
       reference: string
       state_hash: string | null
       status: string | null
       decision_alerted_at: string | null
+      agent_company: string | null
+      target_decision_date: string | null
     }[]) {
       existingHash[e.reference] = e.state_hash ?? ''
       previousStatus[e.reference] = e.status
       alreadyAlerted[e.reference] = e.decision_alerted_at !== null
+      if (e.agent_company === null || e.target_decision_date === null) {
+        needsEnrichment.add(e.reference)
+      }
     }
+    const enrichments: { reference: string; agent_company: string | null; target_decision_date: string | null }[] = []
 
     // De-dupe references within this batch (radius queries can repeat).
     const seen = new Set<string>()
@@ -114,7 +130,23 @@ export async function upsertApplications(
       seen.add(a.reference)
 
       const hash = stateHash(a.status, a.decision_date)
-      if (existingHash[a.reference] === hash) continue // unchanged — skip
+      if (existingHash[a.reference] === hash) {
+        // Unchanged, so no full rewrite — but if it predates these columns and
+        // PlanIt is now giving us the values, fill them in. Only where the
+        // stored value is null, so this converges: once populated, a row is
+        // never touched by this path again.
+        if (
+          needsEnrichment.has(a.reference) &&
+          (a.agent_company !== null || a.target_decision_date !== null)
+        ) {
+          enrichments.push({
+            reference: a.reference,
+            agent_company: a.agent_company,
+            target_decision_date: a.target_decision_date,
+          })
+        }
+        continue
+      }
 
       const isNew = !(a.reference in existingHash)
       const { score, band, matchedReasons } = scoreApplication({
@@ -136,6 +168,8 @@ export async function upsertApplications(
         status: a.status,
         application_date: a.application_date,
         decision_date: a.decision_date,
+        agent_company: a.agent_company,
+        target_decision_date: a.target_decision_date,
         state_hash: hash,
         raw_data: a.raw_data,
         last_scraped_at: new Date().toISOString(),
@@ -185,6 +219,27 @@ export async function upsertApplications(
         })
       }
     }
+
+    // Backfill the two newer columns on rows that were otherwise unchanged.
+    // Done per council, inside the loop, so a run that stops early on its time
+    // budget still keeps whatever it enriched. Failures are swallowed on
+    // purpose — this is a nice-to-have and must never take down an ingest.
+    for (const e of enrichments) {
+      const patch: Record<string, string> = {}
+      if (e.agent_company) patch.agent_company = e.agent_company
+      if (e.target_decision_date) patch.target_decision_date = e.target_decision_date
+      if (Object.keys(patch).length === 0) continue
+      const { error: enrichError } = await supabase
+        .from('planning_applications')
+        .update(patch)
+        .eq('council_slug', council)
+        .eq('reference', e.reference)
+      if (enrichError) {
+        console.error(`enrich failed for ${council}/${e.reference}:`, enrichError.message)
+      } else {
+        enriched++
+      }
+    }
   }
 
   if (rows.length > 0) {
@@ -214,6 +269,7 @@ export async function upsertApplications(
   return {
     received: apps.length,
     changed: rows.length,
+    enriched,
     new_refs,
     new_applications,
     decided_applications,

@@ -66,6 +66,8 @@ export async function fetchAndIngestNearby(
       status: app.status,
       application_date: app.applicationDate,
       decision_date: app.decisionDate,
+      agent_company: app.agentCompany,
+      target_decision_date: app.targetDecisionDate,
       raw_data: { source: 'planit', url: app.url, app_type: app.appType, lat: app.lat, lng: app.lng },
     }))
 

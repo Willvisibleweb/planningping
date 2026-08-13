@@ -152,6 +152,8 @@ export async function GET(request: NextRequest) {
           status: app.status,
           application_date: app.applicationDate,
           decision_date: app.decisionDate,
+          agent_company: app.agentCompany,
+          target_decision_date: app.targetDecisionDate,
           raw_data: {
             source: 'planit',
             url: app.url,
@@ -216,6 +218,7 @@ export async function GET(request: NextRequest) {
     stopped_early: stoppedEarly,
     applications_fetched: collected.length,
     changed: result.changed,
+    enriched: result.enriched,
     new: result.new_refs.length,
     alerts_sent: alertsSent,
     discharge_parents_resolved: resolvedParents,
