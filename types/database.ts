@@ -119,12 +119,51 @@ export interface FirmProfile {
   updated_at: string
 }
 
-// Pipeline stages for the civils CRM. Order matters for display.
+// A stage in one user's pipeline. Rows, not a union type: engineering firms run
+// their own process, and a hardcoded enum meant a migration every time one of
+// them wanted a different word. Seeded per user on signup (migration 0022).
+export interface PipelineStageRow {
+  id: string
+  user_id: string
+  name: string
+  position: number
+  // Terminal flags rather than name-matching, so renaming "Won" to "Awarded"
+  // doesn't silently break win-rate reporting.
+  is_won: boolean
+  is_lost: boolean
+  created_at: string
+}
+
+// The defaults every account starts with. Kept in sync with handle_new_user in
+// migration 0022 — this constant is for seeding UI before a fetch resolves and
+// for tests, never as the source of truth for what a user's stages are.
+export const DEFAULT_STAGE_NAMES = [
+  'New', 'Qualified', 'Contacted', 'In conversation', 'Won', 'Lost',
+] as const
+
+/**
+ * @deprecated The old hardcoded set. tracked_leads.pipeline_stage is retained
+ * only until every read path uses stage_id, then both are dropped. Do not use
+ * for anything new — read pipeline_stages instead.
+ */
 export type PipelineStage = 'Identified' | 'Contacted' | 'Negotiating' | 'Won' | 'Lost'
 
+/** @deprecated See PipelineStage above. */
 export const PIPELINE_STAGES: PipelineStage[] = [
   'Identified', 'Contacted', 'Negotiating', 'Won', 'Lost',
 ]
+
+// One entry in a lead's activity timeline. Append-only — see lead_events in
+// migration 0022 for why there is no update path.
+export interface LeadEvent {
+  id: string
+  lead_id: string
+  user_id: string
+  type: 'created' | 'stage_change' | 'note' | 'letter_generated' | 'email_logged' | 'call_logged'
+  body: string | null
+  created_at: string
+  created_by: string | null
+}
 
 // A planning application a user is tracking through their sales pipeline.
 export interface TrackedLead {
@@ -136,7 +175,15 @@ export interface TrackedLead {
   description: string | null
   address: string | null
   cached_status: string | null
+  /** @deprecated Read stage_id and join pipeline_stages. Retained during migration. */
   pipeline_stage: PipelineStage
+  stage_id: string | null
+  // The score when this lead was added, NOT the current one. Applications are
+  // re-scored as rules change, so comparing this against the live score shows
+  // drift — "scored 82 when you added it, now 64" is a signal, not a bug.
+  score_at_add: number | null
+  value_estimate: number | null
+  owner: string | null
   last_contacted_at: string | null  // ISO timestamp
   next_follow_up_at: string | null  // ISO timestamp
   priority_follow_up: boolean
