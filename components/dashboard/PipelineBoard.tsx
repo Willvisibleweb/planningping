@@ -21,20 +21,25 @@ import Badge from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
 import LinkButton from '@/components/ui/LinkButton'
 import { useToast } from '@/components/ui/Toast'
-import { PIPELINE_STAGES, type PipelineStage, type TrackedLead } from '@/types/database'
+import type { PipelineStageRow, TrackedLead } from '@/types/database'
 
-// Stage → the tone its count badge carries. Won and Lost are terminal, so they
-// read differently from the three active stages rather than looking identical
-// to work still in play.
-const STAGE_TONE: Record<PipelineStage, 'neutral' | 'primary' | 'warning' | 'success'> = {
-  Identified: 'neutral',
-  Contacted: 'primary',
-  Negotiating: 'warning',
-  Won: 'success',
-  Lost: 'neutral',
+// Tone for a stage's count badge. Derived from the terminal flags rather than
+// the name, because names are user-editable now — a firm renaming "Won" to
+// "Awarded" should keep the green, and matching on the word would lose it.
+// Everything in play reads the same; only the outcomes stand apart.
+function stageTone(stage: PipelineStageRow): 'neutral' | 'primary' | 'success' {
+  if (stage.is_won) return 'success'
+  if (stage.is_lost) return 'neutral'
+  return 'primary'
 }
 
-export default function PipelineBoard({ leads }: { leads: TrackedLead[] }) {
+export default function PipelineBoard({
+  leads,
+  stages,
+}: {
+  leads: TrackedLead[]
+  stages: PipelineStageRow[]
+}) {
   const [outreachLead, setOutreachLead] = useState<TrackedLead | null>(null)
 
   if (leads.length === 0) {
@@ -43,7 +48,7 @@ export default function PipelineBoard({ leads }: { leads: TrackedLead[] }) {
         <EmptyState
           icon={KanbanSquare}
           title="Your pipeline is empty"
-          description="Track an opportunity from your territory or leads list and it lands here at the Identified stage, ready to move through to Won."
+          description="Track an opportunity from your territory or leads list and it lands here at your first stage, ready to move through to won."
           action={
             <Link
               href="/leads"
@@ -57,12 +62,16 @@ export default function PipelineBoard({ leads }: { leads: TrackedLead[] }) {
     )
   }
 
-  // Group leads by stage for lane rendering. Order within a lane is the order
-  // the page queried them in — priority follow-ups first, then newest.
-  const byStage: Record<PipelineStage, TrackedLead[]> = {
-    Identified: [], Contacted: [], Negotiating: [], Won: [], Lost: [],
+  // Group leads by stage id for lane rendering. Order within a lane is the
+  // order the page queried them in — priority follow-ups first, then newest.
+  const byStage = new Map<string, TrackedLead[]>(stages.map((s) => [s.id, []]))
+  // A lead whose stage was deleted would otherwise vanish from the board with
+  // no way to recover it. Park those in the entry stage instead of dropping.
+  const entryId = stages[0]?.id
+  for (const lead of leads) {
+    const key = lead.stage_id && byStage.has(lead.stage_id) ? lead.stage_id : entryId
+    if (key) byStage.get(key)!.push(lead)
   }
-  for (const lead of leads) byStage[lead.pipeline_stage].push(lead)
 
   return (
     <>
@@ -71,19 +80,19 @@ export default function PipelineBoard({ leads }: { leads: TrackedLead[] }) {
           mid-card against the page gutter. */}
       <div className="-mx-4 overflow-x-auto px-4 pb-3 lg:-mx-8 lg:px-8">
         <div className="flex flex-col gap-6 lg:w-max lg:flex-row lg:gap-4">
-          {PIPELINE_STAGES.map((stage) => {
-            const stageLeads = byStage[stage]
+          {stages.map((stage) => {
+            const stageLeads = byStage.get(stage.id) ?? []
             return (
               <section
-                key={stage}
-                aria-label={`${stage} — ${stageLeads.length} ${stageLeads.length === 1 ? 'opportunity' : 'opportunities'}`}
+                key={stage.id}
+                aria-label={`${stage.name} — ${stageLeads.length} ${stageLeads.length === 1 ? 'opportunity' : 'opportunities'}`}
                 className="flex flex-col rounded-md bg-surface-sunken p-3 lg:w-[272px] lg:shrink-0"
               >
                 <div className="mb-3 flex items-center justify-between gap-2 px-1">
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
-                    {stage}
+                    {stage.name}
                   </h3>
-                  <Badge tone={STAGE_TONE[stage]} className="tabular-data">
+                  <Badge tone={stageTone(stage)} className="tabular-data">
                     {stageLeads.length}
                   </Badge>
                 </div>
@@ -98,6 +107,7 @@ export default function PipelineBoard({ leads }: { leads: TrackedLead[] }) {
                       <LeadCard
                         key={lead.id}
                         lead={lead}
+                        stages={stages}
                         onOutreach={() => setOutreachLead(lead)}
                       />
                     ))}
@@ -116,18 +126,31 @@ export default function PipelineBoard({ leads }: { leads: TrackedLead[] }) {
   )
 }
 
-function LeadCard({ lead, onOutreach }: { lead: TrackedLead; onOutreach: () => void }) {
+function LeadCard({
+  lead,
+  stages,
+  onOutreach,
+}: {
+  lead: TrackedLead
+  stages: PipelineStageRow[]
+  onOutreach: () => void
+}) {
   const [isPending, startTransition] = useTransition()
   const { toast } = useToast()
 
-  function handleStageChange(stage: PipelineStage) {
+  function handleStageChange(stageId: string) {
+    const target = stages.find((s) => s.id === stageId)
     startTransition(async () => {
-      const result = await setStage(lead.id, stage)
+      const result = await setStage(lead.id, stageId)
       if (result?.error) {
         toast({ title: 'Couldn’t move that lead', description: result.error, variant: 'error' })
         return
       }
-      toast({ title: `Moved to ${stage}`, description: lead.reference, variant: 'success' })
+      toast({
+        title: `Moved to ${target?.name ?? 'a new stage'}`,
+        description: lead.reference,
+        variant: 'success',
+      })
     })
   }
 
@@ -201,15 +224,19 @@ function LeadCard({ lead, onOutreach }: { lead: TrackedLead; onOutreach: () => v
         <label className="sr-only" htmlFor={`stage-${lead.id}`}>
           Pipeline stage for {lead.reference}
         </label>
+        {/* Value is the stage id, not its name. Names are user-editable, so
+            keying off them would break every card the moment someone renamed a
+            stage — and the server action validates ids against the user's own
+            rows, which a name cannot be checked against safely. */}
         <select
           id={`stage-${lead.id}`}
-          value={lead.pipeline_stage}
-          onChange={(e) => handleStageChange(e.target.value as PipelineStage)}
+          value={lead.stage_id ?? stages[0]?.id ?? ''}
+          onChange={(e) => handleStageChange(e.target.value)}
           disabled={isPending}
           className="w-full min-w-0 rounded-sm border border-border-control bg-surface px-2 py-1.5 text-xs text-ink transition-[border-color,box-shadow] duration-fast ease-standard hover:border-primary-300 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {PIPELINE_STAGES.map((s) => (
-            <option key={s} value={s}>{s}</option>
+          {stages.map((s) => (
+            <option key={s.id} value={s.id}>{s.name}</option>
           ))}
         </select>
 

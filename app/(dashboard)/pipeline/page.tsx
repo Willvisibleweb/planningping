@@ -4,6 +4,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { getProfile, isProfessional, hasProAccess } from '@/lib/access'
+import { getUserStages } from '@/lib/pipeline/stages'
 import PipelineBoard from '@/components/dashboard/PipelineBoard'
 import ProGate from '@/components/dashboard/ProGate'
 import type { TrackedLead } from '@/types/database'
@@ -16,11 +17,14 @@ export default async function PipelinePage() {
   const supabase = await createClient()
 
   // Priority follow-ups first (status changed since tracking), then newest.
-  const { data: leads } = await supabase
-    .from('tracked_leads')
-    .select('*')
-    .order('priority_follow_up', { ascending: false })
-    .order('created_at', { ascending: false })
+  const [{ data: leads }, stages] = await Promise.all([
+    supabase
+      .from('tracked_leads')
+      .select('*')
+      .order('priority_follow_up', { ascending: false })
+      .order('created_at', { ascending: false }),
+    getUserStages(),
+  ])
 
   return (
     <div className="pp-stagger space-y-6">
@@ -32,7 +36,7 @@ export default async function PipelinePage() {
         </p>
       </div>
 
-      <PipelineBoard leads={(leads ?? []) as TrackedLead[]} />
+      <PipelineBoard leads={(leads ?? []) as TrackedLead[]} stages={stages} />
     </div>
   )
 }
