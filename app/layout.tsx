@@ -33,6 +33,18 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: 'PlanningPing — UK Planning Application Alerts',
   description: 'Track UK planning applications in your area and get alerted to new applications and status changes.',
+  // Without summary_large_image, X renders a small square thumbnail beside the
+  // text instead of the 1200x630 card — the card still generates, it just
+  // never gets shown at the size it was designed for. Set once at the root so
+  // every page inherits it, including the 161 location pages.
+  twitter: {
+    card: 'summary_large_image',
+  },
+  openGraph: {
+    type: 'website',
+    siteName: 'PlanningPing',
+    locale: 'en_GB',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
