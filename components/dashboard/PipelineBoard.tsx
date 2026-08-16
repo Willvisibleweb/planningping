@@ -16,10 +16,10 @@ import Link from 'next/link'
 import { KanbanSquare, Trash2, Sparkles, ArrowRight } from 'lucide-react'
 import { setStage, untrackLead } from './leadActions'
 import OutreachModal from './OutreachModal'
+import LeadDetailPanel from './LeadDetailPanel'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
-import LinkButton from '@/components/ui/LinkButton'
 import { useToast } from '@/components/ui/Toast'
 import type { PipelineStageRow, TrackedLead } from '@/types/database'
 
@@ -41,6 +41,13 @@ export default function PipelineBoard({
   stages: PipelineStageRow[]
 }) {
   const [outreachLead, setOutreachLead] = useState<TrackedLead | null>(null)
+  const [detailLead, setDetailLead] = useState<TrackedLead | null>(null)
+
+  // Both panels are keyed off the lead id held in state, so a re-render after a
+  // stage change or a saved note hands them the fresh row rather than the copy
+  // captured when they opened — otherwise the panel would show a stale stage.
+  const openDetail = detailLead ? (leads.find((l) => l.id === detailLead.id) ?? null) : null
+  const openOutreach = outreachLead ? (leads.find((l) => l.id === outreachLead.id) ?? null) : null
 
   if (leads.length === 0) {
     return (
@@ -109,6 +116,7 @@ export default function PipelineBoard({
                         lead={lead}
                         stages={stages}
                         onOutreach={() => setOutreachLead(lead)}
+                        onOpenDetail={() => setDetailLead(lead)}
                       />
                     ))}
                   </div>
@@ -119,8 +127,22 @@ export default function PipelineBoard({
         </div>
       </div>
 
-      {outreachLead && (
-        <OutreachModal lead={outreachLead} onClose={() => setOutreachLead(null)} />
+      {openDetail && (
+        <LeadDetailPanel
+          lead={openDetail}
+          stages={stages}
+          onClose={() => setDetailLead(null)}
+          // Hand off to the outreach modal, closing the panel behind it: two
+          // stacked overlays would leave the focus trap fighting itself.
+          onOutreach={() => {
+            setDetailLead(null)
+            setOutreachLead(openDetail)
+          }}
+        />
+      )}
+
+      {openOutreach && (
+        <OutreachModal lead={openOutreach} onClose={() => setOutreachLead(null)} />
       )}
     </>
   )
@@ -130,10 +152,12 @@ function LeadCard({
   lead,
   stages,
   onOutreach,
+  onOpenDetail,
 }: {
   lead: TrackedLead
   stages: PipelineStageRow[]
   onOutreach: () => void
+  onOpenDetail: () => void
 }) {
   const [isPending, startTransition] = useTransition()
   const { toast } = useToast()
@@ -171,9 +195,17 @@ function LeadCard({
 
   return (
     <article className="rounded-md border border-border bg-surface shadow-sm transition-shadow duration-fast ease-standard hover:shadow-md">
-      <div className="p-3.5">
+      {/* The card body is the click target for the detail panel. It's a button
+          rather than a wrapper around the whole <article>, because the footer
+          holds its own controls and nesting those inside a button is invalid
+          markup that breaks keyboard access to them. */}
+      <button
+        type="button"
+        onClick={onOpenDetail}
+        aria-label={`Open details for ${lead.reference}`}
+        className="block w-full rounded-t-md p-3.5 text-left transition-colors duration-fast ease-standard hover:bg-surface-sunken/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/45"
+      >
         <div className="flex items-start justify-between gap-2">
-          {/* Plain text — opening is the explicit button in the footer. */}
           <span className="tabular-data min-w-0 truncate text-xs text-ink-muted">
             {lead.reference}
           </span>
@@ -213,7 +245,7 @@ function LeadCard({
             )}
           </dl>
         )}
-      </div>
+      </button>
 
       {/* Controls sit in their own footer band, stacked rather than in one row.
           The stage <select> carries an intrinsic min-width from its longest
@@ -240,15 +272,19 @@ function LeadCard({
           ))}
         </select>
 
-        <LinkButton
-          href={`/applications/${lead.application_id}`}
+        {/* Kept alongside the clickable body: a card that only responds to a
+            click somewhere in its middle is a feature nobody finds. This spells
+            it out. The application page is one step on, linked from the panel —
+            the panel now carries more about the lead than that page does. */}
+        <Button
           size="sm"
           variant="secondary"
+          onClick={onOpenDetail}
           className="h-8 w-full px-2 text-2xs"
         >
-          Open application
+          View details
           <ArrowRight size={12} className="shrink-0" aria-hidden="true" />
-        </LinkButton>
+        </Button>
 
         <div className="flex items-center gap-2">
           <Button

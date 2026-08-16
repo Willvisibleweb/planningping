@@ -17,7 +17,8 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getProfile, hasProAccess } from '@/lib/access'
 import { getUserStages, entryStage, contactedStage } from '@/lib/pipeline/stages'
-import { logLeadEvent } from '@/lib/pipeline/events'
+import { logLeadEvent, getLeadTimeline } from '@/lib/pipeline/events'
+import type { LeadEvent } from '@/types/database'
 
 // The pipeline is a professional feature. UI hiding is cosmetic — these
 // server actions are the enforcement point. (untrackLead stays ungated so a
@@ -172,6 +173,65 @@ export async function markAsSent(leadId: string) {
 
   revalidatePipeline()
   return {}
+}
+
+export interface LeadDetail {
+  timeline: LeadEvent[]
+  /** Live figures from planning_applications, not the snapshot on the lead. */
+  score: number | null
+  band: 'HOT' | 'WARM' | 'COLD' | null
+  reasons: string[] | null
+  /**
+   * Whether the underlying application could be read at all.
+   *
+   * Leads outlive the areas that found them — untracking a council keeps the
+   * lead but revokes read access to its application (the RLS policy requires an
+   * active tracked_area for that council). Without this flag a null score is
+   * ambiguous, and the panel would report "not scored yet" for a lead that
+   * scored 58 — which is a lie the user can disprove from their own board.
+   */
+  applicationVisible: boolean
+}
+
+/**
+ * Everything the detail panel shows, in one round trip.
+ *
+ * Fetched on open rather than with the board: a pipeline of 60 leads would
+ * otherwise pull 60 timelines to render 60 cards that show none of it. The
+ * panel is opened one lead at a time, so the data should be too.
+ */
+export async function getLeadDetail(leadId: string): Promise<LeadDetail | { error: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated.' }
+
+  // Ownership check before anything else. RLS would scope both queries below
+  // anyway, but failing here returns an honest "not found" instead of a panel
+  // rendering an empty timeline for a lead that isn't the caller's.
+  const { data: lead } = await supabase
+    .from('tracked_leads')
+    .select('application_id')
+    .eq('id', leadId)
+    .eq('user_id', user.id)
+    .single()
+  if (!lead) return { error: 'Could not find that lead.' }
+
+  const [timeline, { data: app }] = await Promise.all([
+    getLeadTimeline(leadId),
+    supabase
+      .from('planning_applications')
+      .select('score, band, score_reasons')
+      .eq('id', lead.application_id)
+      .single(),
+  ])
+
+  return {
+    timeline,
+    score: app?.score ?? null,
+    band: app?.band ?? null,
+    reasons: app?.score_reasons ?? null,
+    applicationVisible: !!app,
+  }
 }
 
 /** Add a free-text note to the timeline. */

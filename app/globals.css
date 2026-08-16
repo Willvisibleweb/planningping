@@ -173,6 +173,8 @@
   /* Panels anchored to the left edge slide in from it — a drawer that fades
      up from the bottom reads as unrelated to the edge it's attached to. */
   --animate-drawer: pp-drawer-in var(--duration-slow) var(--ease-standard) both;
+  /* Same rule, mirrored, for panels anchored to the right edge. */
+  --animate-drawer-right: pp-drawer-in-right var(--duration-slow) var(--ease-standard) both;
 }
 
 /* ---------------------------------------------------------------------------
@@ -403,6 +405,11 @@ body:has([data-theme='gabrielcam']) {
 
 @keyframes pp-drawer-in {
   from { transform: translateX(-100%); }
+  to   { transform: none; }
+}
+
+@keyframes pp-drawer-in-right {
+  from { transform: translateX(100%); }
   to   { transform: none; }
 }
 
