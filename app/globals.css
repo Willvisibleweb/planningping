@@ -413,6 +413,44 @@ body:has([data-theme='gabrielcam']) {
   to   { transform: none; }
 }
 
+/* Landing-page feed marquee. The list is rendered twice and translated by
+   exactly -50%, so the second copy lands where the first began and the loop has
+   no visible seam. Duration is set inline from the row count to keep the speed
+   constant regardless of how many rows the query returned. */
+@keyframes pp-marquee {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-50%); }
+}
+
+.pp-marquee {
+  animation: pp-marquee linear infinite;
+  will-change: transform;
+}
+
+/* The "updated daily" pulse. Separate keyframe rather than Tailwind's
+   animate-ping so the timing is calmer — a status dot that blinks at full speed
+   reads as an alarm rather than a heartbeat. */
+@keyframes pp-feed-ping {
+  0%   { transform: scale(1);   opacity: 0.75; }
+  70%  { transform: scale(2.2); opacity: 0; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.pp-feed-ping {
+  animation: pp-feed-ping 2.4s var(--ease-standard) infinite;
+}
+
+/* Both are decorative motion that never stops, which is exactly what the
+   reduced-motion preference exists to switch off. The global rule below clamps
+   animation-duration, but an infinite marquee clamped to 0.01ms still churns —
+   so these are stopped outright and the feed simply sits still, fully legible. */
+@media (prefers-reduced-motion: reduce) {
+  .pp-marquee,
+  .pp-feed-ping {
+    animation: none !important;
+  }
+}
+
 .pp-stagger > * {
   animation: var(--animate-enter);
 }
