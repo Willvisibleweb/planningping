@@ -27,6 +27,7 @@ import { resolveDischargeParents } from '@/lib/ingest/resolveDischargeParents'
 import { flagStaleDischarges } from '@/lib/ingest/flagStaleDischarges'
 import { sendDischargeAlerts } from '@/lib/alerts/dischargeAlerts'
 import { sendDecisionAlerts } from '@/lib/alerts/decisionAlerts'
+import { enforcePlanLimitsForAll } from '@/lib/plan/enforceLimits'
 import { hasProAccess } from '@/lib/access'
 import { getUserFeatures } from '@/lib/features'
 import { sendAlertEmail, type AlertItem } from '@/lib/email'
@@ -63,6 +64,17 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = createAdminClient()
+
+  // Bring everyone's areas back within their plan before spending anything on
+  // them. Plan limits were previously checked only when an area was created,
+  // so a trial ending or a downgrade left the extra areas in place and this
+  // cron carried on fetching them from PlanIt daily at our cost. Enforcing
+  // after the fetch would mean paying for the data first and then deciding the
+  // user was not entitled to it.
+  const reconciled = await enforcePlanLimitsForAll(supabase)
+  if (reconciled.length > 0) {
+    console.log('plan limits reconciled:', JSON.stringify(reconciled))
+  }
 
   // Oldest-fetched first. A run can now stop early on its time budget, so a
   // fixed order would leave the areas at the back permanently stale while the

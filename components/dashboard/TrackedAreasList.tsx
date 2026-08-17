@@ -5,6 +5,7 @@ import { MapPin, Inbox, ArrowRight } from 'lucide-react'
 import { deleteTrackedArea } from './actions'
 import ApplicationRow from './ApplicationRow'
 import { BAND_ORDER, type Band } from './FitScore'
+import Badge from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
 import { useToast } from '@/components/ui/Toast'
 import type { TrackedArea, PlanningApplication } from '@/types/database'
@@ -43,7 +44,9 @@ export default function TrackedAreasList({ areas, applications, trackedIds, show
 
   return (
     <div className="space-y-4">
-      {areas.map((area) => (
+      {[...areas]
+        .sort((a, b) => Number(b.is_active) - Number(a.is_active))
+        .map((area) => (
         <AreaCard
           key={area.id}
           area={area}
@@ -124,6 +127,48 @@ function AreaCard({
   }, [applications])
 
   const visible = showAll ? prioritised : prioritised.slice(0, 5)
+
+  // Suspended by the plan enforcer, not by the user — deleteTrackedArea removes
+  // the row outright, so nothing else in the product ever sets this false. The
+  // area keeps its settings and comes back on upgrade; saying so matters,
+  // because silently showing an area that no longer receives data is worse than
+  // showing nothing at all.
+  if (!area.is_active) {
+    return (
+      <div className="rounded-md border border-dashed border-border-strong bg-surface-sunken p-5 sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <p className="truncate font-medium text-ink-muted">{area.label}</p>
+            <p className="mt-1 truncate text-sm text-ink-muted">
+              {area.postcode} — {area.council_slug}
+            </p>
+          </div>
+          <Badge tone="warning" className="shrink-0">Paused</Badge>
+        </div>
+        <p className="mt-3 text-xs leading-relaxed text-ink-muted">
+          Your plan doesn&rsquo;t cover this many territories, so this one is
+          paused — it isn&rsquo;t being checked for new opportunities and
+          won&rsquo;t appear in your digest. Nothing has been deleted: upgrade and
+          it picks up exactly where it left off.
+        </p>
+        <div className="mt-3 flex items-center gap-3">
+          <Link
+            href="/settings#billing"
+            className="pp-lift inline-flex h-8 items-center rounded-sm bg-primary-500 px-3 text-xs font-medium text-white shadow-sm transition-[background-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:bg-primary-600 hover:shadow-primary active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
+          >
+            Upgrade to restore it
+          </Link>
+          <button
+            onClick={handleDelete}
+            disabled={isPending}
+            className="rounded-sm text-xs text-ink-muted transition-colors duration-fast ease-standard hover:text-danger-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2 disabled:opacity-40"
+          >
+            {isPending ? 'Removing…' : 'Remove'}
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="rounded-md border border-border bg-surface p-5 sm:p-6 shadow-sm">

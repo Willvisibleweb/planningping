@@ -70,6 +70,14 @@ export function effectiveTier(profile: Profile | null): ProTier {
   return 'top'
 }
 
+// The raw limits for a tier, for callers that have already resolved one —
+// notably the plan enforcer, which works from a profile row fetched with the
+// service role rather than from the request's session. Exported so the limits
+// table stays the single source of truth instead of being restated there.
+export function planLimits(tier: ProTier): { maxRadiusMetres: number; maxTrackedAreas: number } {
+  return TIER_LIMITS[tier]
+}
+
 export function maxRadiusMetres(profile: Profile | null): number {
   return TIER_LIMITS[effectiveTier(profile)].maxRadiusMetres
 }
