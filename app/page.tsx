@@ -86,16 +86,22 @@ export default function HomePage() {
             {/* Copy */}
             <div className="motion-safe-fade" style={{ animation: 'hero-fade-up 600ms cubic-bezier(.2,.7,.3,1) 100ms both' }}>
               <p className="inline-flex items-center rounded-full border border-border bg-primary-100 px-3 py-1 text-xs font-semibold text-primary-500 mb-5 tracking-wide uppercase">
-                UK Planning Application Tracker
+                Construction Sales Intelligence
               </p>
               {/* 52px at 375px overflowed on "applications"; steps up from 40px. */}
               <h1 className="mb-5 text-balance text-4xl font-bold leading-[1.06] tracking-tighter text-ink sm:text-5xl lg:text-6xl">
-                Spot planning applications
+                Find the <RotatingWord /> work
                 <br />
-                for <RotatingWord /> first.
+                before your competitors.
               </h1>
+              {/* Names the buyer and the job. The old copy sold monitoring to
+                  anyone — "whether you're watching your own street or sourcing
+                  new opportunities" — which is two products and convinces
+                  neither reader. */}
               <p className="text-lg text-ink-muted mb-7 leading-relaxed max-w-lg">
-                Track planning applications across any UK council area. Get a weekly digest every Monday — whether you&rsquo;re watching your own street or sourcing new opportunities.
+                PlanningPing turns UK development activity into a scored pipeline
+                for civils and groundworks firms: which schemes carry your scope,
+                who submitted them, and where your team should spend this week.
               </p>
               <div className="flex flex-wrap gap-3">
                 {/* Flat brand colour rather than the old gradient: this is a
@@ -155,7 +161,7 @@ export default function HomePage() {
                 {/* main */}
                 <div className="p-4">
                   <h2 className="mb-0.5 text-sm font-semibold text-ink">Your tracked areas</h2>
-                  <p className="mb-3.5 text-2xs text-neutral-500">Monitored weekly · digest every Monday</p>
+                  <p className="mb-3.5 text-2xs text-neutral-500">Scored daily · digest every Monday</p>
                   <div className="rounded-md border border-border bg-surface p-4 sm:p-5 shadow-sm">
                     <div className="mb-2.5 flex items-center justify-between">
                       <div>
@@ -220,7 +226,7 @@ export default function HomePage() {
                 <span className="text-xs text-neutral-500">to you · notifications@planningping</span>
               </div>
               <div className="px-5 py-[18px]">
-                <p className="text-lg font-bold tracking-tight text-ink">5 new planning applications</p>
+                <p className="text-lg font-bold tracking-tight text-ink">5 new opportunities</p>
                 <p className="mb-4 text-xs text-ink-muted">
                   Near <strong className="text-ink">SW1A 0RS</strong> — new since your last digest
                 </p>
@@ -259,27 +265,27 @@ export default function HomePage() {
               <div className="w-9 h-9 rounded-sm bg-primary-100 border border-border flex items-center justify-center mb-4 shadow-sm">
                 <MapPin size={16} className="text-primary-500" />
               </div>
-              <h3 className="text-sm font-semibold text-ink mb-2">Monitor any area</h3>
+              <h3 className="text-sm font-semibold text-ink mb-2">Find</h3>
               <p className="text-sm text-ink-muted leading-relaxed">
-                Add any UK postcode. We resolve the council automatically and start tracking every planning application in that area.
+                Add any UK postcode. We resolve the authority automatically and pick up every scheme it publishes in your radius — before it reaches a tender list.
               </p>
             </div>
             <div>
               <div className="w-9 h-9 rounded-sm bg-primary-100 border border-border flex items-center justify-center mb-4 shadow-sm">
                 <Mail size={16} className="text-primary-500" />
               </div>
-              <h3 className="text-sm font-semibold text-ink mb-2">Weekly digests</h3>
+              <h3 className="text-sm font-semibold text-ink mb-2">Prioritise</h3>
               <p className="text-sm text-ink-muted leading-relaxed">
-                Every Monday morning, get a clean email summary of what&apos;s new — application references, addresses, descriptions, and current status.
+                Every scheme is scored for the scope your firm actually wins — drainage, highways, groundworks, structures — and shows its working, so your team can qualify rather than guess.
               </p>
             </div>
             <div>
               <div className="w-9 h-9 rounded-sm bg-primary-100 border border-border flex items-center justify-center mb-4 shadow-sm">
                 <CheckCircle size={16} className="text-primary-500" />
               </div>
-              <h3 className="text-sm font-semibold text-ink mb-2">Never miss a decision</h3>
+              <h3 className="text-sm font-semibold text-ink mb-2">Win</h3>
               <p className="text-sm text-ink-muted leading-relaxed">
-                Status changes and decisions are flagged the moment we detect them — approved, refused, or pending. No manual checking required.
+                See who submitted the application, track it through your pipeline, and draft the approach. Decisions and status changes are flagged the moment we spot them.
               </p>
             </div>
           </div>
@@ -299,7 +305,7 @@ export default function HomePage() {
               <p className="mt-2 text-2xl font-semibold text-ink">Free</p>
               <p className="mt-1 text-xs text-neutral-500">forever</p>
               <ul className="mt-4 space-y-2 text-sm text-ink-muted">
-                <li>Track planning applications near you</li>
+                <li>Track schemes near you</li>
                 <li>{PRICING.free.radiusKm}km radius, {PRICING.free.maxAreas} tracked area</li>
                 <li>Weekly email digest</li>
               </ul>
@@ -354,7 +360,7 @@ export default function HomePage() {
       <footer className="border-t border-border">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-6">
           <span className="text-sm font-semibold text-ink">PlanningPing</span>
-          <span className="text-xs text-neutral-500">Track planning. Stay ahead.</span>
+          <span className="text-xs text-neutral-500">From planning signal to sales pipeline.</span>
         </div>
       </footer>
     </div>

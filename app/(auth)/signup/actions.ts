@@ -6,9 +6,15 @@ export async function signup(formData: FormData) {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
 
-  // Whitelisted server-side AND in the DB trigger — anything unexpected
-  // becomes 'homeowner'. Professionals get a 14-day trial via the trigger.
-  const userType = formData.get('user_type') === 'professional' ? 'professional' : 'homeowner'
+  // Every new account is professional: PlanningPing sells to construction
+  // firms, and the signup form no longer offers a choice.
+  //
+  // The fallback is the part that matters. This used to read `=== 'professional'
+  // ? 'professional' : 'homeowner'`, so a form that stopped sending the field
+  // would have silently created homeowner accounts for every new signup — no
+  // error, no trial, and the pipeline gated off. Existing homeowner accounts
+  // are untouched and keep working; this only governs new ones.
+  const userType = formData.get('user_type') === 'homeowner' ? 'homeowner' : 'professional'
 
   // Partner segmentation. Whitelisted the same way, and only honoured for
   // professional accounts — GabrielCAM's customers are construction firms, so

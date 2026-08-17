@@ -68,8 +68,8 @@ function writeCollapsed(next: boolean) {
 }
 
 const CORE_NAV = (professional: boolean) => [
-  { href: '/dashboard', label: 'Territory', icon: LayoutDashboard },
-  { href: '/leads', label: 'Leads', icon: Target },
+  { href: '/dashboard', label: 'Territories', icon: LayoutDashboard },
+  { href: '/leads', label: 'Opportunities', icon: Target },
   ...(professional ? [{ href: '/pipeline', label: 'Pipeline', icon: KanbanSquare }] : []),
   { href: '/settings', label: 'Settings', icon: Settings },
 ]

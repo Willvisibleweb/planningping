@@ -3,37 +3,17 @@
 import { useState, useTransition } from 'react'
 import { MailCheck } from 'lucide-react'
 import { signup } from './actions'
-import { PRICING } from '@/lib/stripe'
 import Button from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Input'
 import { Alert } from '@/components/ui/ErrorState'
 import Link from 'next/link'
 
-// Trial length and price read from lib/stripe's PRICING rather than being
-// retyped here. Hardcoding these is how "20+ councils" ended up on the landing
-// page long after it stopped being true.
-const USER_TYPES = [
-  {
-    value: 'homeowner',
-    title: "I'm a homeowner",
-    description: 'Follow planning applications near you and get a weekly email digest. Free forever.',
-  },
-  {
-    value: 'professional',
-    title: "I'm a professional",
-    description:
-      `CRM pipeline, lead scoring and AI outreach for civil engineers, agents and architects. ${PRICING.trialDays}-day free trial, no card required — then from £${PRICING.mid.monthly.amount}/mo.`,
-  },
-] as const
-
-export default function SignupForm({
-  defaultType = 'homeowner',
-}: {
-  defaultType?: 'homeowner' | 'professional'
-}) {
+export default function SignupForm() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const [userType, setUserType] = useState<string>(defaultType)
+  // Always professional now — retained because the partner question below
+  // is gated on it, and because the signup action still accepts the column.
+  const userType = 'professional'
   const [isPartner, setIsPartner] = useState(false)
   const [password, setPassword] = useState('')
   const [passwordError, setPasswordError] = useState<string | null>(null)
@@ -66,44 +46,16 @@ export default function SignupForm({
   return (
     <div className="rounded-md border border-border bg-surface p-5 sm:p-7 shadow-sm">
       <form action={handleSubmit} className="space-y-4">
-        <fieldset>
-          <legend className="block text-sm font-medium text-ink mb-2">
-            How will you use PlanningPing?
-          </legend>
-          <div className="space-y-2">
-            {USER_TYPES.map((t) => (
-              // The radio itself is sr-only, so without has-[:focus-visible]
-              // the keyboard focus indicator for this control was invisible —
-              // you could tab onto it with nothing on screen to show it.
-              <label
-                key={t.value}
-                className={`block cursor-pointer rounded-sm border p-4 transition-[background-color,border-color,box-shadow] duration-fast ease-standard has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary-500/45 has-[:focus-visible]:ring-offset-2 ${
-                  userType === t.value
-                    ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-500'
-                    : 'border-border hover:border-primary-300 hover:bg-primary-50/40'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="user_type"
-                  value={t.value}
-                  checked={userType === t.value}
-                  onChange={() => {
-                    setUserType(t.value)
-                    // Switching to homeowner clears the partner answer so it
-                    // can't be submitted from a hidden field.
-                    if (t.value !== 'professional') setIsPartner(false)
-                  }}
-                  className="sr-only"
-                />
-                <span className="block text-sm font-medium text-ink">{t.title}</span>
-                <span className="mt-1 block text-xs leading-relaxed text-ink-muted">
-                  {t.description}
-                </span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
+        {/* Account type is no longer a question. PlanningPing sells to
+            construction firms now, so every new account is professional and the
+            radio group that used to offer "I'm a homeowner" is gone. The hidden
+            field is what actually carries it: the server action reads
+            user_type from the form, so dropping the input entirely would have
+            silently created homeowner accounts for everyone — it falls back to
+            homeowner when the field is absent. Existing homeowner accounts are
+            untouched and keep working. */}
+        <input type="hidden" name="user_type" value="professional" />
+
 
         {/* Partner question, professional accounts only. GabrielCAM's customers
             are construction firms, and showing this to homeowners would

@@ -1,15 +1,22 @@
 'use client'
 
-// A single planning-application row: reference, date, description, address,
-// status pill (with an honest fallback when a source record has no status),
-// and the "Track Opportunity" action. Shared between the dashboard's
-// per-territory list and the territory detail page so both look identical —
-// only the territory page passes `distanceKm`.
+// A single opportunity row: what the scheme is, how well it fits, who submitted
+// it, and the two things you can do about it. Shared between the dashboard feed
+// and the territory page so both look identical — only the territory page
+// passes `distanceKm`.
+//
+// The fit verdict leads. This row previously showed the council's status badge
+// and nothing else on the right, which meant the one field that answers "is
+// this worth my time" — the score, already computed for every application —
+// was invisible everywhere except the leads page. Council status is planning
+// process; fit is the commercial signal, so fit goes first and status sits
+// under it as supporting detail.
 
 import { useState, useTransition } from 'react'
 import { HelpCircle, Check, ArrowRight } from 'lucide-react'
 import { trackOpportunity } from './leadActions'
 import { statusStyle } from '@/lib/statusStyle'
+import FitScore, { type Band } from './FitScore'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import LinkButton from '@/components/ui/LinkButton'
@@ -50,7 +57,11 @@ export default function ApplicationRow({
         setTracked(true)
         toast({
           title: 'Added to your pipeline',
-          description: `${app.reference} is now tracked at the Identified stage.`,
+          // Names no stage: they're user-configurable now, and this used to
+          // claim "the Identified stage", which stopped existing when the
+          // board moved onto pipeline_stages. The server places it at whatever
+          // the user's first stage is.
+          description: `${app.reference} is in your pipeline at your first stage.`,
           variant: 'success',
         })
         return
@@ -95,11 +106,23 @@ export default function ApplicationRow({
         {app.address && (
           <p className="text-xs text-ink-muted mt-0.5">{app.address}</p>
         )}
+        {/* The consultancy or architect that submitted it — for a civils firm
+            this is the route in, since you approach the agent rather than the
+            developer. Rendered only when known: PlanIt carries it on roughly
+            nine in ten records but capture only began recently, so most older
+            rows have nothing, and an empty "Submitted by —" on every one of
+            them would read as a broken field rather than a missing one. */}
+        {app.agent_company && (
+          <p className="mt-1.5 text-xs text-ink-muted">
+            Submitted by <span className="font-medium text-ink">{app.agent_company}</span>
+          </p>
+        )}
       </div>
       {/* Capped rather than shrink-0: status strings from councils run long
           ("Pending consideration"), and an uncapped column pushes the
           description to a one-word ribbon at 375px. */}
       <div className="flex w-24 shrink-0 flex-col items-end gap-1.5 text-right sm:w-auto sm:max-w-[45%]">
+        <FitScore score={app.score} band={app.band as Band | null} />
         {app.status ? (
           <Badge tone={statusTone} icon={StatusIcon}>
             {app.status}
@@ -133,7 +156,7 @@ export default function ApplicationRow({
           button whose label actually says what it does. */}
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <LinkButton href={`/applications/${app.id}`} size="sm" variant="secondary">
-          Open application
+          Open opportunity
           <ArrowRight size={13} className="shrink-0" aria-hidden="true" />
         </LinkButton>
 
@@ -143,9 +166,9 @@ export default function ApplicationRow({
             variant="ghost"
             onClick={handleTrack}
             loading={isPending}
-            loadingLabel="Tracking opportunity"
+            loadingLabel="Adding to pipeline"
           >
-            Track Opportunity
+            Add to pipeline
           </Button>
         )}
       </div>

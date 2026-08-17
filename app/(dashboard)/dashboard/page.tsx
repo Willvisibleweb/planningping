@@ -79,29 +79,42 @@ export default async function DashboardPage() {
   return (
     <div className="pp-stagger space-y-8">
       <div>
-        <h2 className="text-xl font-semibold text-ink mb-1">Your territory</h2>
+        <h2 className="text-xl font-semibold text-ink mb-1">Where to focus</h2>
         <p className="text-sm text-ink-muted">
-          PlanningPing monitors these areas and keeps your dashboard current as new applications land.
+          Development activity across your territories, scored for the work your
+          firm actually wins.
         </p>
       </div>
 
+      {/* Order is the argument. The strong matches come first because that is
+          the number a BD manager acts on; the size of the database is context,
+          not a result, so it sits last. It previously led with "Applications
+          tracked", which answered a question nobody asks. */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {showTrackActions && (
+          <>
+            <StatTile
+              label="Strong matches"
+              value={hotCount.count ?? 0}
+              sub="worth pursuing now"
+            />
+            <StatTile
+              label="In your pipeline"
+              value={pipelineCount.count ?? 0}
+              sub="opportunities you're working"
+            />
+          </>
+        )}
         <StatTile
           label="Territories"
           value={areas?.length ?? 0}
           sub={`across ${councilCount} planning ${councilCount === 1 ? 'authority' : 'authorities'}`}
         />
         <StatTile
-          label="Applications tracked"
+          label="Opportunities in view"
           value={totalApplications ?? 0}
-          sub="in your tracked territory"
+          sub="scored across your territories"
         />
-        {showTrackActions && (
-          <>
-            <StatTile label="HOT leads" value={hotCount.count ?? 0} sub="civils subcontract scope" />
-            <StatTile label="In your pipeline" value={pipelineCount.count ?? 0} sub="tracked opportunities" />
-          </>
-        )}
       </div>
 
       {/* Renders nothing for non-partners — see PartnerStatusWidget. */}
