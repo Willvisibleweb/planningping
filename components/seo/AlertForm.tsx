@@ -51,9 +51,12 @@ export default function AlertForm({ locationSlug, locationType, placeName }: Pro
   return (
     <form onSubmit={handleSubmit} className="rounded-md border border-border bg-primary-50 p-6">
       <label htmlFor="alert-email" className="block text-sm font-semibold tracking-tight text-ink">
-        Get alerted when a new application is submitted near {placeName}
+        Working in {placeName}? Get the schemes worth quoting.
       </label>
-      <p className="mt-1.5 text-sm text-ink-muted">Free weekly email. No spam, unsubscribe anytime.</p>
+      <p className="mt-1.5 text-sm text-ink-muted">
+        A free weekly email of new applications here, scored for civils scope —
+        drainage, highways, groundworks and structures. Unsubscribe anytime.
+      </p>
       <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
         <input
           id="alert-email"

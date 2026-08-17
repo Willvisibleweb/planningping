@@ -113,7 +113,7 @@ function card(item: DigestItem, siteUrl: string): string {
           ${item.address ? `<div style="font-family:${SANS};font-size:12px;line-height:1.5;color:${C.muted};margin:6px 0 0;">${esc(item.address)}</div>` : ''}
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0 0;"><tr>
             <td>${statusPill(item.status)}</td>
-            <td align="right"><a href="${href}" style="font-family:${SANS};font-size:12px;font-weight:600;color:${C.brandDark};text-decoration:none;">Open application &rarr;</a></td>
+            <td align="right"><a href="${href}" style="font-family:${SANS};font-size:12px;font-weight:600;color:${C.brandDark};text-decoration:none;">Open opportunity &rarr;</a></td>
           </tr></table>
           <div style="font-family:${SANS};font-size:11px;color:${C.faint};margin:8px 0 0;">${esc(item.areaLabel)}</div>
         </td></tr>
@@ -132,13 +132,13 @@ export function buildDigestHtml(d: DigestPayload, siteUrl: string): string {
 <meta name="color-scheme" content="light only">
 <title>Your PlanningPing digest</title></head>
 <body style="margin:0;padding:0;background:${C.page};">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${n} new application${n === 1 ? '' : 's'} across your ${d.areaCount} ${areaWord}.</div>
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${n} new ${n === 1 ? 'opportunity' : 'opportunities'} across your ${d.areaCount} ${areaWord}.</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.page};">
   <tr><td align="center" style="padding:28px 16px;">
     <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border:1px solid ${C.border};border-radius:14px;">
       <tr><td style="padding:24px 26px 18px;border-bottom:1px solid ${C.border};">
         <div style="font-family:${SANS};font-size:15px;font-weight:600;letter-spacing:-.02em;color:${C.ink};">Planning<span style="color:${C.brand};">Ping</span></div>
-        <div style="font-family:${SANS};font-size:20px;font-weight:600;letter-spacing:-.02em;color:${C.ink};margin:14px 0 0;">${n} new application${n === 1 ? '' : 's'} this week</div>
+        <div style="font-family:${SANS};font-size:20px;font-weight:600;letter-spacing:-.02em;color:${C.ink};margin:14px 0 0;">${n} new ${n === 1 ? 'opportunity' : 'opportunities'} this week</div>
         <div style="font-family:${SANS};font-size:13px;line-height:1.65;color:${C.muted};margin:6px 0 0;">Across your ${d.areaCount} ${areaWord} · ${esc(niceDate(d.periodStart))} to ${esc(niceDate(d.periodEnd))}</div>
       </td></tr>
       <tr><td style="padding:20px 26px 4px;">
@@ -149,7 +149,7 @@ export function buildDigestHtml(d: DigestPayload, siteUrl: string): string {
         <a href="${siteUrl}/dashboard" style="display:inline-block;background:${C.brand};color:#ffffff;font-family:${SANS};font-size:14px;font-weight:500;text-decoration:none;padding:11px 18px;border-radius:6px;">Open your dashboard</a>
       </td></tr>
       <tr><td style="padding:18px 26px 22px;border-top:1px solid ${C.border};background:${C.sunken};border-radius:0 0 14px 14px;">
-        <div style="font-family:${SANS};font-size:11px;line-height:1.65;color:${C.faint};">PlanningPing is an alerting tool, not professional advice. Planning data is collected from public portals and may be incomplete, delayed, or inaccurate. Always verify against the official planning authority before acting.</div>
+        <div style="font-family:${SANS};font-size:11px;line-height:1.65;color:${C.faint};">PlanningPing is a commercial intelligence tool, not professional advice. Planning data is collected from public portals and may be incomplete, delayed, or inaccurate. Always verify against the official planning authority before acting.</div>
         <div style="font-family:${SANS};font-size:11px;line-height:1.65;color:${C.faint};margin:10px 0 0;">
           <a href="${siteUrl}/settings" style="color:${C.muted};">Manage your digest</a> ·
           <a href="${siteUrl}/terms" style="color:${C.muted};">Terms</a> ·
@@ -174,7 +174,7 @@ export async function sendDigestEmail(d: DigestPayload, siteUrl: string): Promis
   if (d.items.length === 0) return false
 
   const n = d.items.length
-  const subject = `${n} new planning application${n === 1 ? '' : 's'} in your ${d.areaCount === 1 ? 'territory' : 'territories'}`
+  const subject = `${n} new ${n === 1 ? 'opportunity' : 'opportunities'} in your ${d.areaCount === 1 ? 'territory' : 'territories'}`
 
   try {
     const { error } = await resend.emails.send({

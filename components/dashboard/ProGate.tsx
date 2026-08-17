@@ -9,7 +9,7 @@ import { PRICING } from '@/lib/stripe'
 const COPY = {
   homeowner: {
     heading: 'This is a professional feature',
-    body: `The pipeline, opportunity tracking and AI outreach are built for civil engineering firms doing business development — pursuing planning applications as opportunities across drainage, highways, flood risk, SuDS, groundworks/geotechnical and structural scope. Your account is set up as a homeowner — you can switch to a professional account (with a ${PRICING.trialDays}-day free trial) in Settings.`,
+    body: `The pipeline, opportunity tracking and outreach drafting are built for construction firms doing business development — drainage, highways, flood risk, SuDS, groundworks, geotechnical and structural scope. Your account is set up as a homeowner, which predates that: switch it to a professional account in Settings and the ${PRICING.trialDays}-day trial starts then, no card required.`,
     cta: 'View account settings',
     href: '/settings',
   },
