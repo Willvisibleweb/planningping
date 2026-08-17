@@ -78,11 +78,12 @@ export default async function LeadsPage({
       )}
 
       <div>
-        <h2 className="text-xl font-semibold text-ink mb-1">Leads</h2>
+        <h2 className="text-xl font-semibold text-ink mb-1">Opportunities</h2>
         <p className="text-sm text-ink-muted">
-          Planning applications scored for likely subcontract scope — drainage, highways,
-          flood risk, SuDS, groundworks/geotechnical and structural work. Higher score means
-          a stronger signal; reasons show why each one scored.
+          Every scheme in your territories, scored for the work your firm wins —
+          drainage, highways, flood risk, SuDS, groundworks, geotechnical and
+          structural. Each one shows why it scored, so you can qualify it rather
+          than take our word for it.
         </p>
       </div>
 

@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { MapPin, Inbox, ArrowRight } from 'lucide-react'
 import { deleteTrackedArea } from './actions'
 import ApplicationRow from './ApplicationRow'
+import { BAND_ORDER, type Band } from './FitScore'
 import EmptyState from '@/components/ui/EmptyState'
 import { useToast } from '@/components/ui/Toast'
 import type { TrackedArea, PlanningApplication } from '@/types/database'
@@ -27,7 +28,7 @@ export default function TrackedAreasList({ areas, applications, trackedIds, show
         <EmptyState
           icon={MapPin}
           title="No territory tracked yet"
-          description="Add a postcode above and PlanningPing starts monitoring every application that authority publishes within your radius. First results usually land within the hour."
+          description="Add a postcode above and we'll score every scheme that authority publishes within your radius, so you see the ones worth pursuing. First results usually land within the hour."
         />
       </div>
     )
@@ -97,13 +98,32 @@ function AreaCard({
       }
       toast({
         title: `${area.label} removed`,
-        description: 'We’ve stopped monitoring that area.',
+        description: 'We’ve stopped tracking that area.',
         variant: 'success',
       })
     })
   }
 
-  const visible = showAll ? applications : applications.slice(0, 5)
+  // Strongest fit first, then newest within a band.
+  //
+  // The card shows five of up to thirty, and the list arrives in date order, so
+  // a strong match submitted a fortnight ago sat at position twelve — behind
+  // eleven tree works and condition discharges — and was never seen unless the
+  // user expanded the card. Sorting by fit puts the opportunity worth pursuing
+  // where the eye lands, which is the whole job of this page.
+  const prioritised = useMemo(() => {
+    const rank = (b: string | null) => {
+      const i = BAND_ORDER.indexOf(b as Band)
+      return i === -1 ? BAND_ORDER.length : i // unscored sorts last, not first
+    }
+    return [...applications].sort((a, b) => {
+      const byBand = rank(a.band) - rank(b.band)
+      if (byBand !== 0) return byBand
+      return (b.application_date ?? '').localeCompare(a.application_date ?? '')
+    })
+  }, [applications])
+
+  const visible = showAll ? prioritised : prioritised.slice(0, 5)
 
   return (
     <div className="rounded-md border border-border bg-surface p-5 sm:p-6 shadow-sm">
@@ -162,7 +182,7 @@ function AreaCard({
             >
               {showAll
                 ? 'Show less'
-                : `Show ${applications.length - 5} more application${applications.length - 5 === 1 ? '' : 's'}`}
+                : `Show ${applications.length - 5} more ${applications.length - 5 === 1 ? 'opportunity' : 'opportunities'}`}
             </button>
           )}
         </div>
@@ -171,7 +191,7 @@ function AreaCard({
           size="sm"
           icon={Inbox}
           title="Nothing here yet"
-          description="No applications published in this territory since monitoring began. New ones appear as the council releases them."
+          description="Nothing published in this territory yet. New opportunities appear here as councils release them."
         />
       )}
     </div>

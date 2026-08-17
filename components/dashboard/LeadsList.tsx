@@ -12,23 +12,17 @@ import Badge from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
 import LinkButton from '@/components/ui/LinkButton'
 import { useToast } from '@/components/ui/Toast'
+import { BAND_LABEL, BAND_TONE } from './FitScore'
 import type { PlanningApplication } from '@/types/database'
 
 type BandFilter = 'HOT' | 'WARM' | 'COLD' | 'ALL'
 
-// Band → Badge tone. Previously three separate Tailwind default palettes
-// (red/amber/slate) that matched nothing else in the app.
-const BAND_TONE = {
-  HOT: 'danger',
-  WARM: 'warning',
-  COLD: 'neutral',
-} as const
 
 const FILTERS: BandFilter[] = ['ALL', 'HOT', 'WARM', 'COLD']
 
 // Approved score disclaimer copy — shown as a caption and as the band tooltip.
 const SCORE_DISCLAIMER =
-  'Scores are automated estimates of likely relevance only. They are a starting point, not a recommendation — review each application yourself before acting on it.'
+  'Fit scores are automated estimates of likely commercial relevance. They are a starting point for qualification, not a recommendation — review each opportunity yourself before acting on it.'
 
 export default function LeadsList({
   applications,
@@ -64,7 +58,7 @@ export default function LeadsList({
                   : 'border-border bg-surface text-ink-muted hover:border-primary-300 hover:bg-primary-50 hover:text-ink'
               }`}
             >
-              {f}
+              {f === 'ALL' ? 'All' : BAND_LABEL[f]}
             </a>
           )
         })}
@@ -77,8 +71,8 @@ export default function LeadsList({
           {activeBand === 'ALL' ? (
             <EmptyState
               icon={Target}
-              title="No scored applications yet"
-              description="Once applications land in your tracked territories we score them for civils relevance, and the strongest ones appear here."
+              title="No scored opportunities yet"
+              description="As schemes land in your territories we score them for the work your firm wins — drainage, highways, groundworks, structures — and the strongest appear here."
               action={
                 <Link
                   href="/dashboard"
@@ -92,8 +86,8 @@ export default function LeadsList({
             <EmptyState
               size="sm"
               icon={Filter}
-              title={`Nothing in ${activeBand} right now`}
-              description="Your territories have scored applications, just none at this relevance band yet."
+              title={`Nothing ${BAND_LABEL[activeBand].toLowerCase()} right now`}
+              description="Your territories have scored opportunities, just none at this level yet."
               action={
                 <Link
                   href="/leads"
@@ -168,7 +162,7 @@ function LeadCard({
               title={SCORE_DISCLAIMER}
               className="cursor-help font-semibold"
             >
-              {band}
+              {BAND_LABEL[band]}
             </Badge>
             <span className="tabular-data text-xs text-ink-muted">score {app.score ?? 0}</span>
             {/* Plain text — opening is the explicit button in the action row. */}
