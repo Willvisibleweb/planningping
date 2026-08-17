@@ -8,6 +8,8 @@ import { getUserFeatures } from '@/lib/features'
 import TrackedAreasList from '@/components/dashboard/TrackedAreasList'
 import AddAreaForm from '@/components/dashboard/AddAreaForm'
 import PartnerStatusWidget from '@/components/features/PartnerStatusWidget'
+import StaleDataNotice from '@/components/dashboard/StaleDataNotice'
+import { getIngestFreshness } from '@/lib/health/ingestFreshness'
 import type { TrackedArea } from '@/types/database'
 
 function StatTile({ label, value, sub }: { label: string; value: number; sub: string }) {
@@ -35,6 +37,10 @@ export default async function DashboardPage() {
     supabase.from('tracked_leads').select('application_id'),
     getProfile(),
   ])
+
+  // Checked here because the dashboard runs whenever someone signs in, and does
+  // not depend on the scheduler that is the thing capable of failing.
+  const freshness = await getIngestFreshness()
 
   // A brand-new account has nothing to show here, and an empty state holding a
   // form is a worse first screen than being asked two questions. Sent to setup
@@ -92,6 +98,8 @@ export default async function DashboardPage() {
 
   return (
     <div className="pp-stagger space-y-8">
+      <StaleDataNotice health={freshness} />
+
       <div>
         <h2 className="text-xl font-semibold text-ink mb-1">Where to focus</h2>
         <p className="text-sm text-ink-muted">

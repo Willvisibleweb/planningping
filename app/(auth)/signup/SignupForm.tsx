@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { MailCheck } from 'lucide-react'
 import { signup } from './actions'
+import VerifyCodeForm from './VerifyCodeForm'
 import Button from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Input'
 import { Alert } from '@/components/ui/ErrorState'
@@ -10,7 +10,9 @@ import Link from 'next/link'
 
 export default function SignupForm() {
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
+  // The address the code was sent to. verifyOtp needs it alongside the code,
+  // and asking the user to retype it would be absurd when we already have it.
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null)
   // Always professional now — retained because the partner question below
   // is gated on it, and because the signup action still accepts the column.
   const userType = 'professional'
@@ -23,24 +25,18 @@ export default function SignupForm() {
     setError(null)
     startTransition(async () => {
       const result = await signup(formData)
-      if (result?.error) setError(result.error)
-      else setSuccess(true)
+      if (result?.error) {
+        setError(result.error)
+        return
+      }
+      setPendingEmail((formData.get('email') as string)?.trim() ?? null)
     })
   }
 
-  if (success) {
-    return (
-      <div className="rounded-md border border-border bg-surface p-5 sm:p-7 text-center shadow-sm">
-        <div className="mx-auto mb-4 grid size-11 place-items-center rounded-full bg-success-50 text-success-600 ring-1 ring-inset ring-success-200">
-          <MailCheck size={20} aria-hidden="true" />
-        </div>
-        <p className="text-sm font-semibold tracking-tight text-ink">Account created</p>
-        <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
-          Confirm your address from the email we&rsquo;ve just sent, then sign in and add
-          your first territory.
-        </p>
-      </div>
-    )
+  // Swaps the form for the code box in place, keeping the user on the tab they
+  // started in — which is the entire point of moving off a confirmation link.
+  if (pendingEmail) {
+    return <VerifyCodeForm email={pendingEmail} />
   }
 
   return (
