@@ -22,7 +22,17 @@ import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
 import { Alert } from '@/components/ui/ErrorState'
 
-const CODE_LENGTH = 6
+// Supabase's confirmation token length is a project setting (Authentication →
+// Providers → Email → Email OTP Length), not a constant we control, and it is
+// not always six — this project was observed issuing eight characters. So the
+// input accepts a range instead of asserting a length it cannot know.
+//
+// Nor is the code necessarily numeric. The first version stripped every
+// non-digit as it was typed, which silently deleted characters out of an
+// alphanumeric code and left the user staring at an input that refused to hold
+// what the email plainly said.
+const MIN_CODE_LENGTH = 6
+const MAX_CODE_LENGTH = 10
 
 export default function VerifyCodeForm({ email }: { email: string }) {
   const [code, setCode] = useState('')
@@ -41,12 +51,24 @@ export default function VerifyCodeForm({ email }: { email: string }) {
     setError(null)
     startTransition(async () => {
       const supabase = createClient()
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        email,
-        token: value,
-        // 'signup' is the type for a code confirming a newly created account.
-        type: 'signup',
-      })
+
+      // Supabase is inconsistent about which type names a signup confirmation:
+      // its own reference documents `type: 'email'` under "Verify Signup OTP",
+      // while `'signup'` is the type the signUp flow issues. Which one a project
+      // accepts depends on how the account was created, and getting it wrong
+      // returns a generic invalid-token error indistinguishable from the user
+      // mistyping. Trying both costs one extra request on a path taken once per
+      // account, and removes a whole class of "the code is right but it says
+      // it's wrong".
+      let verifyError = (
+        await supabase.auth.verifyOtp({ email, token: value, type: 'signup' })
+      ).error
+
+      if (verifyError) {
+        verifyError = (
+          await supabase.auth.verifyOtp({ email, token: value, type: 'email' })
+        ).error
+      }
 
       if (verifyError) {
         setError(
@@ -68,13 +90,18 @@ export default function VerifyCodeForm({ email }: { email: string }) {
   }
 
   function handleChange(raw: string) {
-    // Digits only, capped — so a pasted "Your code is 123456" still works.
-    const digits = raw.replace(/\D/g, '').slice(0, CODE_LENGTH)
-    setCode(digits)
+    // Strip only whitespace and punctuation, keeping letters and digits, so a
+    // pasted "Your code is: ABC-12345" still lands correctly. Uppercased
+    // because Supabase issues uppercase and the comparison is exact.
+    const cleaned = raw
+      .replace(/[^A-Za-z0-9]/g, '')
+      .toUpperCase()
+      .slice(0, MAX_CODE_LENGTH)
+    setCode(cleaned)
     setError(null)
-    // Submitting on the last digit saves a click, and there is nothing else on
-    // this screen the user might have meant to do instead.
-    if (digits.length === CODE_LENGTH) submit(digits)
+    // No auto-submit. It would have to guess the length, and guessing six
+    // against an eight-character code means firing two characters early and
+    // showing a wrong-code error to someone who typed it correctly.
   }
 
   function resend() {
@@ -98,14 +125,14 @@ export default function VerifyCodeForm({ email }: { email: string }) {
 
       <p className="text-sm font-semibold tracking-tight text-ink">Check your email</p>
       <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
-        We&rsquo;ve sent a {CODE_LENGTH}-digit code to{' '}
+        We&rsquo;ve sent a code to{' '}
         <span className="font-medium text-ink">{email}</span>. Enter it here to
         finish setting up — you can read the email anywhere, the code works on
         this device.
       </p>
 
       <label htmlFor="otp" className="sr-only">
-        {CODE_LENGTH}-digit confirmation code
+        Confirmation code from your email
       </label>
       <input
         id="otp"
@@ -113,13 +140,13 @@ export default function VerifyCodeForm({ email }: { email: string }) {
         value={code}
         onChange={(e) => handleChange(e.target.value)}
         disabled={isPending}
-        inputMode="numeric"
+        inputMode="text"
         // Lets iOS and Android offer the code straight from the SMS/email
         // notification instead of making the user switch apps to read it.
         autoComplete="one-time-code"
-        placeholder="000000"
+        placeholder="Enter code"
         aria-describedby={error ? 'otp-error' : undefined}
-        className="tabular-data mt-5 w-full rounded-sm border border-border-control bg-surface px-3 py-3 text-center text-2xl font-semibold tracking-[0.4em] text-ink placeholder:text-neutral-300 transition-[border-color,box-shadow] duration-fast ease-standard hover:border-primary-300 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15 disabled:opacity-60"
+        className="tabular-data mt-5 w-full rounded-sm border border-border-control bg-surface px-3 py-3 text-center text-2xl font-semibold tracking-[0.3em] uppercase text-ink placeholder:text-neutral-300 transition-[border-color,box-shadow] duration-fast ease-standard hover:border-primary-300 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15 disabled:opacity-60"
       />
 
       {error && (
@@ -136,7 +163,7 @@ export default function VerifyCodeForm({ email }: { email: string }) {
 
       <Button
         onClick={() => submit(code)}
-        disabled={code.length !== CODE_LENGTH}
+        disabled={code.length < MIN_CODE_LENGTH}
         loading={isPending}
         loadingLabel="Checking code"
         className="mt-4 w-full"
