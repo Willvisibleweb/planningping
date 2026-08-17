@@ -1,7 +1,17 @@
 import { MapPin, Mail, CheckCircle, Check } from 'lucide-react'
 import RotatingWord from '@/components/landing/RotatingWord'
+import LiveFeed from '@/components/landing/LiveFeed'
+import Reveal from '@/components/landing/Reveal'
+import CountUp from '@/components/landing/CountUp'
+import { getFeedItems, getLandingStats } from '@/components/landing/feedData'
 import { PRICING } from '@/lib/stripe'
 import Link from 'next/link'
+
+// Revalidate hourly. The feed and counts come from the database, but this page
+// is the most-hit route on the site and must not run two queries per visit —
+// an hour-old view of a register that updates once a day is indistinguishable
+// from a live one.
+export const revalidate = 3600
 
 // Small presentational helpers for the product mockups in the hero / inbox band.
 // These are pure markup (no real data) — a "screenshot" of the app rendered in
@@ -51,7 +61,10 @@ function AppRow({
   )
 }
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Both are independent, so they run together rather than in sequence.
+  const [feedItems, stats] = await Promise.all([getFeedItems(12), getLandingStats()])
+
   return (
     <div className="min-h-screen flex flex-col bg-surface">
       {/* Nav */}
@@ -257,11 +270,64 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Proof band — real coverage, and the real register scrolling past.
+          Competitors in this category lead with hard numbers (350+ councils,
+          thousands of live projects) and product surfaces, not decoration, so
+          this is the page answering "is there anything actually behind it". */}
+      <section className="border-t border-border bg-surface-sunken">
+        <div className="mx-auto max-w-6xl px-6 py-16">
+          <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.05fr]">
+            <div>
+              <Reveal>
+                <h2 className="text-balance text-2xl font-bold tracking-tighter text-ink sm:text-3xl">
+                  Real applications. Scored the day they land.
+                </h2>
+                <p className="mt-3 max-w-md text-base leading-relaxed text-ink-muted">
+                  Every planning authority in England, Scotland and Wales, read
+                  daily. The panel beside this is the live register, not a
+                  screenshot.
+                </p>
+              </Reveal>
+
+              <div className="mt-8 grid grid-cols-2 gap-5">
+                <Reveal delayMs={80}>
+                  <p className="text-3xl font-semibold tracking-tighter text-ink">
+                    <CountUp to={stats.authorities} suffix="+" />
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-ink-muted">
+                    UK planning authorities covered
+                  </p>
+                </Reveal>
+                <Reveal delayMs={140}>
+                  <p className="text-3xl font-semibold tracking-tighter text-ink">
+                    <CountUp to={stats.recentApplications} />
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-ink-muted">
+                    applications published in the last 30 days
+                  </p>
+                </Reveal>
+              </div>
+
+              <Reveal delayMs={200}>
+                <p className="mt-8 max-w-md text-xs leading-relaxed text-neutral-500">
+                  Scores are shown inside the product, not here — a fit score is
+                  the thing you are paying for.
+                </p>
+              </Reveal>
+            </div>
+
+            <Reveal delayMs={120}>
+              <LiveFeed items={feedItems} />
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
       {/* Features */}
       <section className="border-t border-border">
         <div className="max-w-6xl mx-auto px-6 py-16">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            <div>
+            <Reveal>
               <div className="w-9 h-9 rounded-sm bg-primary-100 border border-border flex items-center justify-center mb-4 shadow-sm">
                 <MapPin size={16} className="text-primary-500" />
               </div>
@@ -269,8 +335,8 @@ export default function HomePage() {
               <p className="text-sm text-ink-muted leading-relaxed">
                 Add any UK postcode. We resolve the authority automatically and pick up every scheme it publishes in your radius — before it reaches a tender list.
               </p>
-            </div>
-            <div>
+            </Reveal>
+            <Reveal delayMs={90}>
               <div className="w-9 h-9 rounded-sm bg-primary-100 border border-border flex items-center justify-center mb-4 shadow-sm">
                 <Mail size={16} className="text-primary-500" />
               </div>
@@ -278,8 +344,8 @@ export default function HomePage() {
               <p className="text-sm text-ink-muted leading-relaxed">
                 Every scheme is scored for the scope your firm actually wins — drainage, highways, groundworks, structures — and shows its working, so your team can qualify rather than guess.
               </p>
-            </div>
-            <div>
+            </Reveal>
+            <Reveal delayMs={180}>
               <div className="w-9 h-9 rounded-sm bg-primary-100 border border-border flex items-center justify-center mb-4 shadow-sm">
                 <CheckCircle size={16} className="text-primary-500" />
               </div>
@@ -287,7 +353,7 @@ export default function HomePage() {
               <p className="text-sm text-ink-muted leading-relaxed">
                 See who submitted the application, track it through your pipeline, and draft the approach. Decisions and status changes are flagged the moment we spot them.
               </p>
-            </div>
+            </Reveal>
           </div>
         </div>
       </section>
