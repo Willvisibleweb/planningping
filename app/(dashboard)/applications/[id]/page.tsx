@@ -1,7 +1,12 @@
-// Single planning-application detail page. Didn't exist before this feature
-// — applications previously only ever rendered as rows inside lists
-// (dashboard, territory page, leads page). Built specifically to host the
-// discharge-of-condition sub-list / parent link.
+// Opportunity detail — what the scheme is, whether it's worth your time, who
+// submitted it, and what to do next. The planning record supports that case
+// rather than being the whole page.
+//
+// It started life as a viewer for the discharge-of-condition parent/child
+// linkage, and read like one: reference, description, status, linked records.
+// It showed no score at all, on the one screen where someone has decided to
+// look properly — so the page that should close the qualification loop was the
+// only place the qualification data was missing.
 //
 // RLS note: planning_applications' select policy has no row-specific
 // predicate beyond council membership (via tracked_areas), so a direct
@@ -16,6 +21,8 @@ import { getUserFeatures } from '@/lib/features'
 import { ChevronRight } from 'lucide-react'
 import Badge from '@/components/ui/Badge'
 import SiteMonitoringButton from '@/components/features/SiteMonitoringButton'
+import ScoreBreakdown from '@/components/dashboard/ScoreBreakdown'
+import FitScore, { type Band } from '@/components/dashboard/FitScore'
 import type { PlanningApplication } from '@/types/database'
 import Link from 'next/link'
 
@@ -97,6 +104,14 @@ export default async function ApplicationDetailPage({
         {app.address && <p className="mt-1 text-sm text-ink-muted">{app.address}</p>}
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
+          {/* First badge in the row, ahead of the council's status: the reason
+              someone opened this page is to decide whether to pursue it. */}
+          <FitScore
+            score={app.score}
+            band={app.band as Band | null}
+            showNumber
+            className="px-2.5 py-1 text-xs"
+          />
           {app.status ? (
             <Badge tone={statusTone} icon={StatusIcon} className="px-2.5 py-1 text-xs">
               {app.status}
@@ -160,6 +175,70 @@ export default async function ApplicationDetailPage({
           <div className="mt-4">
             <SiteMonitoringButton app={app} hubId={profile?.partner_hub_id ?? null} />
           </div>
+        )}
+      </div>
+
+      {/* Why this fits — the qualification case, stated in full rather than as
+          a number. ScoreBreakdown is the same component the pipeline panel
+          uses, so an opportunity reads identically before and after it becomes
+          a lead. */}
+      <div className="rounded-md border border-border bg-surface p-4 sm:p-5 shadow-sm">
+        <h3 className="text-sm font-medium text-ink">Why this fits your business</h3>
+        <p className="mt-1 text-xs leading-relaxed text-ink-muted">
+          Scored on the scope this scheme is likely to carry — drainage,
+          highways, groundworks, structures — not on how big or newsworthy it
+          is. An estimate to qualify, not a recommendation.
+        </p>
+        <div className="mt-4">
+          <ScoreBreakdown
+            score={app.score}
+            band={app.band as Band | null}
+            reasons={app.score_reasons}
+          />
+        </div>
+      </div>
+
+      {/* Companies involved.
+          Only the agent company is obtainable today: PlanIt redacts
+          applicant_name, agent_name and case_officer to the literal string
+          "See source" on every record checked, so the developer and every named
+          individual are simply not in the feed. This section therefore states
+          what is known and what isn't, rather than rendering five empty rows
+          for Developer / Architect / Engineer / Contractor and implying we
+          failed to find them. It grows as real sources are added. */}
+      <div className="rounded-md border border-border bg-surface p-4 sm:p-5 shadow-sm">
+        <h3 className="text-sm font-medium text-ink">Who&rsquo;s involved</h3>
+        {app.agent_company ? (
+          <>
+            <dl className="mt-3">
+              <dt className="text-2xs font-semibold uppercase tracking-wider text-ink-muted">
+                Agent
+              </dt>
+              <dd className="mt-0.5 text-sm font-medium text-ink">{app.agent_company}</dd>
+            </dl>
+            <p className="mt-3 text-xs leading-relaxed text-ink-muted">
+              The consultancy or architect that submitted this application, and
+              your route in — on a scheme this size the agent is usually
+              appointed before the contractor is.
+            </p>
+          </>
+        ) : (
+          <p className="mt-2 text-xs leading-relaxed text-ink-muted">
+            No agent recorded for this application. Councils publish this
+            inconsistently, and the developer and case officer are withheld from
+            the data feed entirely — the council&rsquo;s own portal page is the
+            place to check.
+          </p>
+        )}
+        {typeof app.raw_data?.url === 'string' && (
+          <a
+            href={app.raw_data.url}
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            className="pp-link mt-3 inline-block text-xs font-medium"
+          >
+            View the council record &rarr;
+          </a>
         )}
       </div>
 
