@@ -23,13 +23,30 @@ export default function SignupForm() {
 
   async function handleSubmit(formData: FormData) {
     setError(null)
+    // Read the address BEFORE the action runs, not after.
+    //
+    // React resets the form once a form action resolves, and the FormData that
+    // was handed to a server action is not guaranteed to still read back on the
+    // client afterwards. Reading it after the await returned null, so
+    // pendingEmail stayed null, so the component fell through to rendering the
+    // form again — which looked exactly like "it sent the code and dumped me
+    // back on the signup page".
+    const email = (formData.get('email') as string | null)?.trim() ?? ''
+
     startTransition(async () => {
       const result = await signup(formData)
       if (result?.error) {
         setError(result.error)
         return
       }
-      setPendingEmail((formData.get('email') as string)?.trim() ?? null)
+      if (!email) {
+        // Should be impossible — the field is required — but falling back to a
+        // message beats silently re-rendering the form with no explanation,
+        // which is the failure this whole comment is about.
+        setError('Account created, but we lost track of your email address. Sign in to continue.')
+        return
+      }
+      setPendingEmail(email)
     })
   }
 
