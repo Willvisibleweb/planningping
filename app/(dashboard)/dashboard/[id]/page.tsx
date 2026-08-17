@@ -178,6 +178,7 @@ export default async function TerritoryPage({
       <div className="rounded-md border border-border bg-surface p-5 sm:p-6 shadow-sm">
         <h3 className="text-sm font-medium text-ink mb-3">Applications</h3>
         <ApplicationSearchList
+          areaId={area.id}
           items={sorted.map(({ app, distance }) => ({
             app,
             distanceKm: distance,
