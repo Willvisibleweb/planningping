@@ -1,3 +1,5 @@
+import type { SectorCode } from '@/lib/sectors'
+
 // Hand-written types matching supabase/schema.sql.
 // When the schema changes, update these types to match.
 
@@ -25,6 +27,10 @@ export interface Profile {
   // Null = free tier, or trialing without a completed checkout yet — see
   // lib/access.ts's effectiveTier() for how the null case is resolved.
   pro_tier: 'mid' | 'top' | null
+  // What the account sells, captured during onboarding. Null means never asked
+  // — every account created before onboarding existed has one. Steers defaults
+  // and copy; never gates access. Codes match the CHECK in migration 0025.
+  sector: SectorCode | null
   digest_day: DigestDay
   // Partner network this account belongs to, or null for the standard
   // experience. Gates partner-only UI and server actions — see lib/features.ts.

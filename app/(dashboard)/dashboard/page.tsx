@@ -1,6 +1,7 @@
 // Dashboard home — shows the user's tracked areas and recent applications.
 // All data fetching is server-side. RLS ensures users only see their own data.
 
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getProfile, hasProAccess } from '@/lib/access'
 import { getUserFeatures } from '@/lib/features'
@@ -34,6 +35,19 @@ export default async function DashboardPage() {
     supabase.from('tracked_leads').select('application_id'),
     getProfile(),
   ])
+
+  // A brand-new account has nothing to show here, and an empty state holding a
+  // form is a worse first screen than being asked two questions. Sent to setup
+  // instead — which redirects straight back if a territory does exist, so the
+  // two cannot bounce off each other.
+  //
+  // Gated on sector being unset as well as having no areas: someone who
+  // completed onboarding and later deleted their only territory has already
+  // answered these questions, and should get the empty state and the form
+  // rather than being walked through setup a second time.
+  if ((areas ?? []).length === 0 && !profile?.sector) {
+    redirect('/onboarding')
+  }
 
   const councilSlugs = [...new Set((areas ?? []).map((a: TrackedArea) => a.council_slug))]
   const trackedIds = new Set((leads ?? []).map((l) => l.application_id as string))
