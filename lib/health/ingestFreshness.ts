@@ -22,11 +22,23 @@ import { createAdminClient } from '@/lib/supabase/admin'
 export const STALE_AFTER_HOURS = 48
 
 export interface IngestFreshness {
+  /** True only when something is genuinely wrong — see the note on new areas. */
   stale: boolean
   /** Hours since the most recent successful fetch, null if there has never been one. */
   hoursSinceFetch: number | null
   /** Active areas whose last successful fetch is older than the threshold. */
   staleAreas: number
+  /**
+   * Areas added too recently to have been fetched yet.
+   *
+   * Counted apart from staleAreas because they are not a fault. Treating a
+   * never-fetched area as broken meant adding a territory immediately produced
+   * "our check for new applications has never run" — alarming, and untrue: the
+   * check was running fine every morning, that area simply had not had its turn.
+   * The alarm now fires only when an area has had a full threshold window to be
+   * picked up and still has not been.
+   */
+  awaitingFirstFetch: number
   totalAreas: number
 }
 
@@ -64,30 +76,47 @@ async function measure(supabase: any): Promise<IngestFreshness> {
   // completed, it just never wrote anything.
   const { data } = await supabase
     .from('tracked_areas')
-    .select('last_planit_fetch_at')
+    .select('last_planit_fetch_at, created_at')
     .eq('is_active', true)
 
-  const areas = (data ?? []) as { last_planit_fetch_at: string | null }[]
+  const areas = (data ?? []) as { last_planit_fetch_at: string | null; created_at: string }[]
   if (areas.length === 0) {
-    return { stale: false, hoursSinceFetch: null, staleAreas: 0, totalAreas: 0 }
+    return {
+      stale: false,
+      hoursSinceFetch: null,
+      staleAreas: 0,
+      awaitingFirstFetch: 0,
+      totalAreas: 0,
+    }
   }
 
   const cutoff = Date.now() - STALE_AFTER_HOURS * 3_600_000
   let newest = 0
   let staleAreas = 0
+  let awaitingFirstFetch = 0
 
   for (const a of areas) {
-    const t = a.last_planit_fetch_at ? new Date(a.last_planit_fetch_at).getTime() : 0
-    if (t > newest) newest = t
-    // A never-fetched area counts as stale. It is a real problem — it means an
-    // area was added and nothing has ever looked at it.
-    if (t < cutoff) staleAreas++
+    const fetched = a.last_planit_fetch_at ? new Date(a.last_planit_fetch_at).getTime() : null
+    if (fetched !== null && fetched > newest) newest = fetched
+
+    if (fetched === null) {
+      // Never fetched. Whether that is a fault depends entirely on age: added
+      // ten minutes ago it is simply waiting for the next run, added a week ago
+      // and never touched, something is wrong.
+      const created = new Date(a.created_at).getTime()
+      if (created < cutoff) staleAreas++
+      else awaitingFirstFetch++
+      continue
+    }
+
+    if (fetched < cutoff) staleAreas++
   }
 
   return {
     stale: staleAreas > 0,
     hoursSinceFetch: newest > 0 ? Math.floor((Date.now() - newest) / 3_600_000) : null,
     staleAreas,
+    awaitingFirstFetch,
     totalAreas: areas.length,
   }
 }

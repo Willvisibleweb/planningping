@@ -10,10 +10,31 @@
 // Rendered from the dashboard, which does not depend on the scheduler that
 // fails. The health endpoint covers the case where nobody is logged in.
 
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, Clock } from 'lucide-react'
 import { STALE_AFTER_HOURS, type IngestFreshness } from '@/lib/health/ingestFreshness'
 
 export default function StaleDataNotice({ health }: { health: IngestFreshness }) {
+  // A territory added minutes ago has nothing in it yet, and that is worth
+  // saying calmly rather than either staying silent (the page looks broken) or
+  // warning (nothing is wrong). Only shown when there is no real problem to
+  // report, so the two never stack up and contradict each other.
+  if (!health.stale && health.awaitingFirstFetch > 0) {
+    const n = health.awaitingFirstFetch
+    return (
+      <div
+        role="status"
+        className="flex items-start gap-3 rounded-md border border-border bg-primary-50 px-4 py-3"
+      >
+        <Clock size={16} className="mt-0.5 shrink-0 text-primary-500" aria-hidden="true" />
+        <p className="text-sm leading-relaxed text-primary-900">
+          {n === 1 ? 'A territory you just added is' : `${n} territories you just added are`}{' '}
+          still being gathered. First results usually land within the hour, and
+          it fills in automatically &mdash; nothing to do.
+        </p>
+      </div>
+    )
+  }
+
   if (!health.stale) return null
 
   const { hoursSinceFetch, staleAreas, totalAreas } = health
