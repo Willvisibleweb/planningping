@@ -18,7 +18,6 @@ import type { PlanningApplication } from '@/types/database'
 type BandFilter = 'HOT' | 'WARM' | 'COLD' | 'ALL'
 
 
-const FILTERS: BandFilter[] = ['ALL', 'HOT', 'WARM', 'COLD']
 
 // Approved score disclaimer copy — shown as a caption and as the band tooltip.
 const SCORE_DISCLAIMER =
@@ -42,27 +41,10 @@ export default function LeadsList({
       {/* Score disclaimer — visible at the point scores are read. */}
       <p className="text-xs leading-relaxed text-ink-muted">{SCORE_DISCLAIMER}</p>
 
-      {/* Band filter */}
-      <div className="flex gap-2">
-        {FILTERS.map((f) => {
-          const href = f === 'ALL' ? '/leads' : `/leads?band=${f}`
-          const active = f === activeBand
-          return (
-            <a
-              key={f}
-              href={href}
-              aria-current={active ? 'page' : undefined}
-              className={`rounded-full border px-3 py-1 text-xs font-medium transition-[background-color,border-color,color,box-shadow] duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2 ${
-                active
-                  ? 'border-neutral-900 bg-neutral-900 text-white shadow-sm'
-                  : 'border-border bg-surface text-ink-muted hover:border-primary-300 hover:bg-primary-50 hover:text-ink'
-              }`}
-            >
-              {f === 'ALL' ? 'All' : BAND_LABEL[f]}
-            </a>
-          )
-        })}
-      </div>
+      {/* The band pills that used to sit here are gone. FilterBar owns fit now,
+          and two controls for one thing is one too many — worse, these were
+          plain anchors to /leads?band=X, so choosing a band silently discarded
+          every other filter the user had set and reloaded the whole page. */}
 
       {applications.length === 0 ? (
         <div className="rounded-md border border-dashed border-border bg-surface">
@@ -86,14 +68,14 @@ export default function LeadsList({
             <EmptyState
               size="sm"
               icon={Filter}
-              title={`Nothing ${BAND_LABEL[activeBand].toLowerCase()} right now`}
+              title={`Nothing rated “${BAND_LABEL[activeBand]}” right now`}
               description="Your territories have scored opportunities, just none at this level yet."
               action={
                 <Link
                   href="/leads"
                   className="pp-lift inline-flex h-8 items-center rounded-sm border border-border bg-surface px-3 text-xs font-medium text-ink shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:border-primary-300 hover:bg-primary-50 hover:shadow-md active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
                 >
-                  Show all leads
+                  Show all opportunities
                 </Link>
               }
             />
