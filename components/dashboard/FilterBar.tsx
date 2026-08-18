@@ -13,7 +13,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { SlidersHorizontal, X, Check } from 'lucide-react'
+import { SlidersHorizontal, X, Check, Download } from 'lucide-react'
 import {
   SCOPES,
   DECISION_STATES,
@@ -76,11 +76,14 @@ export default function FilterBar({
   councils,
   resultCount,
   contactsAvailable,
+  canExport,
 }: {
   filters: OpportunityFilters
   /** The user's own tracked councils — never the full national list. */
   councils: { slug: string; name: string }[]
   resultCount: number
+  /** Hidden for accounts without an active plan — the route re-checks anyway. */
+  canExport: boolean
   /**
    * How many opportunities in scope actually carry an agent. The control is
    * hidden at zero rather than shown returning nothing: every council holding
@@ -91,6 +94,13 @@ export default function FilterBar({
 }) {
   const active = activeFilterCount(filters)
   const [open, setOpen] = useState(active > 0)
+
+  // Reuses buildFilterHref so the export carries precisely the filters the user
+  // is looking at — no second serialisation to drift out of step with the
+  // first. The 'band' no-op just re-emits the current state as a query string.
+  const exportHref = '/leads/export' + (buildFilterHref(filters, 'band', filters.band).split('?')[1]
+    ? '?' + buildFilterHref(filters, 'band', filters.band).split('?')[1]
+    : '')
 
   return (
     <div className="rounded-md border border-border bg-surface">
@@ -120,6 +130,19 @@ export default function FilterBar({
             >
               Clear all
             </Link>
+          )}
+          {canExport && resultCount > 0 && (
+            // A plain anchor, not a fetch-and-blob: the browser handles the
+            // download natively from Content-Disposition, which means it works
+            // with no JavaScript, shows real download progress, and cannot leave
+            // an object URL leaking if the user navigates mid-download.
+            <a
+              href={exportHref}
+              className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-surface px-2.5 py-1 text-xs font-medium text-ink shadow-sm transition-[background-color,border-color,box-shadow] duration-fast ease-standard hover:border-primary-300 hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
+            >
+              <Download size={13} aria-hidden="true" />
+              Export CSV
+            </a>
           )}
         </div>
       </div>
