@@ -76,7 +76,27 @@ export async function addTrackedArea(formData: FormData) {
   // waiting for tomorrow's 6am ingest run. Best-effort: if PlanIt is briefly
   // unavailable or rate-limited, the area is still added successfully and the
   // next scheduled run will pick it up.
-  await fetchAndIngestNearby(admin, inserted.postcode, inserted.radius_metres, council.slug)
+  const firstFetch = await fetchAndIngestNearby(
+    admin, inserted.postcode, inserted.radius_metres, council.slug,
+  )
+
+  // Stamp the AREA, not just the council.
+  //
+  // fetchAndIngestNearby stamps councils.last_planit_fetch_at, which is what
+  // its own skip check reads — but tracked_areas.last_planit_fetch_at is only
+  // ever written by the ingest cron. So an area added here was genuinely
+  // fetched and still read as never-fetched everywhere else, including the
+  // freshness check, which then told the user the ingest had never run.
+  //
+  // Returns null on failure and { skipped: true } when the council was fetched
+  // recently enough to reuse; both mean this area's own data is current, so
+  // only an outright failure leaves the stamp unset for the cron to pick up.
+  if (firstFetch) {
+    await admin
+      .from('tracked_areas')
+      .update({ last_planit_fetch_at: new Date().toISOString() })
+      .eq('id', inserted.id)
+  }
 
   revalidatePath('/dashboard')
   return {}
