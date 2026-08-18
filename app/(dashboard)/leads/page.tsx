@@ -116,6 +116,7 @@ export default async function LeadsPage({
         councils={councils}
         resultCount={applications.length}
         contactsAvailable={contactsAvailable}
+        canExport={showTrackActions}
       />
 
       <LeadsList
