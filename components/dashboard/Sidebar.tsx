@@ -16,6 +16,7 @@ import {
   Target,
   KanbanSquare,
   BarChart3,
+  Gavel,
   Settings,
   LogOut,
   PanelLeftClose,
@@ -72,6 +73,7 @@ const CORE_NAV = (professional: boolean) => [
   { href: '/dashboard', label: 'Territories', icon: LayoutDashboard },
   { href: '/leads', label: 'Opportunities', icon: Target },
   ...(professional ? [{ href: '/pipeline', label: 'Pipeline', icon: KanbanSquare }] : []),
+  ...(professional ? [{ href: '/tenders', label: 'Tenders', icon: Gavel }] : []),
   ...(professional ? [{ href: '/analytics', label: 'Analytics', icon: BarChart3 }] : []),
   { href: '/settings', label: 'Settings', icon: Settings },
 ]

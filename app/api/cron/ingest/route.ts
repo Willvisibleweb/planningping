@@ -28,6 +28,7 @@ import { flagStaleDischarges } from '@/lib/ingest/flagStaleDischarges'
 import { sendDischargeAlerts } from '@/lib/alerts/dischargeAlerts'
 import { sendDecisionAlerts } from '@/lib/alerts/decisionAlerts'
 import { enforcePlanLimitsForAll } from '@/lib/plan/enforceLimits'
+import { ingestTenders } from '@/lib/tenders/ingestTenders'
 import { hasProAccess } from '@/lib/access'
 import { getUserFeatures } from '@/lib/features'
 import { sendAlertEmail, type AlertItem } from '@/lib/email'
@@ -75,6 +76,12 @@ export async function GET(request: NextRequest) {
   if (reconciled.length > 0) {
     console.log('plan limits reconciled:', JSON.stringify(reconciled))
   }
+
+  // Tenders first: one HTTP call and one upsert, a couple of seconds. Running it
+  // before the planning loop means it still happens on a day when that loop
+  // exhausts its time budget and stops early — the reverse order would make
+  // tenders the first thing silently dropped on a slow day.
+  const tenderResult = await ingestTenders(supabase)
 
   // Oldest-fetched first. A run can now stop early on its time budget, so a
   // fixed order would leave the areas at the back permanently stale while the
@@ -225,6 +232,9 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     ran_at: new Date().toISOString(),
     source: 'planit',
+    // Reported so a run that fetched no tenders is visibly a quiet day rather
+    // than an integration that quietly stopped working.
+    tenders: tenderResult,
     areas_queried: perArea.length,
     areas_pending: queries.length - perArea.length,
     stopped_early: stoppedEarly,
