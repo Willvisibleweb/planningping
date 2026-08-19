@@ -11,9 +11,15 @@
 // together, and that the radius still applies within the window (same postcode
 // and window returns 19 at 5km, 7 at 1km).
 //
-// Manual, not scheduled. It is a catch-up: once run, the daily ingest keeps
-// things current, and re-running it every morning would spend PlanIt's goodwill
-// re-reading years nothing has changed in.
+// Resumable, which is the difference between a one-off script and something
+// that still works at scale. Each territory records how far back it has been
+// taken, and a run picks up the least-progressed first — so the job can be
+// called repeatedly and grinds through however many territories exist. Without
+// that it restarts at month one every run: invisible at nine territories, fatal
+// past about thirty, and silent either way because every run reports success.
+//
+// Safe to call repeatedly. Once every territory is complete it does almost
+// nothing, so it can be scheduled or left manual without waste.
 //
 //   curl -H "Authorization: Bearer $CRON_SECRET" \
 //        "https://planningping.com/api/cron/backfill-history?months=12"
@@ -52,13 +58,21 @@ export async function GET(request: NextRequest) {
   const supabase = createAdminClient()
   const startedAt = Date.now()
 
+  // Least-progressed first, nulls before anything. Same ordering the daily
+  // ingest uses on last_planit_fetch_at, for the same reason: a fixed order
+  // starves whatever sits at the back.
   const { data: areas } = await supabase
     .from('tracked_areas')
-    .select('id, postcode, radius_metres, council_slug')
+    .select('id, postcode, radius_metres, council_slug, history_backfilled_through')
     .eq('is_active', true)
+    .order('history_backfilled_through', { ascending: false, nullsFirst: true })
 
   const rows = (areas ?? []) as {
-    id: string; postcode: string; radius_metres: number | null; council_slug: string
+    id: string
+    postcode: string
+    radius_metres: number | null
+    council_slug: string
+    history_backfilled_through: string | null
   }[]
 
   // Collapse duplicate postcode+radius pairs. Several accounts track the same
@@ -73,7 +87,15 @@ export async function GET(request: NextRequest) {
     return true
   })
 
-  const report: Record<string, { fetched: number; stored: number; windows: number }> = {}
+  // The oldest month this run will reach. A territory already backfilled to or
+  // beyond it has nothing left to do and is skipped entirely rather than
+  // re-fetched — which is what makes repeated calls cheap.
+  const horizon = monthWindow(months).start
+
+  const report: Record<
+    string,
+    { fetched: number; stored: number; windows: number; skipped?: string }
+  > = {}
   let stoppedEarly = false
   let totalStored = 0
 
@@ -88,6 +110,12 @@ export async function GET(request: NextRequest) {
   outer: for (const area of targets) {
     const km = Math.max((area.radius_metres ?? 1000) / 1000, MIN_RADIUS_KM)
     const key = `${area.postcode} @ ${km}km`
+
+    if (area.history_backfilled_through && area.history_backfilled_through <= horizon) {
+      report[key] = { fetched: 0, stored: 0, windows: 0, skipped: 'already complete' }
+      continue
+    }
+
     const stats = report[key] ?? { fetched: 0, stored: 0, windows: 0 }
     report[key] = stats
 
@@ -138,6 +166,18 @@ export async function GET(request: NextRequest) {
         // One bad window must not end the run. PlanIt intermittently 502s and
         // hangs; the window is simply missing and a later run can pick it up.
       }
+
+      // Recorded after each window rather than at the end of the territory, so
+      // a run killed mid-territory still keeps what it achieved. Written on the
+      // area row that produced this fetch and on any sibling sharing the same
+      // postcode and radius, since the dedupe above means one fetch covers all
+      // of them and leaving siblings null would re-fetch identical data.
+      await supabase
+        .from('tracked_areas')
+        .update({ history_backfilled_through: start })
+        .eq('postcode', area.postcode)
+        .eq('is_active', true)
+        .or(`history_backfilled_through.is.null,history_backfilled_through.gt.${start}`)
 
       await new Promise((r) => setTimeout(r, DELAY_MS))
     }
