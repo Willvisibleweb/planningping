@@ -157,15 +157,27 @@ function mapRecord(r: PlanItRecord): PlanItApplication | null {
 export async function fetchNearby(opts: {
   postcode: string
   radiusKm: number
+  /** Rolling window. Ignored when startDate/endDate are given. */
   recentDays: number
+  /** Inclusive YYYY-MM-DD bounds, for backfilling history rather than the
+   *  rolling window. Verified against the live API: pcode, krad and a date
+   *  range are honoured together, and the radius still applies — the same
+   *  postcode and window returns 19 at 5km and 7 at 1km. */
+  startDate?: string
+  endDate?: string
   pageSize?: number
 }): Promise<PlanItApplication[]> {
   const params = new URLSearchParams({
     pcode: normalisePostcode(opts.postcode),
     krad: String(opts.radiusKm),
-    recent: String(opts.recentDays),
     pg_sz: String(opts.pageSize ?? 200),
   })
+  if (opts.startDate && opts.endDate) {
+    params.set('start_date', opts.startDate)
+    params.set('end_date', opts.endDate)
+  } else {
+    params.set('recent', String(opts.recentDays))
+  }
   const url = `${APPLICS_URL}?${params.toString()}`
 
   const res = await getWithBackoff(url)
