@@ -19,6 +19,8 @@ import OpportunityCard from '@/components/landing/OpportunityCard'
 import Reveal from '@/components/landing/Reveal'
 import CountUp from '@/components/landing/CountUp'
 import { getLandingStats } from '@/components/landing/feedData'
+import CoverageSection from '@/components/landing/CoverageSection'
+import { getCoveragePoints } from '@/lib/analytics/coverageMap'
 import { searchArea, getRecentOpportunities, SEARCH_SCOPES } from '@/lib/search/areaSearch'
 import { PRICING } from '@/lib/stripe'
 
@@ -43,13 +45,14 @@ const FLOW = [
 
 export default async function HomePage() {
   // All independent — one round of parallel work rather than a waterfall.
-  const [stats, recent, seeded] = await Promise.all([
+  const [stats, recent, seeded, coverage] = await Promise.all([
     getLandingStats(),
     getRecentOpportunities(6),
     // Seeds the hero panel so it is never empty on arrival. Coventry is the
     // deepest dataset we hold, so it shows the product at its best without
     // anything being fabricated.
     searchArea('Coventry'),
+    getCoveragePoints(),
   ])
 
   const scopes = SEARCH_SCOPES.map((s) => ({ id: s.id, label: s.label }))
@@ -85,6 +88,27 @@ export default async function HomePage() {
           </dl>
         </div>
       </section>
+
+      {/* ---------- National coverage map ---------- */}
+      {coverage.length > 0 && (
+        <section className="border-b border-border">
+          <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8">
+            <Reveal>
+              <h2 className="text-xl font-bold tracking-tighter text-ink sm:text-2xl">
+                Where we&rsquo;re seeing activity
+              </h2>
+              <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-ink-muted">
+                Every authority we hold data for, sized by how much. Add a
+                territory anywhere in the UK and it starts filling in the same
+                morning.
+              </p>
+            </Reveal>
+            <div className="mt-6">
+              <CoverageSection points={coverage} authorities={stats.authorities} />
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ---------- Recently detected ---------- */}
       {recent.length > 0 && (

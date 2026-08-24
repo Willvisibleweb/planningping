@@ -549,3 +549,34 @@ body:has([data-theme='gabrielcam']) {
   from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+
+/* ---------------------------------------------------------------------------
+   Coverage map (Leaflet) — the library ships its own tooltip chrome, which is a
+   white balloon with a dark border and a drop shadow that belongs to no design
+   system. These override just enough to make its labels read as ours.
+--------------------------------------------------------------------------- */
+
+.leaflet-tooltip.pp-map-label {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-2xs);
+  padding: 2px 6px;
+}
+
+/* The little arrow inherits the old border colour and looks detached without
+   this, since Leaflet draws it as a CSS triangle rather than part of the box. */
+.leaflet-tooltip.pp-map-label::before {
+  border-top-color: var(--color-border);
+}
+
+/* Attribution is required by the OSM licence and must stay legible, but it does
+   not need to shout on a marketing page. */
+.leaflet-container .leaflet-control-attribution {
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  font-size: 10px;
+}
