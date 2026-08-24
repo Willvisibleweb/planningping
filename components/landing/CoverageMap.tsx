@@ -36,7 +36,7 @@ export default function CoverageMap({ points }: { points: CoveragePoint[] }) {
     // ignored and 100% resolved against a parent with no height of its own —
     // the map computed to zero and left a blank white column where it should
     // have been. Leaflet gives no warning for this; it simply draws nothing.
-    <div className="h-[380px] overflow-hidden rounded-md border border-border bg-surface sm:h-[460px]">
+    <div className="h-[380px] w-full overflow-hidden rounded-md border border-border bg-surface-sunken sm:h-[460px]">
       <MapContainer
         center={UK_CENTRE}
         zoom={6}
@@ -45,7 +45,11 @@ export default function CoverageMap({ points }: { points: CoveragePoint[] }) {
         scrollWheelZoom={false}
         // A landing-page map that hijacks the scroll wheel is a trap. Dragging
         // and the zoom control remain, so it is still explorable on purpose.
-        style={{ height: '100%', width: '100%', background: '#f8f8f9' }}
+        // Sizing mirrors TerritoryMap, which demonstrably works in this app:
+        // height on the wrapper, h-full on the container, and no inline style.
+        // The previous inline height:100% beat the Tailwind class and resolved
+        // against a parent with no height, so the map drew nothing.
+        className="h-full w-full"
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
