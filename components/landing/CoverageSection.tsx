@@ -71,14 +71,18 @@ export default function CoverageSection({
         </p>
       </div>
 
-      {/* The same figures, readable. Ranked because "who has most" is the
-          question a map makes you squint to answer. */}
-      <div className="min-w-0">
+      {/* Every authority, not a top ten.
+          Showing ten and then footing the table with "26 authorities loaded"
+          left the reader doing arithmetic to work out what the other sixteen
+          were — and made the coverage look smaller than it is, which is the
+          opposite of the point. The list scrolls instead of truncating. */}
+      <div className="flex min-w-0 flex-col">
+        <div className="max-h-[380px] flex-1 overflow-y-auto pr-1 sm:max-h-[460px]">
         <table className="w-full text-sm">
           <caption className="sr-only">
             Applications held per planning authority, highest first
           </caption>
-          <thead>
+          <thead className="sticky top-0 bg-surface">
             <tr className="border-b border-border text-left">
               <th scope="col" className="pb-2 text-2xs font-semibold uppercase tracking-wider text-ink-muted">
                 Authority
@@ -89,7 +93,7 @@ export default function CoverageSection({
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {points.slice(0, 10).map((p) => (
+            {points.map((p) => (
               <tr key={p.slug}>
                 <td className="py-1.5">
                   <Link
@@ -105,17 +109,17 @@ export default function CoverageSection({
               </tr>
             ))}
           </tbody>
-          <tfoot>
-            <tr className="border-t border-border-strong">
-              <td className="pt-2 text-xs font-medium text-ink">
-                {points.length} authorities loaded
-              </td>
-              <td className="tabular-data pt-2 text-right text-xs font-semibold text-ink">
-                {total.toLocaleString()}
-              </td>
-            </tr>
-          </tfoot>
         </table>
+        </div>
+
+        <div className="mt-2 flex items-center justify-between border-t border-border-strong pt-2">
+          <span className="text-xs font-medium text-ink">
+            {points.length} authorities with data
+          </span>
+          <span className="tabular-data text-xs font-semibold text-ink">
+            {total.toLocaleString()} applications
+          </span>
+        </div>
       </div>
     </div>
   )

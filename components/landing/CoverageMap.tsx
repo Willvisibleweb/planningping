@@ -13,7 +13,6 @@
 // a colourblind-unsafe pair. Every circle is brand blue; the labels and the
 // table carry identity, never colour alone.
 
-import { useEffect, useRef, useState } from 'react'
 import { MapContainer, TileLayer, CircleMarker, Tooltip } from 'react-leaflet'
 import type { CoveragePoint } from '@/lib/analytics/coverageMap'
 import 'leaflet/dist/leaflet.css'
@@ -29,19 +28,15 @@ export default function CoverageMap({ points }: { points: CoveragePoint[] }) {
   // Labels only on the handful that can carry one without collision. A number
   // on every mark is noise, and on a map it is unreadable overlap.
   const labelled = new Set(points.slice(0, 5).map((p) => p.slug))
-  const [ready, setReady] = useState(false)
-  const wrap = useRef<HTMLDivElement>(null)
-
-  // Leaflet measures its container on mount. Rendered inside a section that may
-  // still be animating in, it can size itself to zero and stay blank until a
-  // resize — so the size is invalidated once after paint.
-  useEffect(() => {
-    const t = setTimeout(() => setReady(true), 50)
-    return () => clearTimeout(t)
-  }, [])
-
   return (
-    <div ref={wrap} className="overflow-hidden rounded-md border border-border bg-surface">
+    // The height lives HERE, on the wrapper, and the map fills it.
+    //
+    // The first version set height:100% inline on MapContainer alongside a
+    // Tailwind h-[380px] class. Inline styles beat classes, so the class was
+    // ignored and 100% resolved against a parent with no height of its own —
+    // the map computed to zero and left a blank white column where it should
+    // have been. Leaflet gives no warning for this; it simply draws nothing.
+    <div className="h-[380px] overflow-hidden rounded-md border border-border bg-surface sm:h-[460px]">
       <MapContainer
         center={UK_CENTRE}
         zoom={6}
@@ -51,8 +46,6 @@ export default function CoverageMap({ points }: { points: CoveragePoint[] }) {
         // A landing-page map that hijacks the scroll wheel is a trap. Dragging
         // and the zoom control remain, so it is still explorable on purpose.
         style={{ height: '100%', width: '100%', background: '#f8f8f9' }}
-        className="h-[380px] sm:h-[460px]"
-        key={ready ? 'ready' : 'init'}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

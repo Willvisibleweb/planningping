@@ -20,6 +20,7 @@ import Reveal from '@/components/landing/Reveal'
 import CountUp from '@/components/landing/CountUp'
 import { getLandingStats } from '@/components/landing/feedData'
 import CoverageSection from '@/components/landing/CoverageSection'
+import Comparison from '@/components/landing/Comparison'
 import { getCoveragePoints } from '@/lib/analytics/coverageMap'
 import { searchArea, getRecentOpportunities, SEARCH_SCOPES } from '@/lib/search/areaSearch'
 import { PRICING } from '@/lib/stripe'
@@ -202,6 +203,25 @@ export default async function HomePage() {
                 </div>
               </Reveal>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ---------- How we compare ---------- */}
+      <section className="border-b border-border bg-surface-sunken">
+        <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8">
+          <Reveal>
+            <h2 className="text-xl font-bold tracking-tighter text-ink sm:text-2xl">
+              How we compare
+            </h2>
+            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-ink-muted">
+              Barbour ABI and Glenigan are the established names. They are
+              bigger than us and we are not pretending otherwise &mdash; the
+              difference is who the product is tuned for, and how you buy it.
+            </p>
+          </Reveal>
+          <div className="mt-6">
+            <Comparison />
           </div>
         </div>
       </section>
