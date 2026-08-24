@@ -17,7 +17,7 @@ import Link from 'next/link'
 import { Search, ArrowRight, MapPin, AlertCircle } from 'lucide-react'
 import { searchAreaAction } from '@/lib/search/actions'
 import type { AreaSearchResult } from '@/lib/search/areaSearch'
-import OpportunityCard from './OpportunityCard'
+import OpportunityRow from './OpportunityRow'
 import { Skeleton } from '@/components/ui/Skeleton'
 
 interface Props {
@@ -133,10 +133,14 @@ export default function HeroSearch({ scopes, initial }: Props) {
       </div>
 
       {/* ---- Live opportunity panel ---- */}
-      <div className="rounded-lg border border-border bg-surface-sunken p-3 shadow-sm sm:p-4">
+      <div className="overflow-hidden rounded-lg border border-border bg-surface shadow-md">
         {isPending ? (
-          <div className="space-y-3" aria-live="polite">
-            <p className="text-xs text-ink-muted">Searching&hellip;</p>
+          <div aria-live="polite">
+            <div className="flex items-center justify-between border-b border-border bg-surface-sunken px-3 py-2.5">
+              <span className="text-xs font-semibold text-ink">Searching&hellip;</span>
+              <span className="tabular-data text-2xs text-neutral-500">&mdash;</span>
+            </div>
+            <div className="space-y-3 p-3">
             {[0, 1, 2].map((i) => (
               // Shaped like the card it stands in for, so the panel holds its
               // layout and nothing jumps when results land.
@@ -147,34 +151,39 @@ export default function HeroSearch({ scopes, initial }: Props) {
                 <Skeleton className="mt-3 h-3 w-1/2" />
               </div>
             ))}
+            </div>
           </div>
         ) : showing ? (
           <>
-            <div className="flex flex-wrap items-baseline justify-between gap-2 px-1 pb-3">
-              <div className="flex items-center gap-1.5">
-                <MapPin size={14} className="text-primary-500" aria-hidden="true" />
-                <h2 className="text-sm font-semibold text-ink">
-                  Opportunities in {showing.placeName}
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-surface-sunken px-3 py-2.5">
+              <div className="flex min-w-0 items-center gap-1.5">
+                <MapPin size={14} className="shrink-0 text-primary-500" aria-hidden="true" />
+                <h2 className="truncate text-sm font-semibold text-ink">
+                  {showing.placeName}
                 </h2>
+                <span
+                  aria-live="polite"
+                  className="tabular-data shrink-0 rounded-full bg-primary-100 px-2 py-0.5 text-2xs font-semibold text-primary-700"
+                >
+                  {showing.relevant.toLocaleString()} with your scope
+                </span>
               </div>
-              <p aria-live="polite" className="tabular-data text-xs text-ink-muted">
-                <span className="font-semibold text-ink">{showing.relevant.toLocaleString()}</span>{' '}
-                with your scope
-                <span className="text-neutral-500"> · {showing.total.toLocaleString()} tracked</span>
-              </p>
+              {/* Says what the ordering is. A ranked list whose ordering is
+                  unstated is just a list. */}
+              <span className="shrink-0 text-2xs text-neutral-500">Sorted by fit</span>
             </div>
 
             {showing.preview.length > 0 ? (
-              <div className="space-y-2.5">
-                {showing.preview.map((p) => (
-                  <OpportunityCard key={p.reference} item={p} />
+              <div>
+                {showing.preview.map((p, i) => (
+                  <OpportunityRow key={p.reference} item={p} rank={i + 1} />
                 ))}
               </div>
             ) : (
               // A real and common state — plenty of authorities publish nothing
               // carrying civils scope in a given window. Saying so is better
               // than an empty box, and better than pretending otherwise.
-              <div className="rounded-md border border-dashed border-border-strong bg-surface px-4 py-8 text-center">
+              <div className="px-4 py-10 text-center">
                 <p className="text-sm font-medium text-ink">
                   Nothing carrying your scope here yet
                 </p>
@@ -186,7 +195,13 @@ export default function HeroSearch({ scopes, initial }: Props) {
               </div>
             )}
 
-            <div className="mt-3 flex flex-wrap items-center gap-2 px-1">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-surface-sunken px-3 py-2.5">
+              <span className="tabular-data text-2xs text-neutral-500">
+                Showing {showing.preview.length} of {showing.relevant.toLocaleString()}
+                {' · '}
+                {showing.total.toLocaleString()} tracked in {showing.placeName}
+              </span>
+              <div className="flex items-center gap-2">
               <Link
                 href={showing.href}
                 className="inline-flex items-center gap-1 rounded-sm border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink shadow-sm transition-[background-color,border-color] duration-fast ease-standard hover:border-primary-300 hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
@@ -200,6 +215,7 @@ export default function HeroSearch({ scopes, initial }: Props) {
               >
                 Track this area &rarr;
               </Link>
+              </div>
             </div>
           </>
         ) : null}
