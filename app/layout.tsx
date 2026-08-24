@@ -31,8 +31,12 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://planningping.com'
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: 'PlanningPing — UK Planning Application Alerts',
-  description: 'Track UK planning applications in your area and get alerted to new applications and status changes.',
+  // Keeps "planning applications" — that is the phrase people search, and the
+  // SEO pages rank on it — while leading with what the product is for. The old
+  // title sold alerts, which is the commodity we are differentiating away from.
+  title: 'PlanningPing — Construction sales intelligence from UK planning data',
+  description:
+    'Search UK planning applications by area and see which schemes carry your scope — drainage, groundworks, highways, structures. Scored for civils relevance, updated daily.',
   // Without summary_large_image, X renders a small square thumbnail beside the
   // text instead of the 1200x630 card — the card still generates, it just
   // never gets shown at the size it was designed for. Set once at the root so
