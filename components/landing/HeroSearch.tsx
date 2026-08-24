@@ -12,7 +12,7 @@
 // An empty product surface on a landing page reads as "nothing here", which is
 // the opposite of the intended impression.
 
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { Search, ArrowRight, MapPin, AlertCircle } from 'lucide-react'
 import { searchAreaAction } from '@/lib/search/actions'
@@ -26,20 +26,71 @@ interface Props {
   initial: Extract<AreaSearchResult, { ok: true }> | null
 }
 
+// Free look-ups before signing up.
+//
+// Friction, not security. Everything the search reaches is on the 183 public
+// location pages Google already indexes, so there is nothing here to protect
+// with a real gate — and counting client-side means a crawler is never blocked
+// and the SEO value is untouched. What this stops is the case where someone
+// uses the homepage as an unlimited free lookup tool instead of ever creating
+// an account.
+//
+// The count deliberately does NOT include the server-seeded result: nobody
+// should burn a search on something they did not ask for.
+const FREE_SEARCHES = 3
+const STORAGE_KEY = 'pp:landing-searches'
+
+function readUsed(): number {
+  try {
+    return Number(window.localStorage.getItem(STORAGE_KEY)) || 0
+  } catch {
+    // Private browsing throws on access. A visitor we cannot count is a
+    // visitor we let search — the alternative is blocking someone who has done
+    // nothing wrong.
+    return 0
+  }
+}
+
 export default function HeroSearch({ scopes, initial }: Props) {
   const [query, setQuery] = useState('')
   const [scope, setScope] = useState('')
   const [result, setResult] = useState<AreaSearchResult | null>(
     initial ? initial : null,
   )
+  const [used, setUsed] = useState(0)
   const [isPending, startTransition] = useTransition()
+
+  // Read after mount, never during render: localStorage does not exist on the
+  // server, and reading it while rendering would desync the markup Next sent.
+  //
+  // Deferred a frame rather than set in the effect body, which runs during
+  // commit and forces a second render before paint. Same pattern as Reveal and
+  // CountUp on this page.
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setUsed(readUsed()))
+    return () => cancelAnimationFrame(id)
+  }, [])
+
+  const gated = used >= FREE_SEARCHES
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
+    if (gated) return
     if (!query.trim()) {
       setResult({ ok: false, reason: 'empty', message: 'Enter a postcode, town or city.' })
       return
     }
+
+    // Counted before the request, so a slow or failed lookup cannot be retried
+    // for free — and so the limit cannot be dodged by spamming submit.
+    const next = used + 1
+    setUsed(next)
+    try {
+      window.localStorage.setItem(STORAGE_KEY, String(next))
+    } catch {
+      // Nothing to do; the visitor simply is not counted.
+    }
+
     startTransition(async () => {
       setResult(await searchAreaAction(query, scope || undefined))
     })
@@ -111,7 +162,7 @@ export default function HeroSearch({ scopes, initial }: Props) {
 
             <button
               type="submit"
-              disabled={isPending}
+              disabled={isPending || gated}
               className="pp-lift inline-flex h-[42px] shrink-0 items-center justify-center gap-1.5 rounded-sm bg-primary-500 px-4 text-sm font-medium text-white shadow-sm transition-[background-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:bg-primary-600 hover:shadow-primary active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isPending ? 'Searching…' : 'Search opportunities'}
@@ -127,7 +178,22 @@ export default function HeroSearch({ scopes, initial }: Props) {
           )}
 
           <p className="mt-2 text-2xs text-neutral-500">
-            Try ST13, Coventry or Bristol &mdash; no account needed to look.
+            {gated ? (
+              <>
+                You&rsquo;ve used your {FREE_SEARCHES} free look-ups.{' '}
+                <Link href="/signup" className="pp-link font-medium">
+                  Create a free account
+                </Link>{' '}
+                to keep searching.
+              </>
+            ) : used >= FREE_SEARCHES - 1 ? (
+              <>
+                {FREE_SEARCHES - used} free look-up left &mdash; no account
+                needed.
+              </>
+            ) : (
+              <>Try ST13, Coventry or Bristol &mdash; no account needed to look.</>
+            )}
           </p>
         </form>
       </div>
@@ -152,6 +218,34 @@ export default function HeroSearch({ scopes, initial }: Props) {
               </div>
             ))}
             </div>
+          </div>
+        ) : gated ? (
+          <div className="px-5 py-12 text-center">
+            <p className="text-sm font-semibold text-ink">
+              That&rsquo;s your {FREE_SEARCHES} free look-ups
+            </p>
+            <p className="mx-auto mt-1.5 max-w-sm text-xs leading-relaxed text-ink-muted">
+              A free account keeps the search open, and adds the part this page
+              deliberately holds back: every scheme scored for your trade, so
+              you know which of them is worth a call.
+            </p>
+            <Link
+              href="/signup"
+              className="pp-lift mt-4 inline-flex h-9 items-center gap-1.5 rounded-sm bg-primary-500 px-4 text-sm font-medium text-white shadow-sm transition-[background-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:bg-primary-600 hover:shadow-primary active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
+            >
+              Create a free account
+              <ArrowRight size={14} aria-hidden="true" />
+            </Link>
+            {/* The public pages stay open — the cap is on this search box, not
+                on the data, and pretending otherwise would be a lie a visitor
+                can disprove with one click. */}
+            <p className="mt-3 text-2xs text-neutral-500">
+              Or keep browsing the{' '}
+              <Link href="/planning-applications/coventry" className="pp-link">
+                public area pages
+              </Link>
+              , which stay open to everyone.
+            </p>
           </div>
         ) : showing ? (
           <>
