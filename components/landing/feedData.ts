@@ -23,6 +23,10 @@ export interface LandingStats {
   authorities: number
   /** Applications published in the last 30 days across tracked territories. */
   recentApplications: number
+  /** Everything in the public view — the size of the corpus behind the site. */
+  publicApplications: number
+  /** Location pages a visitor can browse without an account. */
+  publicPages: number
 }
 
 function titleCase(slug: string): string {
@@ -93,18 +97,23 @@ export async function getFeedItems(limit = 12): Promise<FeedItem[]> {
  * competitive.
  */
 export async function getLandingStats(): Promise<LandingStats> {
-  const fallback: LandingStats = { authorities: 400, recentApplications: 0 }
+  const fallback: LandingStats = {
+    authorities: 400, recentApplications: 0, publicApplications: 0, publicPages: 0,
+  }
   try {
     const supabase = await createClient()
     const since = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10)
 
-    const [{ count: authorities }, { count: recent }] = await Promise.all([
-      supabase.from('councils').select('*', { count: 'exact', head: true }),
-      supabase
-        .from('public_applications')
-        .select('*', { count: 'exact', head: true })
-        .gte('application_date', since),
-    ])
+    const [{ count: authorities }, { count: recent }, { count: publicApps }, { count: pages }] =
+      await Promise.all([
+        supabase.from('councils').select('*', { count: 'exact', head: true }),
+        supabase
+          .from('public_applications')
+          .select('*', { count: 'exact', head: true })
+          .gte('application_date', since),
+        supabase.from('public_applications').select('*', { count: 'exact', head: true }),
+        supabase.from('seo_locations').select('*', { count: 'exact', head: true }),
+      ])
 
     return {
       // Rounded down to the nearest 25. The exact count creeps up every time
@@ -113,6 +122,8 @@ export async function getLandingStats(): Promise<LandingStats> {
       // "20+ councils" made in the other direction by going stale.
       authorities: Math.max(Math.floor((authorities ?? 400) / 25) * 25, 400),
       recentApplications: recent ?? 0,
+      publicApplications: publicApps ?? 0,
+      publicPages: pages ?? 0,
     }
   } catch {
     return fallback

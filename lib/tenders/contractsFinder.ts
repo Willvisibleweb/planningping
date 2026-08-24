@@ -38,6 +38,31 @@ export interface Tender {
   url: string | null
 }
 
+// Work that is filed as construction but is not the kind of construction this
+// product is about.
+//
+// The CPV category "Architectural, construction, engineering and inspection
+// services" contains the word construction, so every notice filed under that
+// umbrella matched — which is how nine arboricultural contracts came to sit at
+// the top of the tenders page, six of them near-identical Haringey tree jobs at
+// £90k. Tree surgery is not groundworks, and a civils firm opening that list
+// concludes the filtering does not work.
+//
+// Matched against the title only, and with word boundaries. The title is where
+// a notice states its actual subject, whereas descriptions wander. The
+// boundaries are not decoration: "tree" without them is inside "street", and a
+// substring match would have thrown out "Railway Street Footbridge
+// Geotechnical" — a genuine civils tender — while keeping the tree work.
+const NOT_OUR_KIND = new RegExp(
+  [
+    '\\btrees?\\b', 'arboricultur', '\\bfell(ing)?\\b', '\\bhedge',
+    'grounds maintenance', 'grass cutting', '\\bmowing\\b',
+    '\\bcleaning\\b', 'catering', 'pest control',
+    'waste collection', 'refuse collection', 'security guard',
+  ].join('|'),
+  'i',
+)
+
 // Deliberately broad, and matched against title, description and classification
 // together. A tender titled "Framework Agreement" reveals nothing; its
 // description and CPV category usually do. Over-matching is corrected by the
@@ -91,6 +116,9 @@ export function looksConstructionRelated(t: {
   description: string | null
   classification: string | null
 }): boolean {
+  // Exclusions win. A notice whose title says tree work is tree work, whatever
+  // CPV category the buyer filed it under.
+  if (NOT_OUR_KIND.test(t.title)) return false
   return CONSTRUCTION.test(`${t.title} ${t.description ?? ''} ${t.classification ?? ''}`)
 }
 

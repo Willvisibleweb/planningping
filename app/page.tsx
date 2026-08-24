@@ -1,369 +1,237 @@
-import { MapPin, Mail, CheckCircle, Check } from 'lucide-react'
-import RotatingWord from '@/components/landing/RotatingWord'
-import LiveFeed from '@/components/landing/LiveFeed'
+// Public homepage.
+//
+// Product-first rather than brochure-first: the first screen contains a working
+// search and real opportunities, not a screenshot. A visitor can answer "what is
+// being built near me that I could win work from" before deciding whether to
+// sign up, which is the only question this product exists to answer.
+//
+// Everything shown is real and already public. public_applications is the view
+// the SEO pages serve to anonymous crawlers — curated columns, nothing newer
+// than seven days. Scope tags come from the scorer's own matched criteria; the
+// fit score itself stays behind the login, because the ranking is the thing
+// being sold. Nothing here widens what is exposed.
+
+import Link from 'next/link'
+import { MapPin, Radar, Target, Send, ArrowRight } from 'lucide-react'
+import LandingHeader from '@/components/landing/LandingHeader'
+import HeroSearch from '@/components/landing/HeroSearch'
+import OpportunityCard from '@/components/landing/OpportunityCard'
 import Reveal from '@/components/landing/Reveal'
 import CountUp from '@/components/landing/CountUp'
-import { getFeedItems, getLandingStats } from '@/components/landing/feedData'
+import { getLandingStats } from '@/components/landing/feedData'
+import CoverageSection from '@/components/landing/CoverageSection'
+import Comparison from '@/components/landing/Comparison'
+import { getCoveragePoints } from '@/lib/analytics/coverageMap'
+import { searchArea, getRecentOpportunities, SEARCH_SCOPES } from '@/lib/search/areaSearch'
 import { PRICING } from '@/lib/stripe'
-import Link from 'next/link'
 
-// Revalidate hourly. The feed and counts come from the database, but this page
-// is the most-hit route on the site and must not run two queries per visit —
-// an hour-old view of a register that updates once a day is indistinguishable
-// from a live one.
+// Hourly. This is the most-hit route on the site and must not run its queries
+// per visit; an hour-old view of a register that updates once a day is
+// indistinguishable from a live one.
 export const revalidate = 3600
 
-// Small presentational helpers for the product mockups in the hero / inbox band.
-// These are pure markup (no real data) — a "screenshot" of the app rendered in
-// the page so visitors see what they get. Kept in this file since they're only
-// used here.
+const SECTOR_USES = [
+  { title: 'Groundworks', body: 'Earthworks, excavation and enabling packages, spotted at application rather than at tender.' },
+  { title: 'Drainage & SuDS', body: 'Attenuation, surface water and foul strategies named in the documents we read.' },
+  { title: 'Civil engineering', body: 'Structures, retaining works and infrastructure across the authorities you cover.' },
+  { title: 'Highways & access', body: 'New junctions, access roads and carriageway works, before they reach a framework.' },
+]
 
-function Pill({ tone, children }: { tone: 'ok' | 'warn' | 'bad'; children: React.ReactNode }) {
-  const tones = {
-    ok: 'bg-success-50 text-success-600',
-    warn: 'bg-warning-50 text-warning-600',
-    bad: 'bg-danger-50 text-danger-600',
-  }
-  return (
-    <span className={`shrink-0 rounded-full px-2 py-0.5 text-2xs font-semibold ${tones[tone]}`}>
-      {children}
-    </span>
-  )
-}
-
-function AppRow({
-  reference,
-  when,
-  description,
-  address,
-  tone,
-  status,
-}: {
-  reference: string
-  when: string
-  description: string
-  address: string
-  tone: 'ok' | 'warn' | 'bad'
-  status: string
-}) {
-  return (
-    <div className="flex items-start gap-3 border-t border-border py-2.5 first:border-t-0">
-      <div className="min-w-0 flex-1">
-        <div className="mb-0.5 flex items-center gap-2">
-          <span className="tabular-data text-2xs font-semibold text-primary-500">{reference}</span>
-          <span className="text-2xs text-neutral-500">{when}</span>
-        </div>
-        <p className="text-xs leading-snug text-ink">{description}</p>
-        <p className="mt-0.5 text-2xs text-neutral-500">{address}</p>
-      </div>
-      <Pill tone={tone}>{status}</Pill>
-    </div>
-  )
-}
+const FLOW = [
+  { icon: Radar, title: 'We read the register', body: 'Every UK planning authority, every morning.' },
+  { icon: Target, title: 'We find your scope', body: 'Drainage, groundworks, highways, structures — named in the description.' },
+  { icon: MapPin, title: 'We score the fit', body: 'So your team looks at the twelve that matter, not the twelve hundred.' },
+  { icon: Send, title: 'You get there first', body: 'With the agent, the deadline and a draft approach ready.' },
+]
 
 export default async function HomePage() {
-  // Both are independent, so they run together rather than in sequence.
-  const [feedItems, stats] = await Promise.all([getFeedItems(12), getLandingStats()])
+  // All independent — one round of parallel work rather than a waterfall.
+  const [stats, recent, seeded, coverage] = await Promise.all([
+    getLandingStats(),
+    getRecentOpportunities(6),
+    // Seeds the hero panel so it is never empty on arrival. Coventry is the
+    // deepest dataset we hold, so it shows the product at its best without
+    // anything being fabricated.
+    searchArea('Coventry'),
+    getCoveragePoints(),
+  ])
+
+  const scopes = SEARCH_SCOPES.map((s) => ({ id: s.id, label: s.label }))
 
   return (
-    <div className="min-h-screen flex flex-col bg-surface">
-      {/* Nav */}
-      <header className="border-b border-border">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-6">
-          <span className="text-sm font-semibold tracking-tight text-ink">
-            Planning<span className="text-primary-500">Ping</span>
-          </span>
-          <div className="flex items-center gap-5">
-            <Link
-              href="/blog"
-              className="rounded-sm text-sm font-medium text-ink-muted transition-colors duration-fast ease-standard hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
-            >
-              Blog
-            </Link>
-            <Link
-              href="/login"
-              className="rounded-sm text-sm font-medium text-ink-muted transition-colors duration-fast ease-standard hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
-            >
-              Sign in
-            </Link>
-          </div>
-        </div>
-      </header>
+    <div className="flex min-h-screen flex-col bg-surface">
+      <LandingHeader />
 
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-primary-100 via-primary-50 to-surface">
-        {/* soft blue glow behind the product mockup */}
-        <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 h-[460px] w-[460px] rounded-full bg-primary-500/15 blur-3xl" />
-        <div className="relative mx-auto w-full max-w-6xl px-5 py-16 sm:px-6 sm:py-20">
-          <div className="grid items-center gap-14 lg:grid-cols-[1.02fr_1.18fr]">
-            {/* Copy */}
-            <div className="motion-safe-fade" style={{ animation: 'hero-fade-up 600ms cubic-bezier(.2,.7,.3,1) 100ms both' }}>
-              <p className="inline-flex items-center rounded-full border border-border bg-primary-100 px-3 py-1 text-xs font-semibold text-primary-500 mb-5 tracking-wide uppercase">
-                Construction Sales Intelligence
+      {/* ---------- Hero: search + live opportunities ---------- */}
+      <section className="border-b border-border bg-gradient-to-b from-primary-50/70 to-surface">
+        <div className="mx-auto max-w-[1440px] px-5 py-10 sm:px-8 sm:py-14">
+          <HeroSearch scopes={scopes} initial={seeded.ok ? seeded : null} />
+        </div>
+      </section>
+
+      {/* ---------- Coverage ---------- */}
+      <section id="coverage" className="border-b border-border bg-surface-sunken">
+        <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8">
+          <dl className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+            {[
+              { value: stats.authorities, suffix: '+', label: 'UK planning authorities covered' },
+              { value: stats.publicApplications, suffix: '', label: 'applications you can browse now' },
+              { value: stats.publicPages, suffix: '', label: 'area pages, no account needed' },
+              { value: stats.recentApplications, suffix: '', label: 'published in the last 30 days' },
+            ].map((s, i) => (
+              <Reveal key={s.label} delayMs={i * 60}>
+                <dt className="text-2xl font-semibold tracking-tighter text-ink sm:text-3xl">
+                  <CountUp to={s.value} suffix={s.suffix} />
+                </dt>
+                <dd className="mt-1 text-xs leading-relaxed text-ink-muted">{s.label}</dd>
+              </Reveal>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      {/* ---------- National coverage map ---------- */}
+      {coverage.length > 0 && (
+        <section className="border-b border-border">
+          <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8">
+            <Reveal>
+              <h2 className="text-xl font-bold tracking-tighter text-ink sm:text-2xl">
+                Where we&rsquo;re seeing activity
+              </h2>
+              <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-ink-muted">
+                Every authority we hold data for, sized by how much. Add a
+                territory anywhere in the UK and it starts filling in the same
+                morning.
               </p>
-              {/* 52px at 375px overflowed on "applications"; steps up from 40px. */}
-              <h1 className="mb-5 text-balance text-4xl font-bold leading-[1.06] tracking-tighter text-ink sm:text-5xl lg:text-6xl">
-                Find the <RotatingWord /> work
-                <br />
-                before your competitors.
-              </h1>
-              {/* Names the buyer and the job. The old copy sold monitoring to
-                  anyone — "whether you're watching your own street or sourcing
-                  new opportunities" — which is two products and convinces
-                  neither reader. */}
-              <p className="text-lg text-ink-muted mb-7 leading-relaxed max-w-lg">
-                PlanningPing turns UK development activity into a scored pipeline
-                for civils and groundworks firms: which schemes carry your scope,
-                who submitted them, and where your team should spend this week.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                {/* Flat brand colour rather than the old gradient: this is a
-                    data tool, and the primary shadow token already gives the
-                    button depth without a colour ramp doing the work. */}
+            </Reveal>
+            <div className="mt-6">
+              <CoverageSection points={coverage} authorities={stats.authorities} />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ---------- Recently detected ---------- */}
+      {recent.length > 0 && (
+        <section className="border-b border-border">
+          <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8">
+            <Reveal>
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <h2 className="text-xl font-bold tracking-tighter text-ink sm:text-2xl">
+                    Recently detected opportunities
+                  </h2>
+                  <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-ink-muted">
+                    Real applications from the register, with the scope our
+                    scoring found in them. Not a screenshot.
+                  </p>
+                </div>
                 <Link
                   href="/signup"
-                  className="pp-lift inline-flex items-center rounded-sm bg-primary-500 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-[background-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:bg-primary-600 hover:shadow-primary active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
+                  className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 underline-offset-2 hover:underline"
                 >
-                  Get started free
-                </Link>
-                <Link
-                  href="/login"
-                  className="pp-lift inline-flex items-center rounded-sm border border-border bg-surface px-5 py-2.5 text-sm font-medium text-ink shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:border-primary-300 hover:bg-primary-50 hover:shadow-md active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
-                >
-                  Sign in
+                  See these scored and ranked
+                  <ArrowRight size={14} aria-hidden="true" />
                 </Link>
               </div>
-              {/* "400+" rather than a live figure: 410 authorities are
-                  supported and any UK postcode auto-provisions its council on
-                  first use (see addTrackedArea), so this stays true without
-                  needing a query on a static page — and without going stale
-                  the way "20+ councils" did. */}
-              <div className="mt-6 flex items-center gap-2 text-xs text-neutral-500">
-                <span className="h-[5px] w-[5px] rounded-full bg-success-600 ring-4 ring-success-50" />
-                Covering 400+ UK planning authorities · new applications every week
-              </div>
-            </div>
+            </Reveal>
 
-            {/* Dashboard mockup */}
-            <div
-              className="motion-safe-fade overflow-hidden rounded-lg border border-border bg-surface ring-1 ring-primary-500/10 shadow-lg"
-              style={{ animation: 'hero-fade-up 600ms cubic-bezier(.2,.7,.3,1) 250ms both' }}
-            >
-              <div className="flex h-9 items-center gap-1.5 border-b border-border bg-surface-sunken px-3.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-neutral-200" />
-                <span className="h-2.5 w-2.5 rounded-full bg-neutral-200" />
-                <span className="h-2.5 w-2.5 rounded-full bg-neutral-200" />
-                <span className="ml-2.5 tabular-data text-2xs text-neutral-500">planningping.app/dashboard</span>
-              </div>
-              <div className="grid grid-cols-[104px_1fr] sm:grid-cols-[148px_1fr]">
-                {/* sidebar */}
-                <aside className="border-r border-border bg-surface-sunken p-3">
-                  <div className="mb-3.5 px-1 text-xs font-bold tracking-tight text-ink">
-                    Planning<span className="text-primary-500">Ping</span>
-                  </div>
-                  <nav className="flex flex-col gap-0.5 text-xs">
-                    <span className="rounded-md bg-primary-100 px-2.5 py-1.5 font-semibold text-primary-500">Dashboard</span>
-                    <span className="rounded-md px-2.5 py-1.5 text-ink-muted">Leads</span>
-                    <span className="rounded-md px-2.5 py-1.5 text-ink-muted">Pipeline</span>
-                    <span className="rounded-md px-2.5 py-1.5 text-ink-muted">Settings</span>
-                  </nav>
-                  <div className="mt-3.5 rounded-md bg-warning-50 px-2 py-1.5 text-center text-2xs font-semibold text-warning-600">
-                    Trial · 9 days left
-                  </div>
-                </aside>
-                {/* main */}
-                <div className="p-4">
-                  <h2 className="mb-0.5 text-sm font-semibold text-ink">Your tracked areas</h2>
-                  <p className="mb-3.5 text-2xs text-neutral-500">Scored daily · digest every Monday</p>
-                  <div className="rounded-md border border-border bg-surface p-4 sm:p-5 shadow-sm">
-                    <div className="mb-2.5 flex items-center justify-between">
-                      <div>
-                        <div className="text-xs font-semibold text-ink">Croydon town centre</div>
-                        <div className="mt-px text-2xs text-neutral-500">CR0 1EA · croydon</div>
-                      </div>
-                      <Pill tone="warn">6 new</Pill>
-                    </div>
-                    <AppRow reference="26/01872/TRE" when="29 Jun" tone="warn" status="Awaiting decision"
-                      description="Works to trees — reduce height and crown-thin one silver birch."
-                      address="Land at Shirley Oaks Road, Croydon" />
-                    <AppRow reference="26/01804/FUL" when="27 Jun" tone="ok" status="Approved"
-                      description="Single-storey rear extension and loft conversion with rear dormer."
-                      address="14 Warham Road, South Croydon" />
-                    <AppRow reference="26/01766/HSE" when="24 Jun" tone="bad" status="Refused"
-                      description="Two-storey side extension and associated alterations."
-                      address="7 Bramley Hill, Croydon" />
-                  </div>
-                </div>
-              </div>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {recent.map((o, i) => (
+                <Reveal key={o.reference} delayMs={Math.min(i * 50, 200)}>
+                  <OpportunityCard item={o} />
+                </Reveal>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* Inbox band */}
-      <section className="border-t border-border bg-primary-50">
-        <div className="max-w-6xl mx-auto px-6 py-16">
-          <div className="grid items-center gap-14 lg:grid-cols-2">
-            <div>
-              <p className="text-xs font-semibold text-primary-500 mb-3 tracking-wider uppercase">
-                Every Monday, 6am
-              </p>
-              <h2 className="text-3xl font-bold tracking-tight text-ink leading-tight mb-3.5 text-balance">
-                The whole week, waiting in your inbox.
-              </h2>
-              <p className="text-base text-ink-muted leading-relaxed mb-5 max-w-lg">
-                No dashboards to check, no portals to trawl. One clean email per area — new applications, status changes and decisions, with the reference, address and description already pulled out.
-              </p>
-              <ul className="flex flex-col gap-2.5">
-                {[
-                  'Colour-coded statuses — approved, pending, refused at a glance',
-                  'A preview of the top items, the rest one tap away',
-                  'Straight to your dashboard from any application',
-                ].map((t) => (
-                  <li key={t} className="flex items-start gap-2.5 text-sm text-ink">
-                    <span className="mt-px grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full bg-success-50 text-success-600">
-                      <Check size={11} strokeWidth={3} />
+      {/* ---------- How it works ---------- */}
+      <section id="how-it-works" className="border-b border-border bg-surface-sunken">
+        <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8">
+          <Reveal>
+            <h2 className="text-xl font-bold tracking-tighter text-ink sm:text-2xl">
+              How planning activity becomes pipeline
+            </h2>
+            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-ink-muted">
+              Every step below is something the system actually does, every
+              morning, without anyone asking it to.
+            </p>
+          </Reveal>
+
+          <ol className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {FLOW.map((step, i) => (
+              <Reveal key={step.title} delayMs={i * 70}>
+                <li className="h-full rounded-md border border-border bg-surface p-4 shadow-sm">
+                  <div className="flex items-center gap-2.5">
+                    <span className="grid size-8 shrink-0 place-items-center rounded-sm border border-border bg-primary-100 text-primary-500">
+                      <step.icon size={15} aria-hidden="true" />
                     </span>
-                    {t}
-                  </li>
-                ))}
-              </ul>
-            </div>
+                    <span className="tabular-data text-2xs font-semibold text-neutral-400">
+                      0{i + 1}
+                    </span>
+                  </div>
+                  <h3 className="mt-3 text-sm font-semibold text-ink">{step.title}</h3>
+                  <p className="mt-1 text-xs leading-relaxed text-ink-muted">{step.body}</p>
+                </li>
+              </Reveal>
+            ))}
+          </ol>
+        </div>
+      </section>
 
-            {/* Email mockup */}
-            <div className="overflow-hidden rounded-lg border border-border bg-surface shadow-lg">
-              <div className="flex items-center justify-between border-b border-border px-5 py-4">
-                <span className="text-sm font-semibold tracking-tight text-ink">
-                  Planning<span className="text-primary-500">Ping</span>
-                </span>
-                <span className="text-xs text-neutral-500">to you · notifications@planningping</span>
-              </div>
-              <div className="px-5 py-[18px]">
-                <p className="text-lg font-bold tracking-tight text-ink">5 new opportunities</p>
-                <p className="mb-4 text-xs text-ink-muted">
-                  Near <strong className="text-ink">SW1A 0RS</strong> — new since your last digest
-                </p>
-                <div className="mb-2.5 rounded-md border border-border p-4">
-                  <div className="mb-1.5 flex items-center gap-2">
-                    <span className="tabular-data text-2xs font-semibold text-primary-500">26/04306/LBC</span>
-                    <span className="text-2xs text-neutral-500">30 Jun</span>
-                    <span className="ml-auto"><Pill tone="warn">Pending</Pill></span>
-                  </div>
-                  <p className="mb-0.5 text-xs font-semibold text-ink">16A Bedford Street, London WC2E 9HE</p>
-                  <p className="text-xs leading-relaxed text-ink-muted">Replacement shopfront and associated works, including new fenestration, wall lights and a fixed canopy.</p>
+      {/* ---------- Who it's for ---------- */}
+      <section id="who-its-for" className="border-b border-border">
+        <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8">
+          <Reveal>
+            <h2 className="text-xl font-bold tracking-tighter text-ink sm:text-2xl">
+              Built for construction sales
+            </h2>
+            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-ink-muted">
+              The scoring is tuned for subcontract scope, not for whichever
+              scheme is biggest or most newsworthy.
+            </p>
+          </Reveal>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {SECTOR_USES.map((s, i) => (
+              <Reveal key={s.title} delayMs={i * 60}>
+                <div className="h-full rounded-md border border-border bg-surface p-4 shadow-sm">
+                  <h3 className="text-sm font-semibold text-ink">{s.title}</h3>
+                  <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">{s.body}</p>
                 </div>
-                <div className="mb-3 rounded-md border border-border p-4">
-                  <div className="mb-1.5 flex items-center gap-2">
-                    <span className="tabular-data text-2xs font-semibold text-primary-500">26/03998/FULL</span>
-                    <span className="text-2xs text-neutral-500">28 Jun</span>
-                    <span className="ml-auto"><Pill tone="ok">Approved</Pill></span>
-                  </div>
-                  <p className="mb-0.5 text-xs font-semibold text-ink">42 Marsham Street, London SW1P 3EU</p>
-                  <p className="text-xs leading-relaxed text-ink-muted">Change of use of ground floor from office to retail with new shopfront.</p>
-                </div>
-                <span className="block rounded-sm bg-primary-500 py-2.5 text-center text-xs font-semibold text-white">
-                  View on your dashboard →
-                </span>
-              </div>
-            </div>
+              </Reveal>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Proof band — real coverage, and the real register scrolling past.
-          Competitors in this category lead with hard numbers (350+ councils,
-          thousands of live projects) and product surfaces, not decoration, so
-          this is the page answering "is there anything actually behind it". */}
-      <section className="border-t border-border bg-surface-sunken">
-        <div className="mx-auto max-w-6xl px-6 py-16">
-          <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.05fr]">
-            <div>
-              <Reveal>
-                <h2 className="text-balance text-2xl font-bold tracking-tighter text-ink sm:text-3xl">
-                  Real applications. Scored the day they land.
-                </h2>
-                <p className="mt-3 max-w-md text-base leading-relaxed text-ink-muted">
-                  Every planning authority in England, Scotland and Wales, read
-                  daily. The panel beside this is the live register, not a
-                  screenshot.
-                </p>
-              </Reveal>
-
-              <div className="mt-8 grid grid-cols-2 gap-5">
-                <Reveal delayMs={80}>
-                  <p className="text-3xl font-semibold tracking-tighter text-ink">
-                    <CountUp to={stats.authorities} suffix="+" />
-                  </p>
-                  <p className="mt-1 text-xs leading-relaxed text-ink-muted">
-                    UK planning authorities covered
-                  </p>
-                </Reveal>
-                <Reveal delayMs={140}>
-                  <p className="text-3xl font-semibold tracking-tighter text-ink">
-                    <CountUp to={stats.recentApplications} />
-                  </p>
-                  <p className="mt-1 text-xs leading-relaxed text-ink-muted">
-                    applications published in the last 30 days
-                  </p>
-                </Reveal>
-              </div>
-
-              <Reveal delayMs={200}>
-                <p className="mt-8 max-w-md text-xs leading-relaxed text-neutral-500">
-                  Scores are shown inside the product, not here — a fit score is
-                  the thing you are paying for.
-                </p>
-              </Reveal>
-            </div>
-
-            <Reveal delayMs={120}>
-              <LiveFeed items={feedItems} />
-            </Reveal>
-          </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="border-t border-border">
-        <div className="max-w-6xl mx-auto px-6 py-16">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            <Reveal>
-              <div className="w-9 h-9 rounded-sm bg-primary-100 border border-border flex items-center justify-center mb-4 shadow-sm">
-                <MapPin size={16} className="text-primary-500" />
-              </div>
-              <h3 className="text-sm font-semibold text-ink mb-2">Find</h3>
-              <p className="text-sm text-ink-muted leading-relaxed">
-                Add any UK postcode. We resolve the authority automatically and pick up every scheme it publishes in your radius — before it reaches a tender list.
-              </p>
-            </Reveal>
-            <Reveal delayMs={90}>
-              <div className="w-9 h-9 rounded-sm bg-primary-100 border border-border flex items-center justify-center mb-4 shadow-sm">
-                <Mail size={16} className="text-primary-500" />
-              </div>
-              <h3 className="text-sm font-semibold text-ink mb-2">Prioritise</h3>
-              <p className="text-sm text-ink-muted leading-relaxed">
-                Every scheme is scored for the scope your firm actually wins — drainage, highways, groundworks, structures — and shows its working, so your team can qualify rather than guess.
-              </p>
-            </Reveal>
-            <Reveal delayMs={180}>
-              <div className="w-9 h-9 rounded-sm bg-primary-100 border border-border flex items-center justify-center mb-4 shadow-sm">
-                <CheckCircle size={16} className="text-primary-500" />
-              </div>
-              <h3 className="text-sm font-semibold text-ink mb-2">Win</h3>
-              <p className="text-sm text-ink-muted leading-relaxed">
-                See who submitted the application, track it through your pipeline, and draft the approach. Decisions and status changes are flagged the moment we spot them.
-              </p>
-            </Reveal>
+      {/* ---------- How we compare ---------- */}
+      <section className="border-b border-border bg-surface-sunken">
+        <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8">
+          <Reveal>
+            <h2 className="text-xl font-bold tracking-tighter text-ink sm:text-2xl">
+              How we compare
+            </h2>
+            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-ink-muted">
+              Barbour ABI and Glenigan are the established names. They are
+              bigger than us and we are not pretending otherwise &mdash; the
+              difference is who the product is tuned for, and how you buy it.
+            </p>
+          </Reveal>
+          <div className="mt-6">
+            <Comparison />
           </div>
         </div>
       </section>
 
       {/* Pricing */}
       <section className="border-t border-border bg-primary-50">
-        <div className="max-w-6xl mx-auto px-6 py-16">
+        <div className="mx-auto max-w-[1440px] px-5 py-16 sm:px-8">
           <h2 className="text-center text-xl font-semibold text-ink">Pricing</h2>
           <p className="mt-1 text-center text-sm text-ink-muted">
-            Free for homeowners. Built to pay for itself for professionals.
+            Start free. Built to pay for itself on the first job you win.
           </p>
           <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-3 max-w-5xl mx-auto">
             <div className="rounded-md border border-border bg-surface p-5 sm:p-7 shadow-sm">
@@ -423,9 +291,48 @@ export default async function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-6">
-          <span className="text-sm font-semibold text-ink">PlanningPing</span>
+
+      {/* ---------- Final CTA: the page ends where it began ---------- */}
+      <section className="border-b border-border bg-primary-50">
+        <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-balance text-xl font-bold tracking-tighter text-ink sm:text-2xl">
+              See what&rsquo;s being built in your territory.
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-ink-muted">
+              No account needed to look. Start tracking when you want it every
+              morning.
+            </p>
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <Link
+                href="#area-search"
+                className="pp-lift inline-flex h-10 items-center gap-1.5 rounded-sm bg-primary-500 px-5 text-sm font-medium text-white shadow-sm transition-[background-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:bg-primary-600 hover:shadow-primary active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
+              >
+                Search your area
+                <ArrowRight size={15} aria-hidden="true" />
+              </Link>
+              <Link
+                href="/signup"
+                className="pp-lift inline-flex h-10 items-center rounded-sm border border-border bg-surface px-5 text-sm font-medium text-ink shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:border-primary-300 hover:bg-primary-50 hover:shadow-md active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
+              >
+                Start tracking my territory
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="mt-auto border-t border-border">
+        <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-3 px-5 py-5 sm:px-8">
+          <span className="text-sm font-semibold text-ink">
+            Planning<span className="text-primary-500">Ping</span>
+          </span>
+          <nav aria-label="Footer" className="flex flex-wrap items-center gap-4 text-xs text-ink-muted">
+            <Link href="/blog" className="hover:text-ink">Blog</Link>
+            <Link href="/privacy" className="hover:text-ink">Privacy</Link>
+            <Link href="/terms" className="hover:text-ink">Terms</Link>
+            <Link href="/login" className="hover:text-ink">Sign in</Link>
+          </nav>
           <span className="text-xs text-neutral-500">From planning signal to sales pipeline.</span>
         </div>
       </footer>
