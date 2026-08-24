@@ -92,7 +92,15 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 // budget for fourteen of these — so a handful of stalls used up the entire run.
 // Giving up at 18s costs nothing on a good day and keeps one bad upstream call
 // from starving every area behind it.
-const REQUEST_TIMEOUT_MS = 18_000
+// 18s was too tight for the busiest territories. A 5km radius over Manchester
+// covers roughly 677 applications a quarter, and that query consistently
+// aborted mid-flight while Leeds and Nottingham at the same radius came back
+// fine — so the ceiling was ours, not PlanIt's.
+//
+// Safe to raise because the ingest checks its own 200s deadline before starting
+// each query and stops early rather than overrunning, so a slow area costs a
+// later area its turn this run rather than costing the whole run its writes.
+const REQUEST_TIMEOUT_MS = 30_000
 
 async function getWithBackoff(
   url: string,
