@@ -200,3 +200,35 @@ export const SITE_AREA_HECTARES = { min: 1, bonus: 15, label: 'Large site (1+ ha
 export const REFERENCE_SUFFIX_BONUS: Record<string, { bonus: number; label: string }> = {
   OUT: { bonus: 8, label: 'Outline application (strategic site)' },
 }
+
+// ---------------------------------------------------------------------------
+// Reading matched reasons back
+// ---------------------------------------------------------------------------
+
+// The scorer stores reasons as human strings with the weight appended —
+// "Drainage / SuDS scope (+25)". Anything reading them back has to work out
+// which were positive signals, and the obvious shortcut (match /scope|works/)
+// is wrong: "Householder / minor works (-30)" is a penalty and matches it. On
+// Bristol that misread 159 of 523 rows, presenting the single strongest
+// negative signal as though it were matched civils scope.
+//
+// So the strings are derived from the groups themselves and matched exactly.
+// A renamed label or changed weight moves both ends together.
+
+/** The exact reason string the scorer writes for each positive group, by id. */
+export const POSITIVE_REASON_BY_ID = new Map(
+  POSITIVE_GROUPS.map((g) => [g.id, `${g.label} (+${g.weight})`] as const),
+)
+
+const POSITIVE_REASONS: ReadonlySet<string> = new Set<string>(POSITIVE_REASON_BY_ID.values())
+
+/**
+ * The positive signals in a stored `score_reasons` array, as clean labels with
+ * the weight stripped. Penalties and dynamic bonuses (unit counts, site area)
+ * are excluded — this answers "what work did we match", not "how did it score".
+ */
+export function positiveSignals(reasons: string[] | null | undefined): string[] {
+  return (reasons ?? [])
+    .filter((r) => POSITIVE_REASONS.has(r))
+    .map((r) => r.replace(/\s*\(\+\d+\)\s*$/, ''))
+}
