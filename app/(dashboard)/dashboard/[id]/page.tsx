@@ -11,6 +11,7 @@ import RadiusControl from '@/components/dashboard/RadiusControl'
 import TrackedAreaSettings from '@/components/dashboard/TrackedAreaSettings'
 import ApplicationSearchList from '@/components/dashboard/ApplicationSearchList'
 import TerritoryMap from '@/components/dashboard/TerritoryMapLoader'
+import TerritoryChat from '@/components/dashboard/TerritoryChat'
 import type { TrackedArea, PlanningApplication } from '@/types/database'
 import type { MapApplication } from '@/components/dashboard/TerritoryMap'
 import Link from 'next/link'
@@ -174,6 +175,10 @@ export default async function TerritoryPage({
           </div>
         )}
       </div>
+
+      {/* Sits directly above the list it reads from, so the relationship
+          between the two is obvious. Pro-only, matching the API. */}
+      {showTrackActions && <TerritoryChat areaId={area.id} areaLabel={area.label} />}
 
       <div className="rounded-md border border-border bg-surface p-5 sm:p-6 shadow-sm">
         <h3 className="text-sm font-medium text-ink mb-3">Applications</h3>

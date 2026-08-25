@@ -18,6 +18,7 @@ import { trackOpportunity } from './leadActions'
 import { statusStyle } from '@/lib/statusStyle'
 import FitScore, { type Band } from './FitScore'
 import Button from '@/components/ui/Button'
+import SummariseButton from './SummariseButton'
 import Badge from '@/components/ui/Badge'
 import LinkButton from '@/components/ui/LinkButton'
 import { useToast } from '@/components/ui/Toast'
@@ -171,6 +172,11 @@ export default function ApplicationRow({
             Add to pipeline
           </Button>
         )}
+
+        {/* Renders nothing when the description is already short — see the
+            component. Placed last so the two actions that always exist keep a
+            stable position across rows. */}
+        <SummariseButton applicationId={app.id} description={app.description} />
       </div>
     </div>
   )
