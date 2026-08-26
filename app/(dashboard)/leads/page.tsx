@@ -49,6 +49,7 @@ export default async function LeadsPage({
   let applications: PlanningApplication[] = []
   let councils: { slug: string; name: string }[] = []
   let contactsAvailable = 0
+  let queryFailed = false
 
   if (councilSlugs.length > 0) {
     // Filtering happens in the database, not after the limit. Applying it in
@@ -65,7 +66,7 @@ export default async function LeadsPage({
       filters,
     )
 
-    const [{ data }, { data: councilRows }, { count: withAgent }] = await Promise.all([
+    const [{ data, error }, { data: councilRows }, { count: withAgent }] = await Promise.all([
       query,
       supabase.from('councils').select('slug, name').in('slug', councilSlugs),
       // Counted rather than assumed: the agent filter is hidden when nothing in
@@ -76,6 +77,14 @@ export default async function LeadsPage({
         .in('council_slug', councilSlugs)
         .not('agent_company', 'is', null),
     ])
+    // `data ?? []` on its own is why the broken trade filter looked like a
+    // coverage problem for as long as it did: the query was failing with a 400
+    // and the page rendered a confident "no opportunities" over the top of it.
+    // A query that errored is not a query that found nothing, and the two must
+    // not look the same.
+    if (error) console.error('Opportunities query failed:', error.message, error.code)
+    queryFailed = !!error
+
     applications = data ?? []
     councils = (councilRows ?? []) as { slug: string; name: string }[]
     contactsAvailable = withAgent ?? 0
@@ -118,6 +127,13 @@ export default async function LeadsPage({
         contactsAvailable={contactsAvailable}
         canExport={showTrackActions}
       />
+
+      {queryFailed && (
+        <div className="rounded-md border border-danger-200 bg-danger-50 px-4 py-3 text-sm text-danger-700">
+          Something went wrong loading these opportunities, so this list may be
+          incomplete. Try removing a filter, or reload the page.
+        </div>
+      )}
 
       <LeadsList
         applications={applications}

@@ -232,3 +232,29 @@ export function positiveSignals(reasons: string[] | null | undefined): string[] 
     .filter((r) => POSITIVE_REASONS.has(r))
     .map((r) => r.replace(/\s*\(\+\d+\)\s*$/, ''))
 }
+
+/**
+ * Add a "has this reason" clause to a query over `score_reasons`.
+ *
+ * Exists because the obvious call is wrong in a way that fails loudly in the
+ * database and silently in the UI. `score_reasons` is jsonb, and passing a JS
+ * array to supabase-js serialises to Postgres array-literal syntax:
+ *
+ *     .contains('score_reasons', [reason])  ->  score_reasons=cs.{Earthworks / ...}
+ *
+ * Postgres then tries to read `{Earthworks ...}` as JSON and rejects the whole
+ * query with 22P02 "invalid input syntax for type json". Callers that only
+ * destructure `data` see null, render an empty list, and report a coverage
+ * problem. Every trade filter in the product was dead this way.
+ *
+ * jsonb wants JSON, so the array is stringified. Same containment test, correct
+ * encoding — this matches no more rows than the original intended to.
+ *
+ * Loosely typed for the same reason applyFilters is: it takes a
+ * PostgrestFilterBuilder mid-chain and hands it back, and importing the full
+ * generic signature for that buys nothing here.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function whereReason<T extends { [k: string]: any }>(query: T, reason: string): T {
+  return query.contains('score_reasons', JSON.stringify([reason]))
+}

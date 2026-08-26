@@ -14,7 +14,12 @@
 
 import * as z from 'zod/v4'
 import { betaZodTool } from '@anthropic-ai/sdk/helpers/beta/zod'
-import { POSITIVE_GROUPS, POSITIVE_REASON_BY_ID, positiveSignals } from '@/lib/scoring/civilsCriteria'
+import {
+  POSITIVE_GROUPS,
+  POSITIVE_REASON_BY_ID,
+  positiveSignals,
+  whereReason,
+} from '@/lib/scoring/civilsCriteria'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 const SCOPE_IDS = POSITIVE_GROUPS.map((g) => g.id) as [string, ...string[]]
@@ -64,7 +69,7 @@ export function buildTerritoryTools(supabase: SupabaseClient, councilSlug: strin
       if (args.band) q = q.eq('band', args.band)
       if (args.scope) {
         const reason = POSITIVE_REASON_BY_ID.get(args.scope)
-        if (reason) q = q.contains('score_reasons', [reason])
+        if (reason) q = whereReason(q, reason)
       }
       if (args.daysBack) {
         const from = new Date(Date.now() - args.daysBack * 86_400_000)

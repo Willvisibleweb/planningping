@@ -13,7 +13,7 @@
 // for that one place.
 
 import { createAdminClient } from '@/lib/supabase/admin'
-import { positiveSignals } from '@/lib/scoring/civilsCriteria'
+import { positiveSignals, whereReason } from '@/lib/scoring/civilsCriteria'
 import { lookupPostcode, postcodeDistrict } from '@/lib/postcodes'
 import { getLocationsByTier, type SeoLocation } from '@/lib/seo/locations'
 import { councilHref, postcodeHref } from '@/lib/seo/links'
@@ -166,7 +166,7 @@ export async function searchArea(
     else q = q.eq('council_slug', location.parent_slug ?? '')
 
     const scope = SEARCH_SCOPES.find((s) => s.id === scopeId)
-    if (scope) q = q.contains('score_reasons', [scope.reason])
+    if (scope) q = whereReason(q, scope.reason)
 
     // Counted separately from the preview: the headline number is "how much is
     // here", which a three-row preview cannot tell you.
@@ -178,7 +178,7 @@ export async function searchArea(
     if (location.tier === 'postcode') countQ = countQ.eq('postcode_district', location.slug.toUpperCase())
     else if (location.tier === 'council') countQ = countQ.eq('council_slug', location.slug)
     else countQ = countQ.eq('council_slug', location.parent_slug ?? '')
-    if (scope) countQ = countQ.contains('score_reasons', [scope.reason])
+    if (scope) countQ = whereReason(countQ, scope.reason)
 
     const [{ data: rows }, { count: relevant }] = await Promise.all([q, countQ])
 
