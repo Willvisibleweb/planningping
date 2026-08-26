@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getProfile, hasProAccess, hasTopTierAccess } from '@/lib/access'
 import { getUserFeatures } from '@/lib/features'
 import TrackedAreasList from '@/components/dashboard/TrackedAreasList'
+import PlanPal from '@/components/dashboard/PlanPal'
 import AddAreaForm from '@/components/dashboard/AddAreaForm'
 import PartnerStatusWidget from '@/components/features/PartnerStatusWidget'
 import StaleDataNotice from '@/components/dashboard/StaleDataNotice'
@@ -109,6 +110,12 @@ export default async function DashboardPage() {
           firm actually wins.
         </p>
       </div>
+
+      {/* Above the tiles: the tiles answer "how much is there", PlanPal answers
+          "what should I do about it", and the second question is the one
+          someone opens the dashboard holding. Max tier — the route enforces the
+          same gate. */}
+      {canUseAi && <PlanPal />}
 
       {/* Order is the argument. The strong matches come first because that is
           the number a BD manager acts on; the size of the database is context,
