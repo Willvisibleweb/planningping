@@ -16,12 +16,13 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { statusStyle } from '@/lib/statusStyle'
-import { getProfile } from '@/lib/access'
+import { getProfile, hasTopTierAccess } from '@/lib/access'
 import { getUserFeatures } from '@/lib/features'
 import { ChevronRight } from 'lucide-react'
 import Badge from '@/components/ui/Badge'
 import SiteMonitoringButton from '@/components/features/SiteMonitoringButton'
 import ScoreBreakdown from '@/components/dashboard/ScoreBreakdown'
+import ApplicationSummary from '@/components/dashboard/ApplicationSummary'
 import FitScore, { type Band } from '@/components/dashboard/FitScore'
 import type { PlanningApplication } from '@/types/database'
 import Link from 'next/link'
@@ -177,6 +178,18 @@ export default async function ApplicationDetailPage({
           </div>
         )}
       </div>
+
+      {/* Directly under the header, because the header IS the problem it
+          solves: the h2 above is the council's raw description, which on a
+          discharge-of-condition record is a 1,000-character statutory
+          sentence. Max tier only — the route enforces the same gate. */}
+      {hasTopTierAccess(profile) && (
+        <ApplicationSummary
+          applicationId={app.id}
+          description={app.description}
+          initialSummary={app.ai_summary ?? null}
+        />
+      )}
 
       {/* Why this fits — the qualification case, stated in full rather than as
           a number. ScoreBreakdown is the same component the pipeline panel

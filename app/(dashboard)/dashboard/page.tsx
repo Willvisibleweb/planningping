@@ -3,7 +3,7 @@
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getProfile, hasProAccess } from '@/lib/access'
+import { getProfile, hasProAccess, hasTopTierAccess } from '@/lib/access'
 import { getUserFeatures } from '@/lib/features'
 import TrackedAreasList from '@/components/dashboard/TrackedAreasList'
 import AddAreaForm from '@/components/dashboard/AddAreaForm'
@@ -59,6 +59,8 @@ export default async function DashboardPage() {
   const trackedIds = new Set((leads ?? []).map((l) => l.application_id as string))
   // Track Opportunity is a professional feature — homeowners just watch.
   const showTrackActions = hasProAccess(profile)
+  // Max-only, matching the territory page and both API routes.
+  const canUseAi = hasTopTierAccess(profile)
 
   // Both of these only depend on the batch above (councilSlugs/showTrackActions),
   // not on each other — run them concurrently too.
@@ -155,6 +157,7 @@ export default async function DashboardPage() {
           applications={applications ?? []}
           trackedIds={[...trackedIds]}
           showTrackActions={showTrackActions}
+          canSummarise={canUseAi}
         />
       )}
     </div>

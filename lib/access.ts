@@ -74,6 +74,21 @@ export function effectiveTier(profile: Profile | null): ProTier {
 // notably the plan enforcer, which works from a profile row fetched with the
 // service role rather than from the request's session. Exported so the limits
 // table stays the single source of truth instead of being restated there.
+/**
+ * Top-tier only, for features whose cost scales with use rather than features
+ * that are simply "professional". The AI assistant and the summariser are the
+ * first of these: every call is a billed Anthropic request, so unlike the rest
+ * of the product they cannot be given away at the mid tier without the margin
+ * moving with usage.
+ *
+ * Trialists get it, because effectiveTier() already puts them on 'top' — the
+ * trial is meant to show the best version of the product, and the daily caps
+ * bound what a trial can cost.
+ */
+export function hasTopTierAccess(profile: Profile | null): boolean {
+  return effectiveTier(profile) === 'top'
+}
+
 export function planLimits(tier: ProTier): { maxRadiusMetres: number; maxTrackedAreas: number } {
   return TIER_LIMITS[tier]
 }

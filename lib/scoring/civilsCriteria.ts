@@ -200,3 +200,61 @@ export const SITE_AREA_HECTARES = { min: 1, bonus: 15, label: 'Large site (1+ ha
 export const REFERENCE_SUFFIX_BONUS: Record<string, { bonus: number; label: string }> = {
   OUT: { bonus: 8, label: 'Outline application (strategic site)' },
 }
+
+// ---------------------------------------------------------------------------
+// Reading matched reasons back
+// ---------------------------------------------------------------------------
+
+// The scorer stores reasons as human strings with the weight appended —
+// "Drainage / SuDS scope (+25)". Anything reading them back has to work out
+// which were positive signals, and the obvious shortcut (match /scope|works/)
+// is wrong: "Householder / minor works (-30)" is a penalty and matches it. On
+// Bristol that misread 159 of 523 rows, presenting the single strongest
+// negative signal as though it were matched civils scope.
+//
+// So the strings are derived from the groups themselves and matched exactly.
+// A renamed label or changed weight moves both ends together.
+
+/** The exact reason string the scorer writes for each positive group, by id. */
+export const POSITIVE_REASON_BY_ID = new Map(
+  POSITIVE_GROUPS.map((g) => [g.id, `${g.label} (+${g.weight})`] as const),
+)
+
+const POSITIVE_REASONS: ReadonlySet<string> = new Set<string>(POSITIVE_REASON_BY_ID.values())
+
+/**
+ * The positive signals in a stored `score_reasons` array, as clean labels with
+ * the weight stripped. Penalties and dynamic bonuses (unit counts, site area)
+ * are excluded — this answers "what work did we match", not "how did it score".
+ */
+export function positiveSignals(reasons: string[] | null | undefined): string[] {
+  return (reasons ?? [])
+    .filter((r) => POSITIVE_REASONS.has(r))
+    .map((r) => r.replace(/\s*\(\+\d+\)\s*$/, ''))
+}
+
+/**
+ * Add a "has this reason" clause to a query over `score_reasons`.
+ *
+ * Exists because the obvious call is wrong in a way that fails loudly in the
+ * database and silently in the UI. `score_reasons` is jsonb, and passing a JS
+ * array to supabase-js serialises to Postgres array-literal syntax:
+ *
+ *     .contains('score_reasons', [reason])  ->  score_reasons=cs.{Earthworks / ...}
+ *
+ * Postgres then tries to read `{Earthworks ...}` as JSON and rejects the whole
+ * query with 22P02 "invalid input syntax for type json". Callers that only
+ * destructure `data` see null, render an empty list, and report a coverage
+ * problem. Every trade filter in the product was dead this way.
+ *
+ * jsonb wants JSON, so the array is stringified. Same containment test, correct
+ * encoding — this matches no more rows than the original intended to.
+ *
+ * Loosely typed for the same reason applyFilters is: it takes a
+ * PostgrestFilterBuilder mid-chain and hands it back, and importing the full
+ * generic signature for that buys nothing here.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function whereReason<T extends { [k: string]: any }>(query: T, reason: string): T {
+  return query.contains('score_reasons', JSON.stringify([reason]))
+}

@@ -5,12 +5,13 @@
 
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getProfile, hasProAccess, maxRadiusMetres } from '@/lib/access'
+import { getProfile, hasProAccess, hasTopTierAccess, maxRadiusMetres } from '@/lib/access'
 import { lookupPostcode, postcodeDistrict, distanceKm } from '@/lib/postcodes'
 import RadiusControl from '@/components/dashboard/RadiusControl'
 import TrackedAreaSettings from '@/components/dashboard/TrackedAreaSettings'
 import ApplicationSearchList from '@/components/dashboard/ApplicationSearchList'
 import TerritoryMap from '@/components/dashboard/TerritoryMapLoader'
+import TerritoryChat from '@/components/dashboard/TerritoryChat'
 import type { TrackedArea, PlanningApplication } from '@/types/database'
 import type { MapApplication } from '@/components/dashboard/TerritoryMap'
 import Link from 'next/link'
@@ -57,6 +58,11 @@ export default async function TerritoryPage({
   const apps = (applications ?? []) as PlanningApplication[]
   const trackedIds = new Set((leads ?? []).map((l) => l.application_id as string))
   const showTrackActions = hasProAccess(profile)
+  // The AI features are Max-only — each call is a billed Anthropic request, so
+  // unlike the rest of the product the cost moves with usage. The routes
+  // enforce this independently; hiding the UI is only so nobody is offered a
+  // button that will refuse them.
+  const canUseAi = hasTopTierAccess(profile)
   const radiusCap = maxRadiusMetres(profile)
 
   // Pull lat/lng out of raw_data (PlanIt-sourced rows carry it) and compute
@@ -175,6 +181,10 @@ export default async function TerritoryPage({
         )}
       </div>
 
+      {/* Sits directly above the list it reads from, so the relationship
+          between the two is obvious. Pro-only, matching the API. */}
+      {canUseAi && <TerritoryChat areaId={area.id} areaLabel={area.label} />}
+
       <div className="rounded-md border border-border bg-surface p-5 sm:p-6 shadow-sm">
         <h3 className="text-sm font-medium text-ink mb-3">Applications</h3>
         <ApplicationSearchList
@@ -185,6 +195,7 @@ export default async function TerritoryPage({
             isTracked: trackedIds.has(app.id),
           }))}
           showTrackActions={showTrackActions}
+          canSummarise={canUseAi}
         />
       </div>
     </div>

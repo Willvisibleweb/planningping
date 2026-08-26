@@ -18,6 +18,7 @@ import { trackOpportunity } from './leadActions'
 import { statusStyle } from '@/lib/statusStyle'
 import FitScore, { type Band } from './FitScore'
 import Button from '@/components/ui/Button'
+import SummariseButton from './SummariseButton'
 import Badge from '@/components/ui/Badge'
 import LinkButton from '@/components/ui/LinkButton'
 import { useToast } from '@/components/ui/Toast'
@@ -29,6 +30,7 @@ export default function ApplicationRow({
   showTrackActions,
   distanceKm,
   anchorId,
+  canSummarise = false,
 }: {
   app: PlanningApplication
   isTracked: boolean
@@ -41,6 +43,10 @@ export default function ApplicationRow({
   // create duplicate DOM ids. Only the territory page (one flat, deduped list
   // per page) passes this.
   anchorId?: string
+  // Max-tier only: every summary is a billed Anthropic call. Defaults to false
+  // so a new call site has to opt in deliberately rather than leak the feature
+  // by forgetting a prop. The API enforces the same gate regardless.
+  canSummarise?: boolean
 }) {
   const { tone: statusTone, Icon: StatusIcon } = statusStyle(app.status)
 
@@ -170,6 +176,13 @@ export default function ApplicationRow({
           >
             Add to pipeline
           </Button>
+        )}
+
+        {/* Renders nothing when the description is already short — see the
+            component. Placed last so the two actions that always exist keep a
+            stable position across rows. */}
+        {canSummarise && (
+          <SummariseButton applicationId={app.id} description={app.description} />
         )}
       </div>
     </div>

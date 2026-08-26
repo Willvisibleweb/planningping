@@ -13,6 +13,7 @@
 // for that one place.
 
 import { createAdminClient } from '@/lib/supabase/admin'
+import { positiveSignals, whereReason } from '@/lib/scoring/civilsCriteria'
 import { lookupPostcode, postcodeDistrict } from '@/lib/postcodes'
 import { getLocationsByTier, type SeoLocation } from '@/lib/seo/locations'
 import { councilHref, postcodeHref } from '@/lib/seo/links'
@@ -61,10 +62,6 @@ export type AreaSearchResult =
   | { ok: false; reason: 'empty' | 'not-found' | 'no-coverage' | 'error'; message: string }
 
 const UK_POSTCODE = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d?[A-Z]{0,2}$/i
-
-function stripPoints(reason: string): string {
-  return reason.replace(/\s*\([+-]\d+\)\s*$/, '').replace(/ scope$| works$/, '')
-}
 
 /** Loose match of free text against a location name, for town/city queries. */
 function matchByName(locations: SeoLocation[], query: string): SeoLocation | null {
@@ -169,7 +166,7 @@ export async function searchArea(
     else q = q.eq('council_slug', location.parent_slug ?? '')
 
     const scope = SEARCH_SCOPES.find((s) => s.id === scopeId)
-    if (scope) q = q.contains('score_reasons', [scope.reason])
+    if (scope) q = whereReason(q, scope.reason)
 
     // Counted separately from the preview: the headline number is "how much is
     // here", which a three-row preview cannot tell you.
@@ -181,7 +178,7 @@ export async function searchArea(
     if (location.tier === 'postcode') countQ = countQ.eq('postcode_district', location.slug.toUpperCase())
     else if (location.tier === 'council') countQ = countQ.eq('council_slug', location.slug)
     else countQ = countQ.eq('council_slug', location.parent_slug ?? '')
-    if (scope) countQ = countQ.contains('score_reasons', [scope.reason])
+    if (scope) countQ = whereReason(countQ, scope.reason)
 
     const [{ data: rows }, { count: relevant }] = await Promise.all([q, countQ])
 
@@ -191,10 +188,7 @@ export async function searchArea(
       address: (r.address as string) ?? null,
       applicationDate: (r.application_date as string) ?? null,
       status: (r.status as string) ?? null,
-      scopes: ((r.score_reasons as string[]) ?? [])
-        .filter((x) => /scope|works/i.test(x))
-        .map(stripPoints)
-        .slice(0, 3),
+      scopes: positiveSignals(r.score_reasons as string[]).slice(0, 3),
       councilName: (r.council_slug as string) ?? '',
     }))
 
@@ -244,10 +238,7 @@ export async function getRecentOpportunities(limit = 6): Promise<PreviewOpportun
         address: (r.address as string) ?? null,
         applicationDate: (r.application_date as string) ?? null,
         status: (r.status as string) ?? null,
-        scopes: ((r.score_reasons as string[]) ?? [])
-          .filter((x) => /scope|works/i.test(x))
-          .map(stripPoints)
-          .slice(0, 3),
+        scopes: positiveSignals(r.score_reasons as string[]).slice(0, 3),
         councilName: (r.council_slug as string) ?? '',
       }))
       .filter((o) => o.scopes.length > 0)

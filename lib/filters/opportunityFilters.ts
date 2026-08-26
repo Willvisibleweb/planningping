@@ -14,7 +14,7 @@
 // refresh — and so the page can stay a server component and filter in the
 // database rather than shipping every row to the browser to be hidden.
 
-import { POSITIVE_GROUPS } from '@/lib/scoring/civilsCriteria'
+import { POSITIVE_GROUPS, whereReason } from '@/lib/scoring/civilsCriteria'
 
 // --- Scope / trade ----------------------------------------------------------
 //
@@ -116,7 +116,7 @@ export function applyFilters<T extends { [k: string]: any }>(query: T, f: Opport
     // Containment against the jsonb array, not a LIKE over its text form —
     // exact element matching, so "Drainage / SuDS scope" cannot be matched by
     // an unrelated reason that happens to mention drainage.
-    if (scope) q = q.contains('score_reasons', [scope.reason])
+    if (scope) q = whereReason(q, scope.reason)
   }
 
   if (f.days) {

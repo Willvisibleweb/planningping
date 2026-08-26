@@ -27,13 +27,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { getProfile, hasProAccess } from '@/lib/access'
+import { consumeAiQuota, releaseAiQuota } from '@/lib/ai/quota'
 
 const MODEL = 'claude-haiku-4-5'
 
-// Per-user daily cap on draft generation, shared across both modes. Each call
-// costs Anthropic credits, so this bounds the worst case (e.g. a trial user
-// generating in a loop). Counted per UTC day via outreach_log (migration 0007).
-const DAILY_LIMIT = 20
+// Per-user limits (5/minute, 20/day, shared across both modes) live in
+// consume_ai_quota — see 0030. Each call costs Anthropic credits, so this
+// bounds the worst case, e.g. a trial user generating in a loop.
 
 const BRIEF_FIELDS = `- Infer the likely civils scope from the development described (e.g. drainage/SuDS, groundworks/earthworks, highways/S278, structural/retaining, flood mitigation, an agricultural Class Q conversion, etc.). If the description is vague, keep it general rather than guessing specifics.
 - "value_signal" is a short, honest phrase on project size/complexity (e.g. "Small single dwelling — modest, one-off scope" or "Multi-unit residential — larger, multi-phase civils scope"). Don't invent figures; work from what the description and application type imply.
@@ -144,23 +144,6 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // Rate limit: count this user's generations since UTC midnight. RLS scopes
-  // the count to their own rows, and outreach_log has no delete policy, so
-  // the counter can't be reset from the client.
-  const startOfDay = new Date()
-  startOfDay.setUTCHours(0, 0, 0, 0)
-  const { count } = await supabase
-    .from('outreach_log')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .gte('created_at', startOfDay.toISOString())
-
-  if ((count ?? 0) >= DAILY_LIMIT) {
-    return NextResponse.json(
-      { error: `Daily limit reached (${DAILY_LIMIT} drafts). Try again tomorrow.` },
-      { status: 429 },
-    )
-  }
 
   const { data: lead } = await supabase
     .from('tracked_leads')
@@ -200,6 +183,19 @@ export async function POST(request: NextRequest) {
     reasons.length > 0 ? `Likely civils scope signals: ${reasons.join('; ')}` : null,
   ].filter(Boolean).join('\n')
 
+  // Reserved immediately before the model call, and released in the catch.
+  // Everything above can still refuse the request, and a slot taken earlier
+  // would charge the user for a draft they never got.
+  //
+  // Previously this counted rows and then inserted one — two statements, so
+  // concurrent requests all read the same count and all passed. 0030 does the
+  // check and the insert in one locked transaction, and adds a per-minute
+  // burst limit on top of the daily cap.
+  const quota = await consumeAiQuota(user.id, mode, body.leadId)
+  if (!quota.allowed) {
+    return NextResponse.json({ error: quota.message }, { status: quota.status })
+  }
+
   try {
     const anthropic = new Anthropic()  // reads ANTHROPIC_API_KEY from env
     const toolName = mode === 'letter' ? 'submit_letter' : 'submit_outreach'
@@ -220,9 +216,6 @@ export async function POST(request: NextRequest) {
     const toolUse = message.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use')
     if (!toolUse) throw new Error(`Model did not call ${toolName}`)
 
-    // Record the successful generation against today's shared cap. Failures
-    // aren't logged — a user shouldn't burn allowance on our errors.
-    await supabase.from('outreach_log').insert({ user_id: user.id, lead_id: body.leadId, kind: mode })
 
     if (mode === 'letter') {
       const result = toolUse.input as LetterToolInput
@@ -238,6 +231,9 @@ export async function POST(request: NextRequest) {
       angles: result.angles,
     })
   } catch (err) {
+    // Hand the slot back — our failure should not cost the user a draft.
+    await releaseAiQuota(quota.slotId)
+
     console.error('Outreach generation failed:', err)
     return NextResponse.json({ error: 'Could not generate a draft. Please try again.' }, { status: 502 })
   }
