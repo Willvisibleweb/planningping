@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getProfile, hasTopTierAccess } from '@/lib/access'
 import { positiveSignals } from '@/lib/scoring/civilsCriteria'
 import { consumeAiQuota, releaseAiQuota } from '@/lib/ai/quota'
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
   // cannot summarise an application they are not entitled to see.
   const { data: app } = await supabase
     .from('planning_applications')
-    .select('reference, description, address, status, application_date, score_reasons')
+    .select('reference, description, address, status, application_date, score_reasons, ai_summary')
     .eq('id', body.applicationId)
     .single()
 
@@ -75,6 +76,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       summary: 'This application has no description to summarise — the council published only a reference.',
     })
+  }
+
+  // Served from cache before the quota is touched. The summary is derived
+  // purely from the council's description — nothing in it is specific to the
+  // person who asked — so a second viewer should neither wait for it nor spend
+  // a slot on a paragraph that already exists.
+  if (app.ai_summary) {
+    return NextResponse.json({ summary: app.ai_summary, cached: true })
   }
 
   // Reserved here rather than earlier: everything above can still refuse the
@@ -117,6 +126,18 @@ export async function POST(request: NextRequest) {
       .flatMap((b) => (b.type === 'text' ? [b.text] : []))
       .join('\n')
       .trim()
+
+    if (summary) {
+      // Admin client because planning_applications has a SELECT policy and
+      // nothing else — users cannot write this column, by design. Best-effort:
+      // a failed cache write costs the next viewer a regeneration, which is
+      // not worth failing a request the user already has an answer to.
+      const { error: cacheError } = await createAdminClient()
+        .from('planning_applications')
+        .update({ ai_summary: summary, ai_summary_at: new Date().toISOString() })
+        .eq('id', body.applicationId)
+      if (cacheError) console.error('summary cache write failed:', cacheError.message)
+    }
 
     return NextResponse.json({ summary: summary || 'Could not summarise this one.' })
   } catch (error) {

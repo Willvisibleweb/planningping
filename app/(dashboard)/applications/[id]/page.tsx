@@ -184,7 +184,11 @@ export default async function ApplicationDetailPage({
           discharge-of-condition record is a 1,000-character statutory
           sentence. Max tier only — the route enforces the same gate. */}
       {hasTopTierAccess(profile) && (
-        <ApplicationSummary applicationId={app.id} description={app.description} />
+        <ApplicationSummary
+          applicationId={app.id}
+          description={app.description}
+          initialSummary={app.ai_summary ?? null}
+        />
       )}
 
       {/* Why this fits — the qualification case, stated in full rather than as

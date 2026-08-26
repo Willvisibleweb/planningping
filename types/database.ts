@@ -97,6 +97,11 @@ export interface PlanningApplication {
   parent_application_id: string | null
   parent_reference_needs_review: boolean
   is_stale: boolean
+  // Plain-English summary of `description`, generated on first request and
+  // then shared by every viewer. Null until someone asks for one, and cleared
+  // automatically if the council revises the description (0031).
+  ai_summary: string | null
+  ai_summary_at: string | null
 }
 
 export interface Digest {
