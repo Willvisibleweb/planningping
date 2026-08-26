@@ -25,10 +25,12 @@ export default function ApplicationSearchList({
   areaId,
   items,
   showTrackActions,
+  canSummarise,
 }: {
   areaId: string
   items: SearchableApplication[]
   showTrackActions: boolean
+  canSummarise: boolean
 }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchableApplication[] | null>(null)
@@ -149,6 +151,7 @@ export default function ApplicationSearchList({
               app={app}
               isTracked={isTracked}
               showTrackActions={showTrackActions}
+              canSummarise={canSummarise}
               distanceKm={distanceKm}
               anchorId={`app-${app.id}`}
             />

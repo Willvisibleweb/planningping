@@ -18,9 +18,10 @@ interface Props {
   // False for homeowners / lapsed trials: hides Track buttons + badges.
   // Cosmetic only — trackOpportunity re-checks access server-side.
   showTrackActions: boolean
+  canSummarise: boolean
 }
 
-export default function TrackedAreasList({ areas, applications, trackedIds, showTrackActions }: Props) {
+export default function TrackedAreasList({ areas, applications, trackedIds, showTrackActions, canSummarise }: Props) {
   const trackedSet = new Set(trackedIds)
 
   if (areas.length === 0) {
@@ -53,6 +54,7 @@ export default function TrackedAreasList({ areas, applications, trackedIds, show
           applications={filterByBand(appsByCouncil[area.council_slug] ?? [], area.min_band)}
           trackedSet={trackedSet}
           showTrackActions={showTrackActions}
+          canSummarise={canSummarise}
         />
       ))}
     </div>
@@ -74,11 +76,13 @@ function AreaCard({
   area,
   applications,
   trackedSet,
+  canSummarise,
   showTrackActions,
 }: {
   area: TrackedArea
   applications: PlanningApplication[]
   trackedSet: Set<string>
+  canSummarise: boolean
   showTrackActions: boolean
 }) {
   const [isPending, startTransition] = useTransition()
@@ -218,6 +222,7 @@ function AreaCard({
               app={app}
               isTracked={trackedSet.has(app.id)}
               showTrackActions={showTrackActions}
+              canSummarise={canSummarise}
             />
           ))}
           {applications.length > 5 && (

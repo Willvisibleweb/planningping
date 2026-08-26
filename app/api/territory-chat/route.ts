@@ -18,13 +18,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
-import { getProfile, hasProAccess } from '@/lib/access'
+import { getProfile, hasTopTierAccess } from '@/lib/access'
 import { buildTerritoryTools } from '@/lib/ai/territoryTools'
+import { consumeAiQuota, releaseAiQuota } from '@/lib/ai/quota'
 
 export const maxDuration = 60
 
 const MODEL = 'claude-haiku-4-5'
-const DAILY_LIMIT = 20
+
+// Per-user limits (5/minute, 20/day) live in consume_ai_quota — see 0030.
+// Deliberately not restated here: two copies of a limit is one copy too many.
 
 // Bounds one conversation's cost. Every turn resends the history, so an
 // unbounded thread grows quadratically in spend — and a territory question
@@ -50,9 +53,9 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 })
 
-  if (!hasProAccess(await getProfile())) {
+  if (!hasTopTierAccess(await getProfile())) {
     return NextResponse.json(
-      { error: 'The territory assistant requires an active plan.' },
+      { error: 'The territory assistant is only available on the Max plan.' },
       { status: 403 },
     )
   }
@@ -84,21 +87,12 @@ export async function POST(request: NextRequest) {
 
   if (!area) return NextResponse.json({ error: 'Territory not found.' }, { status: 404 })
 
-  // Counted per kind, so chatting does not consume the outreach allowance.
-  const startOfDay = new Date()
-  startOfDay.setUTCHours(0, 0, 0, 0)
-  const { count } = await supabase
-    .from('outreach_log')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('kind', 'chat')
-    .gte('created_at', startOfDay.toISOString())
-
-  if ((count ?? 0) >= DAILY_LIMIT) {
-    return NextResponse.json(
-      { error: `Daily limit reached (${DAILY_LIMIT} questions). Try again tomorrow.` },
-      { status: 429 },
-    )
+  // Reserved before the model is called, and released below if the call fails.
+  // The check and the insert happen in one locked transaction (0030), so
+  // concurrent requests cannot all read the same count and all pass.
+  const quota = await consumeAiQuota(user.id, 'chat')
+  if (!quota.allowed) {
+    return NextResponse.json({ error: quota.message }, { status: quota.status })
   }
 
   try {
@@ -123,14 +117,14 @@ export async function POST(request: NextRequest) {
       .join('\n')
       .trim()
 
-    // Logged after a successful answer, not before: a failed call costs the
-    // user nothing and should not burn their allowance.
-    await supabase.from('outreach_log').insert({ user_id: user.id, kind: 'chat' })
 
     return NextResponse.json({
       reply: text || 'I could not find an answer to that in this territory.',
     })
   } catch (error) {
+    // Hand the slot back — our failure should not cost the user a question.
+    await releaseAiQuota(quota.slotId)
+
     if (error instanceof Anthropic.RateLimitError) {
       return NextResponse.json(
         { error: 'The assistant is busy. Try again in a moment.' },

@@ -12,16 +12,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
-import { getProfile, hasProAccess } from '@/lib/access'
+import { getProfile, hasTopTierAccess } from '@/lib/access'
 import { positiveSignals } from '@/lib/scoring/civilsCriteria'
+import { consumeAiQuota, releaseAiQuota } from '@/lib/ai/quota'
 
 export const maxDuration = 30
 
 const MODEL = 'claude-haiku-4-5'
 
-// Higher than the chat's cap: summarising is one cheap call and is meant to be
-// used while skimming a list, where twenty would be restrictive.
-const DAILY_LIMIT = 60
+// Per-user limits (10/minute, 60/day) live in consume_ai_quota — see 0030.
+// Higher than the chat's: summarising is one cheap call and is meant to be used
+// while skimming a list, where twenty would be restrictive.
 
 const SYSTEM = `You explain UK planning applications to construction contractors — groundworks, drainage, civils and highways firms looking for work.
 
@@ -40,8 +41,11 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 })
 
-  if (!hasProAccess(await getProfile())) {
-    return NextResponse.json({ error: 'Summaries require an active plan.' }, { status: 403 })
+  if (!hasTopTierAccess(await getProfile())) {
+    return NextResponse.json(
+      { error: 'Summaries are only available on the Max plan.' },
+      { status: 403 },
+    )
   }
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: 'Summaries are not configured.' }, { status: 503 })
@@ -57,21 +61,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No application given.' }, { status: 400 })
   }
 
-  const startOfDay = new Date()
-  startOfDay.setUTCHours(0, 0, 0, 0)
-  const { count } = await supabase
-    .from('outreach_log')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('kind', 'summary')
-    .gte('created_at', startOfDay.toISOString())
-
-  if ((count ?? 0) >= DAILY_LIMIT) {
-    return NextResponse.json(
-      { error: `Daily limit reached (${DAILY_LIMIT} summaries).` },
-      { status: 429 },
-    )
-  }
 
   // RLS scopes this to councils the caller actively tracks, so a forged id
   // cannot summarise an application they are not entitled to see.
@@ -86,6 +75,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       summary: 'This application has no description to summarise — the council published only a reference.',
     })
+  }
+
+  // Reserved here rather than earlier: everything above can still refuse the
+  // request, and a slot taken before those checks would charge the user for a
+  // summary they never got.
+  const quota = await consumeAiQuota(user.id, 'summary')
+  if (!quota.allowed) {
+    return NextResponse.json({ error: quota.message }, { status: quota.status })
   }
 
   const scopes = positiveSignals(app.score_reasons as string[])
@@ -121,10 +118,10 @@ export async function POST(request: NextRequest) {
       .join('\n')
       .trim()
 
-    await supabase.from('outreach_log').insert({ user_id: user.id, kind: 'summary' })
-
     return NextResponse.json({ summary: summary || 'Could not summarise this one.' })
   } catch (error) {
+    await releaseAiQuota(quota.slotId)
+
     if (error instanceof Anthropic.RateLimitError) {
       return NextResponse.json({ error: 'Busy — try again in a moment.' }, { status: 429 })
     }
