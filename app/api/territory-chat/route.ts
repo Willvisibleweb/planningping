@@ -45,7 +45,7 @@ How to answer:
 - Be brief. Two or three sentences, or a short list. These are busy people.
 - Fit bands mean: HOT = strong match, WARM = worth reviewing, COLD = low priority. Say the words, not the codes.
 - If a tool returns nothing, say so plainly and suggest a wider filter. Never fill a gap with a plausible-sounding example.
-- If a count came back capped, say "at least N" rather than stating it as the total.
+- Counts from territory_summary are exact totals. State them as they are.
 - You cannot see documents, drawings or anything not in the tool results. Say so if asked.`
 
 export async function POST(request: NextRequest) {

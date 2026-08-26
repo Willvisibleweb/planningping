@@ -20,6 +20,7 @@ import {
   positiveSignals,
   whereReason,
 } from '@/lib/scoring/civilsCriteria'
+import { getPortfolioStats } from '@/lib/ai/portfolioStats'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 const SCOPE_IDS = POSITIVE_GROUPS.map((g) => g.id) as [string, ...string[]]
@@ -117,45 +118,21 @@ export function buildTerritoryTools(supabase: SupabaseClient, councilSlug: strin
       'rather than about particular schemes.',
     inputSchema: z.object({}),
     async run() {
-      const { data, error } = await supabase
-        .from('planning_applications')
-        .select('band, application_date, score_reasons')
-        .eq('council_slug', councilSlug)
-        .limit(2000)
+      // Counted in the database rather than tallied from rows here. The
+      // previous version selected up to 2000 rows and counted them, but
+      // Supabase caps a result set at 1000 whatever limit is asked for — so
+      // Coventry's 1,562 applications were reported as a flat 1,000, and the
+      // `capped` flag testing rows.length === 2000 could never fire to say so.
+      const stats = await getPortfolioStats(supabase, [councilSlug])
+      if (stats.total === 0) return 'This territory has no applications stored yet.'
 
-      if (error) return `Could not read the territory: ${error.message}`
-      const rows = (data ?? []) as {
-        band: string | null
-        application_date: string | null
-        score_reasons: string[] | null
-      }[]
-      if (rows.length === 0) return 'This territory has no applications stored yet.'
-
-      const bands: Record<string, number> = {}
-      const scopes: Record<string, number> = {}
-      const dates: string[] = []
-
-      for (const r of rows) {
-        bands[r.band ?? 'unscored'] = (bands[r.band ?? 'unscored'] ?? 0) + 1
-        if (r.application_date) dates.push(r.application_date)
-        for (const label of positiveSignals(r.score_reasons)) {
-          scopes[label] = (scopes[label] ?? 0) + 1
-        }
-      }
-      dates.sort()
-
+      // byCouncil is redundant when there is only one council.
       return JSON.stringify({
-        // Flagged so the model can say "at least" rather than stating a total
-        // it cannot actually see. Silently reporting 2000 as the total would
-        // be a confident, wrong answer.
-        total: rows.length,
-        capped: rows.length === 2000,
-        byFit: bands,
-        topScopes: Object.fromEntries(
-          Object.entries(scopes).sort((a, b) => b[1] - a[1]).slice(0, 6),
-        ),
-        oldest: dates[0] ?? null,
-        newest: dates[dates.length - 1] ?? null,
+        total: stats.total,
+        byFit: stats.byFit,
+        topTrades: stats.topTrades,
+        oldest: stats.oldest,
+        newest: stats.newest,
       })
     },
   })
