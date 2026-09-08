@@ -15,7 +15,16 @@
 // counted from rows we hold rather than estimated.
 
 import { createClient } from '@/lib/supabase/server'
-import { POSITIVE_GROUPS } from '@/lib/scoring/civilsCriteria'
+import { POSITIVE_GROUPS, POSITIVE_REASON_BY_ID, whereReason } from '@/lib/scoring/civilsCriteria'
+import { APP_TYPES } from '@/lib/filters/opportunityFilters'
+
+// The analytics page renders the most recent twelve weeks; anything older is
+// counted in the totals but not bucketed, because a bar per week since the
+// first ingest becomes unreadable long before it becomes more useful.
+const WEEKS_SHOWN = 12
+
+// Status keywords that indicate a council has actually decided something.
+const DECISION_WORDS = ['approv', 'grant', 'permit', 'refus', 'reject'] as const
 
 export interface Bucket {
   label: string
@@ -38,15 +47,6 @@ export interface TerritoryStats {
   withDecision: number
 }
 
-interface Row {
-  council_slug: string
-  band: string | null
-  application_date: string | null
-  status: string | null
-  score_reasons: string[] | null
-  raw_data: { app_type?: unknown } | null
-}
-
 const FIT_LABEL: Record<string, string> = {
   HOT: 'Strong match',
   WARM: 'Worth reviewing',
@@ -55,21 +55,6 @@ const FIT_LABEL: Record<string, string> = {
 
 function titleCase(slug: string): string {
   return slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-}
-
-// Monday of the week a date falls in, so weeks group consistently regardless of
-// which day the application landed.
-function weekStart(iso: string): string {
-  const d = new Date(`${iso}T00:00:00Z`)
-  const day = (d.getUTCDay() + 6) % 7 // Monday = 0
-  d.setUTCDate(d.getUTCDate() - day)
-  return d.toISOString().slice(0, 10)
-}
-
-function tally(pairs: string[]): Map<string, number> {
-  const m = new Map<string, number>()
-  for (const p of pairs) m.set(p, (m.get(p) ?? 0) + 1)
-  return m
 }
 
 function toBuckets(m: Map<string, number>, limit?: number): Bucket[] {
@@ -95,66 +80,125 @@ export async function getTerritoryStats(): Promise<TerritoryStats> {
   const slugs = [...new Set(((areas ?? []) as { council_slug: string }[]).map((a) => a.council_slug))]
   if (slugs.length === 0) return empty
 
-  // Aggregated in TypeScript rather than SQL because the scoped set is a few
-  // hundred rows, and one round trip beats six. Revisit if a user ever tracks
-  // enough authorities for this to be thousands.
-  const { data } = await supabase
-    .from('planning_applications')
-    .select('council_slug, band, application_date, status, score_reasons, raw_data')
-    .in('council_slug', slugs)
-    .limit(5000)
+  // Every figure below is a count(*) computed in the database.
+  //
+  // This used to select up to 5000 rows and tally them in TypeScript, with a
+  // comment saying to revisit it if a user ever tracked enough authorities for
+  // that to be thousands. That day arrived unannounced, and the failure was
+  // silent: Supabase caps a result set at 1000 rows whatever limit is asked
+  // for, so the page reported 1,000 applications against a real 2,743 — and
+  // the weekly chart was drawn from an arbitrary truncated slice, making its
+  // shape wrong rather than merely its scale. A chart that is wrong in shape is
+  // worse than no chart, because you would act on it.
+  //
+  // Counting in SQL has no such ceiling and ships no rows. It costs more round
+  // trips, which are parallel and indexed; if this page ever feels slow the
+  // answer is one grouped RPC, not going back to tallying rows here.
+  const scoped = () =>
+    supabase
+      .from('planning_applications')
+      .select('*', { count: 'exact', head: true })
+      .in('council_slug', slugs)
 
-  const rows = (data ?? []) as Row[]
-  if (rows.length === 0) return empty
+  const n = async (q: { count: number | null } | PromiseLike<{ count: number | null }>) =>
+    (await q).count ?? 0
 
-  const dates = rows.map((r) => r.application_date).filter(Boolean).sort() as string[]
-
-  // Weeks are built from a continuous range rather than only weeks that have
-  // data, so a quiet week reads as a genuine trough instead of vanishing and
-  // making the line look busier than it was.
-  const weekCounts = tally(dates.map(weekStart))
-  const byWeek: Bucket[] = []
-  if (dates.length > 0) {
-    const cursor = new Date(`${weekStart(dates[0])}T00:00:00Z`)
-    const end = new Date(`${weekStart(dates[dates.length - 1])}T00:00:00Z`)
-    while (cursor <= end) {
-      const key = cursor.toISOString().slice(0, 10)
-      byWeek.push({ label: key, count: weekCounts.get(key) ?? 0 })
-      cursor.setUTCDate(cursor.getUTCDate() + 7)
+  // Only the weeks the page actually renders. Building a bucket for every week
+  // since the first ingest would be dozens of queries for data nothing shows.
+  const weekStarts: string[] = []
+  {
+    const cursor = new Date()
+    cursor.setUTCHours(0, 0, 0, 0)
+    cursor.setUTCDate(cursor.getUTCDate() - ((cursor.getUTCDay() + 6) % 7))
+    for (let i = 0; i < WEEKS_SHOWN; i++) {
+      weekStarts.unshift(cursor.toISOString().slice(0, 10))
+      cursor.setUTCDate(cursor.getUTCDate() - 7)
     }
   }
 
-  // Scope counts come from the scorer's own reason strings, matched on the
-  // group's label rather than a copy of it, so renaming a group here cannot
-  // silently produce a category that never matches.
-  const scopeCounts = new Map<string, number>()
-  for (const g of POSITIVE_GROUPS) {
-    const needle = `${g.label} (+${g.weight})`
-    const n = rows.filter((r) => (r.score_reasons ?? []).includes(needle)).length
-    if (n > 0) scopeCounts.set(g.label.replace(/ scope$| works$/, ''), n)
-  }
+  const [
+    totalApplications,
+    scored,
+    withDecision,
+    weekCounts,
+    bandCounts,
+    scopeCounts,
+    authorityCounts,
+    typeCounts,
+    earliestRow,
+    latestRow,
+  ] = await Promise.all([
+    n(scoped()),
+    n(scoped().not('band', 'is', null)),
+    // Same keyword set the previous version matched in JS.
+    n(scoped().or(DECISION_WORDS.map((w) => `status.ilike.*${w}*`).join(','))),
+    Promise.all(
+      weekStarts.map(async (start) => {
+        const end = new Date(`${start}T00:00:00Z`)
+        end.setUTCDate(end.getUTCDate() + 7)
+        return [start, await n(
+          scoped().gte('application_date', start).lt('application_date', end.toISOString().slice(0, 10)),
+        )] as const
+      }),
+    ),
+    Promise.all(
+      (['HOT', 'WARM', 'COLD'] as const).map(async (b) => [b, await n(scoped().eq('band', b))] as const),
+    ),
+    Promise.all(
+      POSITIVE_GROUPS.map(async (g) => {
+        const reason = POSITIVE_REASON_BY_ID.get(g.id)
+        if (!reason) return [g.label, 0] as const
+        return [g.label, await n(whereReason(scoped(), reason))] as const
+      }),
+    ),
+    Promise.all(
+      slugs.map(async (slug) => [titleCase(slug), await n(scoped().eq('council_slug', slug))] as const),
+    ),
+    Promise.all(
+      APP_TYPES.map(async (t) => [t, await n(scoped().eq('raw_data->>app_type', t))] as const),
+    ),
+    supabase.from('planning_applications').select('application_date')
+      .in('council_slug', slugs).not('application_date', 'is', null)
+      .order('application_date', { ascending: true }).limit(1).maybeSingle(),
+    supabase.from('planning_applications').select('application_date')
+      .in('council_slug', slugs).not('application_date', 'is', null)
+      .order('application_date', { ascending: false }).limit(1).maybeSingle(),
+  ])
 
-  const fitCounts = tally(
-    rows.map((r) => (r.band ? FIT_LABEL[r.band] ?? r.band : 'Not scored')),
+  if (totalApplications === 0) return empty
+
+  const byFitMap = new Map<string, number>(
+    bandCounts.map(([b, c]) => [FIT_LABEL[b] ?? b, c]),
   )
+  byFitMap.set('Not scored', totalApplications - scored)
+
+  // Whatever the eight known PlanIt types do not account for. Named rather than
+  // dropped, so the bars still sum to the total the page headlines.
+  const typed = typeCounts.reduce((sum, [, c]) => sum + c, 0)
+  const otherTypes = totalApplications - typed
 
   return {
-    totalApplications: rows.length,
-    scored: rows.filter((r) => r.band).length,
-    byWeek,
+    totalApplications,
+    scored,
+    byWeek: weekCounts.map(([label, count]) => ({ label, count })),
     // Fixed order, not by size: these are a scale, and a bar chart that
     // reorders itself as the data shifts is harder to read week to week.
     byFit: ['Strong match', 'Worth reviewing', 'Low priority', 'Not scored']
-      .map((label) => ({ label, count: fitCounts.get(label) ?? 0 }))
+      .map((label) => ({ label, count: byFitMap.get(label) ?? 0 }))
       .filter((b) => b.count > 0),
-    byScope: toBuckets(scopeCounts),
-    byAuthority: toBuckets(tally(rows.map((r) => titleCase(r.council_slug)))),
+    byScope: toBuckets(
+      new Map(scopeCounts.filter(([, c]) => c > 0).map(([label, c]) => [label.replace(/ scope$| works$/, ''), c])),
+    ),
+    byAuthority: toBuckets(new Map(authorityCounts.filter(([, c]) => c > 0))),
     byType: toBuckets(
-      tally(rows.map((r) => (typeof r.raw_data?.app_type === 'string' ? r.raw_data.app_type : 'Unclassified'))),
+      new Map<string, number>([
+        ...typeCounts.filter(([, c]) => c > 0),
+        ...(otherTypes > 0 ? ([['Unclassified', otherTypes]] as [string, number][]) : []),
+      ]),
       8,
     ),
-    earliest: dates[0] ?? null,
-    latest: dates[dates.length - 1] ?? null,
-    withDecision: rows.filter((r) => /approv|grant|permit|refus|reject/i.test(r.status ?? '')).length,
+    earliest: (earliestRow.data?.application_date as string) ?? null,
+    latest: (latestRow.data?.application_date as string) ?? null,
+    withDecision,
   }
 }
