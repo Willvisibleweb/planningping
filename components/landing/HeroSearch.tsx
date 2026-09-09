@@ -103,23 +103,21 @@ export default function HeroSearch({ scopes, initial }: Props) {
     <div className="grid gap-8 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1fr)] lg:gap-12">
       {/* ---- Positioning + search ---- */}
       <div className="flex flex-col justify-center">
-        <p className="mb-4 inline-flex w-fit items-center rounded-full border border-border bg-primary-100 px-3 py-1 text-2xs font-semibold uppercase tracking-wide text-primary-600">
-          Construction sales intelligence
+        <p className="mb-4 inline-flex w-fit items-center rounded-sm border border-white/20 bg-white/10 px-3 py-1 text-2xs font-semibold uppercase tracking-wide text-white/80 backdrop-blur">
+          UK planning data for construction sales
         </p>
 
         {/* Reduced from the previous 6xl. The headline still leads, but the eye
             should move on to the search and then the opportunities rather than
             stopping here. */}
-        <h1 className="text-balance text-3xl font-bold leading-[1.08] tracking-tighter text-ink sm:text-4xl lg:text-[2.9rem]">
-          Find the work in your patch
-          <br />
-          before your competitors.
+        <h1 className="text-balance text-4xl font-bold leading-[1.03] tracking-tighter text-white sm:text-5xl lg:text-6xl">
+          Find construction projects worth pursuing.
         </h1>
 
-        <p className="mt-4 max-w-lg text-base leading-relaxed text-ink-muted">
-          We read every UK planning authority daily, work out which schemes carry
-          your scope &mdash; drainage, groundworks, highways, structures &mdash;
-          and tell your team which ones are worth a call.
+        <p className="mt-5 max-w-xl text-base leading-relaxed text-white/75 sm:text-lg">
+          PlanningPing reads public planning activity, spots the schemes carrying
+          drainage, groundworks, highways and structures, then helps your team
+          focus on the leads most likely to turn into site work.
         </p>
 
         <form onSubmit={submit} className="mt-6" noValidate>
@@ -177,11 +175,11 @@ export default function HeroSearch({ scopes, initial }: Props) {
             </p>
           )}
 
-          <p className="mt-2 text-2xs text-neutral-500">
+          <p className="mt-2 text-2xs text-white/60">
             {gated ? (
               <>
                 You&rsquo;ve used your {FREE_SEARCHES} free look-ups.{' '}
-                <Link href="/signup" className="pp-link font-medium">
+                <Link href="/signup" className="font-medium text-white underline underline-offset-2 hover:text-white/80">
                   Create a free account
                 </Link>{' '}
                 to keep searching.
@@ -192,7 +190,9 @@ export default function HeroSearch({ scopes, initial }: Props) {
                 needed.
               </>
             ) : (
-              <>Try ST13, Coventry or Bristol &mdash; no account needed to look.</>
+              <span className="text-white/60">
+                Try ST13, Coventry or Bristol &mdash; no account needed to look.
+              </span>
             )}
           </p>
         </form>
