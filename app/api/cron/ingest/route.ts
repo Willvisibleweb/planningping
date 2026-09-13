@@ -32,6 +32,7 @@ import { ingestTenders } from '@/lib/tenders/ingestTenders'
 import { hasProAccess } from '@/lib/access'
 import { getUserFeatures } from '@/lib/features'
 import { sendAlertEmail, type AlertItem } from '@/lib/email'
+import { runWeeklyDigest } from '@/lib/email/runWeeklyDigest'
 import type { Profile, MinBand } from '@/types/database'
 
 export const maxDuration = 300
@@ -229,6 +230,15 @@ export async function GET(request: NextRequest) {
     siteUrl: SITE_URL,
   })
 
+  // The daily ingest cron is known to run. Let it own the Monday digest too,
+  // rather than depending on a separate weekly schedule that previously
+  // stopped after manual test sends. The digest has its own exact-window guard,
+  // so retrying the ingest cannot resend a completed week.
+  const digest =
+    new Date().getUTCDay() === 1
+      ? await runWeeklyDigest(supabase, { siteUrl: SITE_URL })
+      : null
+
   return NextResponse.json({
     ran_at: new Date().toISOString(),
     source: 'planit',
@@ -248,6 +258,7 @@ export async function GET(request: NextRequest) {
     discharge_alerts_sent: dischargeAlertsSent,
     decisions_detected: result.decided_applications.length,
     decision_alerts_sent: decisionAlertsSent,
+    digest,
     per_area: perArea,
   })
 }

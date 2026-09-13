@@ -1,18 +1,19 @@
-// Middleware runs on every matched request before the page renders.
-// Its two jobs:
-//   1. Refresh the Supabase session token (keeps users logged in without
-//      requiring a page reload — Supabase sessions expire every hour).
-//   2. Protect dashboard routes: redirect unauthenticated users to /login.
+// Proxy runs on every matched request before the page renders.
+// Its jobs are deliberately narrow:
+//   1. Redirect production aliases to the canonical host.
+//   2. Refresh Supabase session cookies only on routes that use auth.
+//   3. Optimistically redirect definitely signed-out users from protected
+//      routes. The dashboard layout remains the authoritative auth gate.
 //
 // The actual auth gate for dashboard pages is ALSO in the dashboard layout
-// (defence-in-depth). Middleware is fast but can be bypassed by edge cases;
-// the layout check is the authoritative guard.
+// (defence-in-depth). Proxy is fast but can be bypassed by edge cases; the
+// layout check is the authoritative guard.
 
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-// Max time to wait for Supabase auth before giving up and failing open.
-const AUTH_TIMEOUT_MS = 3000
+// Max time to wait for Supabase auth before letting the page/layout decide.
+const AUTH_TIMEOUT_MS = 1000
 
 // The canonical host. Anything else in production is an alias Vercel assigns
 // automatically (planningping.vercel.app and friends), which served the entire
@@ -20,7 +21,27 @@ const AUTH_TIMEOUT_MS = 3000
 // free to index, and the name users saw in places we don't control.
 const CANONICAL_HOST = 'planningping.com'
 
-export async function middleware(request: NextRequest) {
+const AUTHED_ROUTE_PREFIXES = [
+  '/analytics',
+  '/applications',
+  '/contact',
+  '/coverage',
+  '/dashboard',
+  '/how-it-works',
+  '/leads',
+  '/onboarding',
+  '/pipeline',
+  '/settings',
+  '/tenders',
+  '/two-factor',
+  '/update-password',
+]
+
+function matchesPrefix(pathname: string, prefix: string) {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`)
+}
+
+export async function proxy(request: NextRequest) {
   // Send production traffic to the real domain before anything else runs.
   //
   // Gated on VERCEL_ENV === 'production' deliberately: preview deployments are
@@ -38,6 +59,14 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url, 308)
     }
   }
+
+  const { pathname } = request.nextUrl
+  const needsSession = AUTHED_ROUTE_PREFIXES.some((prefix) =>
+    matchesPrefix(pathname, prefix)
+  )
+
+  // Public/content pages should not pay for a Supabase auth check.
+  if (!needsSession) return NextResponse.next({ request })
 
   let supabaseResponse = NextResponse.next({ request })
 
@@ -64,43 +93,30 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // getUser() validates the token against Supabase (a network call). Do NOT use
-  // getSession() — it reads the cookie without server validation and can be
-  // spoofed. We race getUser() against a timeout so a slow/unreachable/paused
-  // Supabase can never hang the request into a MIDDLEWARE_INVOCATION_TIMEOUT.
-  // On timeout or error we FAIL OPEN with user = null: protected routes bounce
-  // to /login, everything else continues. The dashboard layout re-validates the
-  // session server-side, so failing open never exposes protected content.
-  let user = null
+  // getClaims() verifies the JWT without the user-record roundtrip when the
+  // project uses asymmetric signing keys, while still refreshing cookies via
+  // @supabase/ssr. Do NOT use getSession() for route protection; it reads
+  // cookie storage without validating the token.
+  let authState: 'authenticated' | 'unauthenticated' | 'unknown' = 'unknown'
   try {
-    const { data } = await Promise.race([
-      supabase.auth.getUser(),
+    const { data, error } = await Promise.race([
+      supabase.auth.getClaims(),
       new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('supabase-auth-timeout')), AUTH_TIMEOUT_MS)
       ),
     ])
-    user = data.user
+    authState = !error && data?.claims?.sub ? 'authenticated' : 'unauthenticated'
   } catch {
-    user = null
+    authState = 'unknown'
   }
 
-  const { pathname } = request.nextUrl
-
-  // Redirect unauthenticated users away from dashboard routes.
-  const isDashboardRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/settings')
-  if (isDashboardRoute && !user) {
+  // Redirect definitely unauthenticated users away from protected routes. If
+  // Supabase is slow or unreachable, let the dashboard layout perform its
+  // authoritative check instead of accidentally logging out a valid session.
+  if (authState === 'unauthenticated') {
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = '/login'
     return NextResponse.redirect(loginUrl)
-  }
-
-  // Redirect logged-in users away from auth pages (no point showing login to
-  // someone who is already authenticated).
-  const isAuthRoute = pathname === '/login' || pathname === '/signup'
-  if (isAuthRoute && user) {
-    const dashboardUrl = request.nextUrl.clone()
-    dashboardUrl.pathname = '/dashboard'
-    return NextResponse.redirect(dashboardUrl)
   }
 
   return supabaseResponse

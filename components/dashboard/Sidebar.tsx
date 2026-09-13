@@ -6,11 +6,9 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
-  useTransition,
 } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
 import {
   LayoutDashboard,
   Target,
@@ -149,8 +147,6 @@ function SidebarInner({
   onTrial,
   daysLeft,
   userEmail,
-  onLogout,
-  loggingOut,
 }: {
   showLabels: boolean
   collapsed: boolean
@@ -160,8 +156,6 @@ function SidebarInner({
   onTrial: boolean
   daysLeft: number | null
   userEmail: string
-  onLogout: () => void
-  loggingOut: boolean
 }) {
   return (
     <div className="flex h-full flex-col">
@@ -240,26 +234,28 @@ function SidebarInner({
             <span className="min-w-0 flex-1 truncate text-xs text-ink-muted" title={userEmail}>
               {userEmail}
             </span>
+            <form action="/auth/signout" method="post">
+              <button
+                type="submit"
+                className={ICON_BUTTON}
+                aria-label="Sign out"
+                title="Sign out"
+              >
+                <LogOut size={16} />
+              </button>
+            </form>
+          </div>
+        ) : (
+          <form action="/auth/signout" method="post">
             <button
-              onClick={onLogout}
-              disabled={loggingOut}
-              className={ICON_BUTTON}
+              type="submit"
+              className={`flex w-full justify-center ${ICON_BUTTON}`}
               aria-label="Sign out"
               title="Sign out"
             >
               <LogOut size={16} />
             </button>
-          </div>
-        ) : (
-          <button
-            onClick={onLogout}
-            disabled={loggingOut}
-            className={`flex w-full justify-center ${ICON_BUTTON}`}
-            aria-label="Sign out"
-            title="Sign out"
-          >
-            <LogOut size={16} />
-          </button>
+          </form>
         )}
       </div>
     </div>
@@ -268,14 +264,12 @@ function SidebarInner({
 
 export default function Sidebar({ userEmail, professional, onTrial, daysLeft }: Props) {
   const pathname = usePathname()
-  const router = useRouter()
   const collapsed = useSyncExternalStore(
     subscribeCollapsed,
     getCollapsedSnapshot,
     getCollapsedServerSnapshot,
   )
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [isPending, startTransition] = useTransition()
   const drawerRef = useRef<HTMLDivElement>(null)
   // Remembers what had focus before the drawer opened, so closing it returns
   // focus to the menu button rather than dumping it at the top of the document.
@@ -342,14 +336,6 @@ export default function Sidebar({ userEmail, professional, onTrial, daysLeft }: 
     }
   }, [mobileOpen, closeDrawer])
 
-  function handleLogout() {
-    startTransition(async () => {
-      const supabase = createClient()
-      await supabase.auth.signOut()
-      router.push('/login')
-    })
-  }
-
   const coreNav = CORE_NAV(professional)
 
   function isActive(href: string) {
@@ -364,8 +350,6 @@ export default function Sidebar({ userEmail, professional, onTrial, daysLeft }: 
     onTrial,
     daysLeft,
     userEmail,
-    onLogout: handleLogout,
-    loggingOut: isPending,
   }
 
   return (
