@@ -13,10 +13,11 @@ import Link from 'next/link'
 import { Menu, X } from 'lucide-react'
 
 const NAV = [
-  { href: '#how-it-works', label: 'How it works' },
-  { href: '#who-its-for', label: "Who it's for" },
-  { href: '#coverage', label: 'Coverage' },
-  { href: '#pricing', label: 'Pricing' },
+  { href: '/construction-sales-intelligence', label: 'Sales intelligence' },
+  { href: '/#how-it-works', label: 'How it works' },
+  { href: '/#who-its-for', label: "Who it's for" },
+  { href: '/#coverage', label: 'Coverage' },
+  { href: '/#pricing', label: 'Pricing' },
   { href: '/blog', label: 'Blog' },
 ]
 

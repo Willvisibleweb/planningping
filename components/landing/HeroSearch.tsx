@@ -14,7 +14,7 @@
 
 import { useEffect, useState, useTransition } from 'react'
 import Link from 'next/link'
-import { Search, ArrowRight, MapPin, AlertCircle } from 'lucide-react'
+import { Search, ArrowRight, MapPin, AlertCircle, Sparkles, Target } from 'lucide-react'
 import { searchAreaAction } from '@/lib/search/actions'
 import type { AreaSearchResult } from '@/lib/search/areaSearch'
 import OpportunityRow from './OpportunityRow'
@@ -104,20 +104,20 @@ export default function HeroSearch({ scopes, initial }: Props) {
       {/* ---- Positioning + search ---- */}
       <div className="flex flex-col justify-center">
         <p className="mb-4 inline-flex w-fit items-center rounded-sm border border-white/20 bg-white/10 px-3 py-1 text-2xs font-semibold uppercase tracking-wide text-white/80 backdrop-blur">
-          UK planning data for construction sales
+          UK construction sales intelligence
         </p>
 
         {/* Reduced from the previous 6xl. The headline still leads, but the eye
             should move on to the search and then the opportunities rather than
             stopping here. */}
         <h1 className="text-balance text-4xl font-bold leading-[1.03] tracking-tighter text-white sm:text-5xl lg:text-6xl">
-          Find construction projects worth pursuing.
+          Construction sales intelligence that finds projects worth pursuing.
         </h1>
 
         <p className="mt-5 max-w-xl text-base leading-relaxed text-white/75 sm:text-lg">
-          PlanningPing reads public planning activity, spots the schemes carrying
-          drainage, groundworks, highways and structures, then helps your team
-          focus on the leads most likely to turn into site work.
+          PlanningPing monitors UK planning applications, identifies relevant
+          civils and groundworks opportunities, and uses AI to prioritise the
+          projects most worth your sales team&apos;s time.
         </p>
 
         <form onSubmit={submit} className="mt-6" noValidate>
@@ -199,7 +199,7 @@ export default function HeroSearch({ scopes, initial }: Props) {
       </div>
 
       {/* ---- Live opportunity panel ---- */}
-      <div className="overflow-hidden rounded-lg border border-border bg-surface shadow-md">
+      <div className="overflow-hidden rounded-lg border border-primary-200 bg-surface shadow-lg">
         {isPending ? (
           <div aria-live="polite">
             <div className="flex items-center justify-between border-b border-border bg-surface-sunken px-3 py-2.5">
@@ -249,22 +249,33 @@ export default function HeroSearch({ scopes, initial }: Props) {
           </div>
         ) : showing ? (
           <>
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-surface-sunken px-3 py-2.5">
-              <div className="flex min-w-0 items-center gap-1.5">
-                <MapPin size={14} className="shrink-0 text-primary-500" aria-hidden="true" />
-                <h2 className="truncate text-sm font-semibold text-ink">
-                  {showing.placeName}
-                </h2>
-                <span
-                  aria-live="polite"
-                  className="tabular-data shrink-0 rounded-full bg-primary-100 px-2 py-0.5 text-2xs font-semibold text-primary-700"
-                >
-                  {showing.relevant.toLocaleString()} with your scope
+            <div className="border-b border-border bg-primary-50 px-4 py-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="inline-flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-wide text-primary-700">
+                    <Sparkles size={12} aria-hidden="true" />
+                    Example PlanningPing output
+                  </p>
+                  <h2 className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-base font-bold tracking-tight text-ink">
+                    <span className="inline-flex min-w-0 items-center gap-1.5">
+                      <MapPin size={15} className="shrink-0 text-primary-500" aria-hidden="true" />
+                      Planning applications turned into ranked sales leads in {showing.placeName}
+                    </span>
+                  </h2>
+                  <p className="mt-1 max-w-2xl text-xs leading-relaxed text-ink-muted">
+                    Each row shows the likely work package, the matched trade
+                    signals and the timing. We scanned {showing.total.toLocaleString()} planning records and found{' '}
+                    <strong className="font-semibold text-ink">
+                      {showing.relevant.toLocaleString()} potential opportunities
+                    </strong>{' '}
+                    matching civils, groundworks, drainage or enabling-work signals.
+                  </p>
+                </div>
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-surface px-2.5 py-1 text-2xs font-semibold text-success-700 ring-1 ring-inset ring-success-200">
+                  <Target size={11} aria-hidden="true" />
+                  Sorted by fit
                 </span>
               </div>
-              {/* Says what the ordering is. A ranked list whose ordering is
-                  unstated is just a list. */}
-              <span className="shrink-0 text-2xs text-neutral-500">Sorted by fit</span>
             </div>
 
             {showing.preview.length > 0 ? (
@@ -289,26 +300,44 @@ export default function HeroSearch({ scopes, initial }: Props) {
               </div>
             )}
 
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-surface-sunken px-3 py-2.5">
-              <span className="tabular-data text-2xs text-neutral-500">
-                Showing {showing.preview.length} of {showing.relevant.toLocaleString()}
-                {' · '}
-                {showing.total.toLocaleString()} tracked in {showing.placeName}
+            {showing.preview.length > 0 && (
+              <div className="grid gap-2 border-t border-border bg-primary-50/55 px-4 py-3 sm:grid-cols-3">
+                {[
+                  ['Likely package', 'What a civils or groundworks team could sell into.'],
+                  ['Matched signals', 'The words and conditions that made the application relevant.'],
+                  ['Fit order', 'The examples are shown in the order PlanningPing would open first.'],
+                ].map(([title, body]) => (
+                  <div key={title} className="rounded-md bg-surface p-2.5 ring-1 ring-inset ring-primary-100">
+                    <p className="text-[10px] font-semibold uppercase text-primary-700">
+                      {title}
+                    </p>
+                    <p className="mt-1 text-[11px] leading-snug text-ink-muted">
+                      {body}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-surface-sunken px-4 py-3">
+              <span className="text-2xs leading-relaxed text-neutral-500">
+                Showing {showing.preview.length} ranked examples. Create an account to see scores,
+                project teams, recommended first contact and the full saved pipeline.
               </span>
               <div className="flex items-center gap-2">
-              <Link
-                href={showing.href}
-                className="inline-flex items-center gap-1 rounded-sm border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink shadow-sm transition-[background-color,border-color] duration-fast ease-standard hover:border-primary-300 hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
-              >
-                View all in {showing.placeName}
-                <ArrowRight size={12} aria-hidden="true" />
-              </Link>
-              <Link
-                href="/signup"
-                className="text-xs font-medium text-primary-600 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
-              >
-                Track this area &rarr;
-              </Link>
+                <Link
+                  href={showing.href}
+                  className="inline-flex items-center gap-1 rounded-sm border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink shadow-sm transition-[background-color,border-color] duration-fast ease-standard hover:border-primary-300 hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
+                >
+                  View all in {showing.placeName}
+                  <ArrowRight size={12} aria-hidden="true" />
+                </Link>
+                <Link
+                  href="/signup"
+                  className="text-xs font-medium text-primary-600 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
+                >
+                  Track this area &rarr;
+                </Link>
               </div>
             </div>
           </>

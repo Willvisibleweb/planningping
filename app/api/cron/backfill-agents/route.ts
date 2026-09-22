@@ -44,6 +44,11 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import {
+  syncAgentOrganisations,
+  type AgentOrganisationSource,
+} from '@/lib/organisations/syncProjectOrganisations'
+import { acquirePipelineLock, lockedPipelineResponse, PLANIT_PIPELINE_LOCK, releasePipelineLock } from '@/lib/reliability/pipelineLock'
 
 export const maxDuration = 300
 
@@ -79,6 +84,11 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = createAdminClient()
+  const lockResult = await acquirePipelineLock(supabase, PLANIT_PIPELINE_LOCK, 600, { job: 'backfill_agents', trigger: 'manual' })
+  if (!lockResult.acquired) return lockedPipelineResponse('backfill_agents', lockResult)
+  const lock = lockResult.lock
+
+  try {
   const startedAt = Date.now()
 
   // Councils that still have gaps, with the date span of the missing rows.
@@ -119,6 +129,7 @@ export async function GET(request: NextRequest) {
 
   const report: Record<string, { updated: number; windows: number; overflowed: number }> = {}
   let stoppedEarly = false
+  const organisationSources: AgentOrganisationSource[] = []
 
   outer: for (const [slug, span] of spans) {
     const authority = slugToName.get(slug)
@@ -172,13 +183,29 @@ export async function GET(request: NextRequest) {
             .filter((u) => u.reference && u.agent)
 
           for (const u of updates) {
-            const { error, count } = await supabase
+            const { data: updatedRows, error, count } = await supabase
               .from('planning_applications')
               .update({ agent_company: u.agent }, { count: 'exact' })
               .eq('council_slug', slug)
               .eq('reference', u.reference)
               .is('agent_company', null) // never overwrite something already known
-            if (!error && count) stats.updated += count
+              .select('id, agent_company, raw_data, last_scraped_at')
+            if (!error && count) {
+              stats.updated += count
+              for (const row of (updatedRows ?? []) as {
+                id: string
+                agent_company: string | null
+                raw_data: Record<string, unknown> | null
+                last_scraped_at: string | null
+              }[]) {
+                organisationSources.push({
+                  applicationId: row.id,
+                  agentCompany: row.agent_company,
+                  sourceUrl: typeof row.raw_data?.url === 'string' ? row.raw_data.url : null,
+                  sourceCheckedAt: row.last_scraped_at,
+                })
+              }
+            }
           }
         }
       } catch {
@@ -193,6 +220,24 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  let organisationSyncFailed = false
+  try {
+    await syncAgentOrganisations(supabase, organisationSources)
+  } catch (error) {
+    organisationSyncFailed = true
+    console.error('project organisation sync failed:', error)
+  }
+
   const updated = Object.values(report).reduce((n, r) => n + r.updated, 0)
-  return NextResponse.json({ ok: true, updated, stoppedEarly, report })
+  return NextResponse.json({
+    ok: true,
+    updated,
+    projectTeamSynced: organisationSyncFailed ? 0 : organisationSources.length,
+    organisationSyncFailed,
+    stoppedEarly,
+    report,
+  })
+  } finally {
+    await releasePipelineLock(supabase, lock)
+  }
 }

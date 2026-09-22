@@ -10,7 +10,7 @@ import { getProfile, isProfessional, hasProAccess } from '@/lib/access'
 import LeadsList from '@/components/dashboard/LeadsList'
 import FilterBar from '@/components/dashboard/FilterBar'
 import { parseFilters, applyFilters } from '@/lib/filters/opportunityFilters'
-import type { PlanningApplication } from '@/types/database'
+import type { OpportunityFeedback, OpportunityProfile, PlanningApplication } from '@/types/database'
 import Link from 'next/link'
 import { PRICING } from '@/lib/stripe'
 
@@ -32,9 +32,14 @@ export default async function LeadsPage({
   // than waterfalling. getProfile() is already deduped for free against the
   // layout's call via React's cache(), but the two table queries were
   // previously serialized needlessly.
-  const [{ data: areas }, { data: leads }, profile] = await Promise.all([
+  const [{ data: areas }, { data: leads }, { data: opportunityProfile }, profile] = await Promise.all([
     supabase.from('tracked_areas').select('council_slug').eq('is_active', true),
     supabase.from('tracked_leads').select('application_id'),
+    supabase
+      .from('opportunity_profiles')
+      .select('*')
+      .eq('is_primary', true)
+      .maybeSingle(),
     getProfile(),
   ])
   const councilSlugs = [...new Set((areas ?? []).map((a) => a.council_slug))]
@@ -50,6 +55,8 @@ export default async function LeadsPage({
   let councils: { slug: string; name: string }[] = []
   let contactsAvailable = 0
   let queryFailed = false
+  let feedback: OpportunityFeedback[] = []
+  const typedOpportunityProfile = opportunityProfile as OpportunityProfile | null
 
   if (councilSlugs.length > 0) {
     // Filtering happens in the database, not after the limit. Applying it in
@@ -88,6 +95,17 @@ export default async function LeadsPage({
     applications = data ?? []
     councils = (councilRows ?? []) as { slug: string; name: string }[]
     contactsAvailable = withAgent ?? 0
+
+    const { data: feedbackRows } = typedOpportunityProfile
+      ? await supabase
+          .from('opportunity_feedback')
+          .select('*')
+          .eq('opportunity_profile_id', typedOpportunityProfile.id)
+      : await supabase
+          .from('opportunity_feedback')
+          .select('*')
+          .is('opportunity_profile_id', null)
+    feedback = (feedbackRows ?? []) as OpportunityFeedback[]
   }
 
   return (
@@ -140,6 +158,8 @@ export default async function LeadsPage({
         activeBand={activeBand}
         trackedIds={trackedIds}
         showTrackActions={showTrackActions}
+        opportunityProfile={typedOpportunityProfile}
+        feedback={feedback}
       />
     </div>
   )

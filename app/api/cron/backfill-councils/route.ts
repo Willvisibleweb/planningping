@@ -11,8 +11,12 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { fetchByAuthority, fetchAuthorityList, slugifyAuthority } from '@/lib/planit'
-import { upsertApplications, type IngestApplication } from '@/lib/ingest/upsertApplications'
+import { fetchAuthorityList, queryPlanIt, PlanItError, slugifyAuthority } from '@/lib/planit'
+import { fromPlanIt, upsertApplications } from '@/lib/ingest/upsertApplications'
+import { createCouncilResolver } from '@/lib/ingest/councilResolver'
+import { authoritySourceKey } from '@/lib/reliability/sourceKeys'
+import { finishPipelineRun, logPipelineEvent, recordSourceRun, startPipelineRun } from '@/lib/reliability/pipelineLog'
+import { acquirePipelineLock, lockedPipelineResponse, PLANIT_PIPELINE_LOCK, releasePipelineLock } from '@/lib/reliability/pipelineLock'
 
 export const maxDuration = 300
 
@@ -31,17 +35,35 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = createAdminClient()
+  const lockResult = await acquirePipelineLock(supabase, PLANIT_PIPELINE_LOCK, 600, { job: 'backfill_councils', trigger: 'cron' })
+  if (!lockResult.acquired) return lockedPipelineResponse('backfill_councils', lockResult)
+  const lock = lockResult.lock
+
+  try {
+  const runId = await startPipelineRun(supabase, 'backfill_councils', 'cron')
+  const resolver = await createCouncilResolver(supabase)
 
   // Self-healing: make sure every PlanIt authority has a councils row, so the
   // batch selection below has something to iterate over even for authorities
   // no user has ever searched near. Cheap — one PlanIt request regardless of
   // batch size, and also picks up any new authority PlanIt adds over time.
-  const allAuthorities = await fetchAuthorityList()
-  if (allAuthorities.length > 0) {
-    await supabase.from('councils').upsert(
-      allAuthorities.map((name) => ({ slug: slugifyAuthority(name), name, supported: true })),
-      { onConflict: 'slug', ignoreDuplicates: true },
-    )
+  //
+  // Only names we do not already know are inserted. Upserting every name by
+  // its slugified form is what created the empty 'bristol' twin of
+  // 'bristol-city-of'. And a failure here no longer ends the run: the list
+  // only discovers new authorities, and the existing rotation does not need it.
+  let allAuthorities: string[] = []
+  try {
+    allAuthorities = await fetchAuthorityList()
+    const unknown = allAuthorities.filter((name) => !resolver.knows(name))
+    if (unknown.length > 0) {
+      await supabase.from('councils').upsert(
+        unknown.map((name) => ({ slug: slugifyAuthority(name), name, supported: true })),
+        { onConflict: 'slug', ignoreDuplicates: true },
+      )
+    }
+  } catch (e) {
+    await logPipelineEvent(supabase, { runId, job: 'backfill_councils', stage: 'authority_list', severity: 'warning', message: 'PlanIt authority list unavailable; continuing with known councils', error: e })
   }
 
   const { data: batch, error } = await supabase
@@ -51,32 +73,55 @@ export async function GET(request: NextRequest) {
     .order('last_planit_fetch_at', { ascending: true, nullsFirst: true })
     .limit(BATCH_SIZE)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    await logPipelineEvent(supabase, { runId, job: 'backfill_councils', stage: 'load_councils', severity: 'critical', message: 'Could not load councils', error: error.message })
+    await finishPipelineRun(supabase, runId, 'failed', { stage: 'load_councils' })
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
   if (!batch || batch.length === 0) {
+    await finishPipelineRun(supabase, runId, 'success', { message: 'No councils to backfill' })
     return NextResponse.json({ message: 'No councils to backfill', total_authorities: allAuthorities.length })
   }
 
   const results: Array<{ council: string; fetched: number; changed: number; error?: string }> = []
+  let failures = 0
 
   for (const council of batch) {
+    const started = new Date()
+    const sourceKey = authoritySourceKey(council.slug)
     try {
-      const apps = await fetchByAuthority({ authorityName: council.name, recentDays: RECENT_DAYS })
-      const toIngest: IngestApplication[] = apps.map((app) => ({
-        council_slug: slugifyAuthority(app.councilName),
-        reference: app.reference,
-        address: app.address,
-        description: app.description,
-        status: app.status,
-        application_date: app.applicationDate,
-        decision_date: app.decisionDate,
-        agent_company: app.agentCompany,
-        target_decision_date: app.targetDecisionDate,
-        raw_data: { source: 'planit', url: app.url, app_type: app.appType, lat: app.lat, lng: app.lng },
-      }))
-      const { changed } = await upsertApplications(supabase, toIngest)
-      results.push({ council: council.name, fetched: apps.length, changed })
+      const fetched = await queryPlanIt(
+        { kind: 'authority', authorityName: council.name },
+        { kind: 'recent', days: RECENT_DAYS },
+        { background: true },
+      )
+      const toIngest = []
+      for (const app of fetched.applications) toIngest.push(fromPlanIt(app, await resolver.resolve(app.councilName)))
+      const { changed } = await upsertApplications(supabase, toIngest, { runId, job: 'backfill_councils' })
+      results.push({ council: council.name, fetched: fetched.received, changed })
+      await recordSourceRun(supabase, {
+        runId, job: 'backfill_councils', sourceKey, sourceLabel: council.name, councilSlug: council.slug,
+        startedAt: started, status: 'success', httpStatus: fetched.httpStatus, attempts: fetched.attempts,
+        windowDays: RECENT_DAYS, recordsReturned: fetched.received, sourceTotal: fetched.total, truncated: fetched.truncated,
+      })
+      // Success is stamped separately from the attempt: the add-territory path
+      // treats this as "fresh data exists" and must not be fooled by a failure.
+      const { error: successError } = await supabase
+        .from('councils')
+        .update({ last_planit_success_at: new Date().toISOString() })
+        .eq('slug', council.slug)
+      if (successError && !/last_planit_success_at/.test(successError.message)) {
+        await logPipelineEvent(supabase, { runId, job: 'backfill_councils', stage: 'stamp', severity: 'warning', councilSlug: council.slug, message: 'Could not stamp success time', error: successError.message })
+      }
     } catch (e) {
+      failures++
       results.push({ council: council.name, fetched: 0, changed: 0, error: String(e) })
+      await recordSourceRun(supabase, {
+        runId, job: 'backfill_councils', sourceKey, sourceLabel: council.name, councilSlug: council.slug,
+        startedAt: started, status: 'failed', httpStatus: e instanceof PlanItError ? e.httpStatus : null,
+        attempts: e instanceof PlanItError ? e.attempts : 1, windowDays: RECENT_DAYS, errorStage: 'fetch', error: e,
+      })
+      await logPipelineEvent(supabase, { runId, job: 'backfill_councils', stage: 'fetch', severity: 'error', sourceKey, councilSlug: council.slug, message: `Backfill failed for ${council.name}`, error: e })
     }
     // Stamp last_planit_fetch_at regardless of success/failure — a persistently
     // erroring council (e.g. PlanIt has no data for it) must not stay at the
@@ -85,10 +130,17 @@ export async function GET(request: NextRequest) {
     await new Promise((r) => setTimeout(r, DELAY_MS))
   }
 
+  await finishPipelineRun(supabase, runId, failures > 0 ? 'partial' : 'success', { batch_size: batch.length, failures })
+
   return NextResponse.json({
     ran_at: new Date().toISOString(),
+    run_id: runId,
     total_authorities: allAuthorities.length,
     batch_size: batch.length,
+    failures,
     results,
   })
+  } finally {
+    await releasePipelineLock(supabase, lock)
+  }
 }

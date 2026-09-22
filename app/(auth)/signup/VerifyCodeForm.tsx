@@ -84,7 +84,7 @@ export default function VerifyCodeForm({ email }: { email: string }) {
       // Straight into setup rather than the dashboard: the account has no
       // territory yet, and onboarding redirects on to the dashboard the moment
       // one exists.
-      router.push('/onboarding')
+      router.push('/onboarding?welcome=1')
       router.refresh()
     })
   }

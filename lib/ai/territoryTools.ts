@@ -62,7 +62,7 @@ export function buildTerritoryTools(supabase: SupabaseClient, councilSlug: strin
     async run(args) {
       let q = supabase
         .from('planning_applications')
-        .select('reference, description, address, status, application_date, band, score, score_reasons, agent_company')
+        .select('reference, description, address, status, application_date, band, score, score_reasons, agent_company, sourceUrl:raw_data->>url')
         .eq('council_slug', councilSlug)
         .order('score', { ascending: false, nullsFirst: false })
         .limit(MAX_ROWS)
@@ -103,7 +103,9 @@ export function buildTerritoryTools(supabase: SupabaseClient, councilSlug: strin
           fit: r.band,
           score: r.score,
           signals: positiveSignals(r.score_reasons as string[]),
-          agent: r.agent_company,
+          agent: r.agent_company ?? 'not recorded',
+          // Link to the authority's own record, so an answer can be checked.
+          sourceUrl: r.sourceUrl ?? null,
         })),
       )
     },

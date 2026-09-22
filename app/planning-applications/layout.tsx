@@ -34,6 +34,8 @@ export default function PlanningApplicationsLayout({
           Planning data is collected from public council registers and may be incomplete,
           delayed, or inaccurate. Always verify against the official planning authority
           before acting. {' · '}
+          <Link href="/construction-sales-intelligence" className="pp-link-muted">Construction sales intelligence</Link>
+          {' · '}
           <Link href="/" className="pp-link-muted">PlanningPing</Link>
         </div>
       </footer>

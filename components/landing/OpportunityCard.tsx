@@ -6,7 +6,7 @@
 // fit score itself stays behind the login, because that ranking is the thing
 // being sold.
 
-import { MapPin, CalendarDays } from 'lucide-react'
+import { CalendarDays, MapPin, Target } from 'lucide-react'
 
 export interface OpportunityCardData {
   reference: string
@@ -34,13 +34,27 @@ function whenSubmitted(iso: string | null): string | null {
   return `${Math.round(days / 30)} months ago`
 }
 
+function packageFromScopes(scopes: string[]): string {
+  const text = scopes.join(' ').toLowerCase()
+  if (/drainage|suds|flood|water/.test(text)) return 'Drainage / water package'
+  if (/earthworks|groundworks/.test(text)) return 'Groundworks package'
+  if (/infrastructure|enabling|highway|road/.test(text)) return 'Infrastructure package'
+  if (/demolition|remediation/.test(text)) return 'Enabling works package'
+  if (/structure|foundation|retaining/.test(text)) return 'Structures package'
+  return 'Construction package'
+}
+
 export default function OpportunityCard({ item }: { item: OpportunityCardData }) {
   const submitted = whenSubmitted(item.applicationDate)
+  const packageLabel = packageFromScopes(item.scopes)
 
   return (
-    <article className="rounded-md border border-border bg-surface p-3.5 shadow-sm transition-shadow duration-fast ease-standard hover:shadow-md">
+    <article className="h-full rounded-md border border-border bg-surface p-4 shadow-sm transition-[border-color,box-shadow,transform] duration-fast ease-standard hover:-translate-y-px hover:border-primary-300 hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
-        <span className="tabular-data text-2xs text-ink-muted">{item.reference}</span>
+        <span className="inline-flex items-center gap-1 rounded-full bg-success-50 px-2 py-0.5 text-2xs font-semibold text-success-700 ring-1 ring-inset ring-success-200">
+          <Target size={11} aria-hidden="true" />
+          Sales opportunity
+        </span>
         {item.status && (
           <span className="shrink-0 rounded-full bg-surface-sunken px-2 py-0.5 text-2xs font-medium text-ink-muted">
             {item.status}
@@ -48,25 +62,37 @@ export default function OpportunityCard({ item }: { item: OpportunityCardData })
         )}
       </div>
 
-      <p className="mt-1.5 line-clamp-2 text-sm leading-snug text-ink">{item.description}</p>
+      <p className="mt-3 text-xs font-semibold uppercase text-primary-700">
+        What to sell: {packageLabel}
+      </p>
+      <p className="mt-1 line-clamp-3 text-sm font-semibold leading-snug text-ink">{item.description}</p>
 
       {/* The intelligence layer, made visible. Without these the card is a
           planning record; with them it is an argument for why this one is
           worth a call. */}
       {item.scopes.length > 0 && (
-        <div className="mt-2.5 flex flex-wrap gap-1.5">
-          {item.scopes.map((s) => (
-            <span
-              key={s}
-              className="rounded-full bg-primary-50 px-2 py-0.5 text-2xs font-medium text-primary-700 ring-1 ring-inset ring-primary-200"
-            >
-              {s}
-            </span>
-          ))}
+        <div className="mt-3 rounded-md bg-primary-50 p-2.5 ring-1 ring-inset ring-primary-200">
+          <p className="text-[10px] font-semibold uppercase text-primary-700">
+            Matched trade signals
+          </p>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {item.scopes.map((s) => (
+              <span
+                key={s}
+                className="rounded-sm bg-surface px-2 py-0.5 text-2xs font-medium text-primary-700 ring-1 ring-inset ring-primary-200"
+              >
+                {s}
+              </span>
+            ))}
+          </div>
         </div>
       )}
 
       <dl className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border pt-2.5 text-2xs text-neutral-500">
+        <div className="flex items-center gap-1">
+          <dt className="sr-only">Planning reference</dt>
+          <dd className="tabular-data">{item.reference}</dd>
+        </div>
         <div className="flex min-w-0 items-center gap-1">
           <MapPin size={11} aria-hidden="true" className="shrink-0" />
           <dt className="sr-only">Location</dt>

@@ -9,15 +9,27 @@
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getProfile } from '@/lib/access'
+import { getProfile, hasProAccess, maxRadiusMetres } from '@/lib/access'
 import OnboardingFlow from './OnboardingFlow'
+import OnboardingUpgradeModal from './OnboardingUpgradeModal'
+import type { OpportunityProfile } from '@/types/database'
+
+type OnboardingProfileSeed = Pick<
+  OpportunityProfile,
+  'name' | 'primary_services' | 'preferred_sectors' | 'min_residential_units' | 'max_residential_units' | 'preferred_stages'
+>
 
 export const metadata = {
   title: 'Set up your account — PlanningPing',
   robots: { index: false, follow: false },
 }
 
-export default async function OnboardingPage() {
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ welcome?: string | string[] }>
+}) {
+  const showUpgradeCta = (await searchParams).welcome === '1'
   const profile = await getProfile()
   if (!profile) redirect('/login')
 
@@ -29,9 +41,22 @@ export default async function OnboardingPage() {
 
   if ((count ?? 0) > 0) redirect('/dashboard')
 
+  // Someone who left part-way through comes back to their earlier answers.
+  const { data: existing } = await supabase
+    .from('opportunity_profiles')
+    .select('name, primary_services, preferred_sectors, min_residential_units, max_residential_units, preferred_stages')
+    .eq('is_primary', true)
+    .maybeSingle()
+
   return (
     <div className="py-6 sm:py-10">
-      <OnboardingFlow />
+      <OnboardingUpgradeModal show={showUpgradeCta} />
+      <OnboardingFlow
+        initialSector={profile.sector ?? null}
+        initialProfile={(existing as OnboardingProfileSeed | null) ?? null}
+        maxRadiusMetres={maxRadiusMetres(profile)}
+        canAlert={hasProAccess(profile)}
+      />
     </div>
   )
 }

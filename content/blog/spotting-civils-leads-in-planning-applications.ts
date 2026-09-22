@@ -38,7 +38,9 @@ Reference suffixes can help too — an application ending \`/OUT\` (outline) oft
 
 None of this is about certainty — automated scoring from a public description is always a starting point, not a verdict. The point is triage: a business development team that reviews 200 applications a week and can't tell which 15 are worth a phone call will spend most of its time on the wrong 185. The keyword and scale signals above won't replace judgement, but they'll get you to the right shortlist faster than reading every application in full.
 
-If you're doing this manually today — scanning council portals, copying references into a spreadsheet, guessing at scope from a one-line description — that's the exact workflow PlanningPing was built to remove. We apply this same scoring automatically across every council you track, and flag the applications that actually look like drainage, groundworks, highways, structural or flood-risk opportunities, so your team's first look is already a shortlist rather than a raw feed.`,
+If you're doing this manually today — scanning council portals, copying references into a spreadsheet, guessing at scope from a one-line description — that's the exact workflow PlanningPing was built to remove. We apply this same scoring automatically across every council you track, and flag the applications that actually look like drainage, groundworks, highways, structural or flood-risk opportunities, so your team's first look is already a shortlist rather than a raw feed.
+
+For the wider category, see our guide to [construction sales intelligence](/construction-sales-intelligence).`,
 }
 
 export default post

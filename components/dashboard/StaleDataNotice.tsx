@@ -39,6 +39,7 @@ export default function StaleDataNotice({ health }: { health: IngestFreshness })
 
   const { hoursSinceFetch, staleAreas, totalAreas } = health
   const days = hoursSinceFetch !== null ? Math.floor(hoursSinceFetch / 24) : null
+  const currentAreas = totalAreas - staleAreas
 
   const age =
     hoursSinceFetch === null
@@ -55,19 +56,27 @@ export default function StaleDataNotice({ health }: { health: IngestFreshness })
       <AlertTriangle size={16} className="mt-0.5 shrink-0 text-warning-600" aria-hidden="true" />
       <div className="min-w-0 text-sm">
         <p className="font-medium text-warning-700">
-          This page may be out of date
+          {staleAreas < totalAreas ? 'Some territory data may be out of date' : 'This page may be out of date'}
         </p>
         <p className="mt-0.5 leading-relaxed text-warning-700/90">
-          {/* Names the number rather than saying "recently": the difference
-              between two days and two weeks changes what the reader should do,
-              and vagueness here is what let the last outage run for over a
-              week. */}
-          Our check for new applications {age}
-          {staleAreas < totalAreas
-            ? ` for ${staleAreas} of your ${totalAreas} territories`
-            : ''}
-          , so anything published since then won&rsquo;t be here yet. Nothing is
-          lost — applications appear as soon as it runs again.
+          {staleAreas < totalAreas ? (
+            <>
+              {staleAreas} of your {totalAreas} territories {staleAreas === 1 ? 'is' : 'are'} behind, while{' '}
+              {currentAreas} {currentAreas === 1 ? 'territory has' : 'territories have'} been checked recently.
+              New applications for the territory {staleAreas === 1 ? 'that is' : 'that are'} behind may not appear
+              until {staleAreas === 1 ? 'its' : 'their'} next successful check.
+            </>
+          ) : (
+            <>
+              {/* Names the number rather than saying "recently": the difference
+                  between two days and two weeks changes what the reader should do,
+                  and vagueness here is what let the last outage run for over a
+                  week. */}
+              Our check for new applications {age}, so anything published since
+              then won&rsquo;t be here yet. Nothing is lost — applications appear as
+              soon as it runs again.
+            </>
+          )}
         </p>
       </div>
     </div>

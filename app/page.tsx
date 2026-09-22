@@ -13,6 +13,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import type { Metadata } from 'next'
 import {
   ArrowRight,
   BadgeCheck,
@@ -41,11 +42,29 @@ import Comparison from '@/components/landing/Comparison'
 import { getCoveragePoints } from '@/lib/analytics/coverageMap'
 import { searchArea, getRecentOpportunities, SEARCH_SCOPES } from '@/lib/search/areaSearch'
 import { PRICING } from '@/lib/stripe'
+import { SITE_URL } from '@/lib/seo/locations'
 
 // Hourly. This is the most-hit route on the site and must not run its queries
 // per visit; an hour-old view of a register that updates once a day is
 // indistinguishable from a live one.
 export const revalidate = 3600
+
+const HOME_TITLE = 'PlanningPing | Construction Sales Intelligence UK'
+const HOME_DESCRIPTION =
+  'PlanningPing turns UK planning applications into qualified construction sales opportunities, using AI to identify, analyse and prioritise projects worth pursuing.'
+const HOME_URL = SITE_URL
+
+export const metadata: Metadata = {
+  title: HOME_TITLE,
+  description: HOME_DESCRIPTION,
+  alternates: { canonical: HOME_URL },
+  openGraph: {
+    title: HOME_TITLE,
+    description: HOME_DESCRIPTION,
+    url: HOME_URL,
+    type: 'website',
+  },
+}
 
 const HERO_PHOTO = {
   src: 'https://s0.geograph.org.uk/geophotos/04/09/88/4098820_0abc3aa7.jpg',
@@ -107,9 +126,42 @@ export default async function HomePage() {
   ])
 
   const scopes = SEARCH_SCOPES.map((s) => ({ id: s.id, label: s.label }))
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Organization',
+        '@id': `${HOME_URL}/#organization`,
+        name: 'PlanningPing',
+        url: HOME_URL,
+        email: 'william.kelwave@gmail.com',
+      },
+      {
+        '@type': 'SoftwareApplication',
+        '@id': `${HOME_URL}/#software`,
+        name: 'PlanningPing',
+        applicationCategory: 'BusinessApplication',
+        operatingSystem: 'Web',
+        url: HOME_URL,
+        description: HOME_DESCRIPTION,
+        publisher: { '@id': `${HOME_URL}/#organization` },
+      },
+      {
+        '@type': 'WebSite',
+        '@id': `${HOME_URL}/#website`,
+        name: 'PlanningPing',
+        url: HOME_URL,
+        publisher: { '@id': `${HOME_URL}/#organization` },
+      },
+    ],
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-surface">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+      />
       <LandingHeader />
 
       {/* ---------- Hero: construction context + live opportunities ---------- */}
@@ -207,9 +259,9 @@ export default async function HomePage() {
                     What PlanningPing finds
                   </h2>
                   <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-ink-muted">
-                    Real public applications from the register, with the civils
-                    scope detected in each one. The paid product adds the hidden
-                    fit score, ranking, pipeline and outreach workflow.
+                    Real public applications from the register, translated into
+                    sales opportunities with the likely package and matched
+                    civils signals made visible.
                   </p>
                 </div>
                 <Link
@@ -329,10 +381,17 @@ export default async function HomePage() {
               </h2>
               <p className="mt-3 max-w-xl text-sm leading-relaxed text-ink-muted">
                 A council register tells you an application exists. PlanningPing
-                turns that public record into a construction sales lead: scope,
-                timing, place, agent and next action, all kept close to the
-                original source.
+                turns that public record into construction sales intelligence:
+                scope, timing, place, agent and next action, all kept close to
+                the original source.
               </p>
+              <Link
+                href="/construction-sales-intelligence"
+                className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary-600 underline-offset-2 hover:underline"
+              >
+                Learn about construction sales intelligence
+                <ArrowRight size={14} aria-hidden="true" />
+              </Link>
             </div>
           </Reveal>
 
@@ -515,6 +574,7 @@ export default async function HomePage() {
             Planning<span className="text-primary-500">Ping</span>
           </span>
           <nav aria-label="Footer" className="flex flex-wrap items-center gap-4 text-xs text-ink-muted">
+            <Link href="/construction-sales-intelligence" className="hover:text-ink">Construction sales intelligence</Link>
             <Link href="/blog" className="hover:text-ink">Blog</Link>
             <Link href="/privacy" className="hover:text-ink">Privacy</Link>
             <Link href="/terms" className="hover:text-ink">Terms</Link>

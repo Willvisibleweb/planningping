@@ -40,3 +40,4 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 n8n/planningping_scraper.json
+n8n/*.local.json

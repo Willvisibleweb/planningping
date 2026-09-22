@@ -1,14 +1,22 @@
 'use server'
 
-// Onboarding writes: what the account sells, and its first territory.
+// Onboarding writes: what the account sells, its opportunity profile, and its
+// first territory.
 //
 // Kept apart from the dashboard's actions because these run before the user has
 // any data, and the failure modes are different — nothing here should ever hard
 // fail the user out of setup. The sector step in particular is a preference,
 // not a gate: if the write fails, onboarding continues.
 
+import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { toSectorCode } from '@/lib/sectors'
+import {
+  SECTOR_OPTIONS,
+  SERVICE_OPTIONS,
+  SIZE_PRESETS,
+  TIMING_CHOICES,
+} from '@/lib/opportunities/profileOptions'
 
 export async function saveSector(value: string) {
   const sector = toSectorCode(value)
@@ -26,6 +34,75 @@ export async function saveSector(value: string) {
     .eq('id', user.id)
 
   if (error) return { error: 'Could not save that. Try again.' }
+  return {}
+}
+
+export interface OnboardingAnswers {
+  companyName: string
+  services: string[]
+  sectors: string[]
+  size: string
+  timing: string[]
+}
+
+const SERVICES = new Set<string>(SERVICE_OPTIONS.map((o) => o.value))
+const PROJECT_SECTORS = new Set<string>(SECTOR_OPTIONS.map((o) => o.value))
+
+/**
+ * The onboarding answers, written as the account's primary opportunity
+ * profile — the same row the settings form edits, so settings open pre-filled
+ * and the dashboard ranks against it from the first visit.
+ *
+ * Every value is checked against the option lists rather than trusted from
+ * the browser. Nothing answered means nothing written: an empty profile would
+ * make recommendations look personalised when they are not.
+ */
+export async function saveOnboardingProfile(answers: OnboardingAnswers) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated.' }
+
+  const services = [...new Set((answers.services ?? []).filter((v) => SERVICES.has(v)))]
+  const sectors = [...new Set((answers.sectors ?? []).filter((v) => PROJECT_SECTORS.has(v)))]
+  const size = SIZE_PRESETS.find((p) => p.value === answers.size) ?? SIZE_PRESETS[0]
+  const stages = [...new Set(
+    TIMING_CHOICES.filter((c) => (answers.timing ?? []).includes(c.value)).flatMap((c) => [...c.stages]),
+  )]
+  const name = (answers.companyName ?? '').trim().slice(0, 140)
+
+  if (!name && services.length === 0 && sectors.length === 0 && size.value === 'any' && stages.length === 0) {
+    return {}
+  }
+
+  const row = {
+    user_id: user.id,
+    name: name || 'My company',
+    is_primary: true,
+    profile_kind: 'own_company',
+    primary_services: services,
+    preferred_sectors: sectors,
+    min_residential_units: size.min,
+    max_residential_units: size.max,
+    preferred_stages: stages,
+  }
+
+  const { data: existing } = await supabase
+    .from('opportunity_profiles')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('is_primary', true)
+    .maybeSingle()
+
+  const { error } = existing
+    ? await supabase.from('opportunity_profiles').update(row).eq('id', existing.id).eq('user_id', user.id)
+    : await supabase.from('opportunity_profiles').insert(row)
+
+  // Like the sector, a preference rather than a gate: a failed write is
+  // reported but never stops setup.
+  if (error) return { error: 'Could not save your answers — you can add them later in Settings.' }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/settings')
   return {}
 }
 

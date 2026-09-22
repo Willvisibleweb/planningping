@@ -55,6 +55,16 @@ function presentation(location: SeoLocation, councilName?: string) {
   return { eyebrow: 'Council', placePhrase: location.name }
 }
 
+function salesIntelligenceCopy(location: SeoLocation, placePhrase: string): string {
+  if (location.tier === 'postcode') {
+    return `For construction teams covering ${placePhrase}, PlanningPing turns local planning application data into prioritised opportunity intelligence, so civils, groundworks and supplier teams can review likely project leads faster.`
+  }
+  if (location.tier === 'town') {
+    return `Planning activity in ${placePhrase} can be an early signal for construction work. PlanningPing helps teams separate routine applications from the projects that may deserve sales attention.`
+  }
+  return `PlanningPing helps construction teams turn planning activity in ${placePhrase} into prioritised sales opportunities, with AI summaries and relevance signals for civils, groundworks, drainage, highways and structures.`
+}
+
 function ApplicationCard({ app, portalUrl }: { app: PublicApplication; portalUrl: string | null }) {
   return (
     <li className="border-t border-border py-4 first:border-t-0">
@@ -189,6 +199,13 @@ export default async function LocationPageView({
       </h1>
 
       <p className="mt-3 text-base leading-relaxed text-ink-muted">{summary}</p>
+      <p className="mt-3 text-sm leading-relaxed text-ink-muted">
+        {salesIntelligenceCopy(location, placePhrase)}{' '}
+        <a href="/construction-sales-intelligence" className="pp-link">
+          Learn how construction sales intelligence works
+        </a>
+        .
+      </p>
 
       <div className="mt-6">
         <AlertForm locationSlug={location.slug} locationType={location.tier} placeName={location.name} />

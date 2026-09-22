@@ -5,18 +5,25 @@ import DigestHistory from './DigestHistory'
 import AccountSection from './AccountSection'
 import BillingSection from './BillingSection'
 import FirmProfileSection from './FirmProfileSection'
+import OpportunityProfileSection from './OpportunityProfileSection'
 import PartnershipSection from './PartnershipSection'
 import TwoFactorSection from './TwoFactorSection'
-import type { Profile, FirmProfile } from '@/types/database'
+import type { Profile, FirmProfile, OpportunityProfile } from '@/types/database'
 
 export default async function SettingsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const [{ data: profile }, { data: digests }, { data: firmProfile }, mfa] = await Promise.all([
+  const [{ data: profile }, { data: digests }, { data: firmProfile }, { data: opportunityProfile }, mfa] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user!.id).single(),
     supabase.from('digests').select('*').order('sent_at', { ascending: false }).limit(10),
     supabase.from('firm_profiles').select('*').eq('user_id', user!.id).maybeSingle(),
+    supabase
+      .from('opportunity_profiles')
+      .select('*')
+      .eq('user_id', user!.id)
+      .eq('is_primary', true)
+      .maybeSingle(),
     getMfaState(),
   ])
 
@@ -34,21 +41,27 @@ export default async function SettingsPage() {
     }
   }
 
+  const typedProfile = profile as Profile
+
   return (
-    <div className="pp-stagger max-w-lg space-y-8">
+    <div className="pp-stagger max-w-2xl space-y-8">
       <div>
         <h2 className="text-xl font-semibold text-ink">Settings</h2>
         <p className="text-sm text-ink-muted mt-1">Manage your account and digest preferences.</p>
       </div>
-      <AccountSection profile={profile as Profile} />
-      {(profile as Profile).user_type === 'professional' && (
+      <AccountSection profile={typedProfile} />
+      {typedProfile.user_type === 'professional' && (
         <>
-          <BillingSection profile={profile as Profile} />
+          <BillingSection profile={typedProfile} />
+          <OpportunityProfileSection
+            profile={opportunityProfile as OpportunityProfile | null}
+            fallbackName={firm?.business_name ?? null}
+          />
           <FirmProfileSection firmProfile={firm} logoDataUri={logoDataUri} />
           {/* Professional-only: this is where an existing account opts into a
               partner integration, since the signup question only ever reaches
               new sign-ups. */}
-          <PartnershipSection profile={profile as Profile} />
+          <PartnershipSection profile={typedProfile} />
         </>
       )}
       <TwoFactorSection enabled={mfa.enabled} />

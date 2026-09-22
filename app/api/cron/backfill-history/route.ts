@@ -26,8 +26,12 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { fetchNearby, slugifyAuthority } from '@/lib/planit'
-import { upsertApplications, type IngestApplication } from '@/lib/ingest/upsertApplications'
+import { queryPlanIt, PlanItError } from '@/lib/planit'
+import { fromPlanIt, upsertApplications } from '@/lib/ingest/upsertApplications'
+import { createCouncilResolver } from '@/lib/ingest/councilResolver'
+import { areaSourceKey, normalisePostcodeKey } from '@/lib/reliability/sourceKeys'
+import { finishPipelineRun, logPipelineEvent, recordSourceRun, startPipelineRun } from '@/lib/reliability/pipelineLog'
+import { acquirePipelineLock, lockedPipelineResponse, PLANIT_PIPELINE_LOCK, releasePipelineLock } from '@/lib/reliability/pipelineLock'
 
 export const maxDuration = 300
 
@@ -56,7 +60,13 @@ export async function GET(request: NextRequest) {
   )
 
   const supabase = createAdminClient()
+  const lockResult = await acquirePipelineLock(supabase, PLANIT_PIPELINE_LOCK, 600, { job: 'backfill_history', trigger: 'manual' })
+  if (!lockResult.acquired) return lockedPipelineResponse('backfill_history', lockResult)
+  const lock = lockResult.lock
+
+  try {
   const startedAt = Date.now()
+  const runId = await startPipelineRun(supabase, 'backfill_history', 'manual')
 
   // Least-progressed first, nulls before anything. Same ordering the daily
   // ingest uses on last_planit_fetch_at, for the same reason: a fixed order
@@ -78,10 +88,13 @@ export async function GET(request: NextRequest) {
   // Collapse duplicate postcode+radius pairs. Several accounts track the same
   // place, and fetching it once per account would multiply PlanIt's load for
   // identical results.
+  const keyOf = (r: { postcode: string; radius_metres: number | null }) =>
+    `${normalisePostcodeKey(r.postcode)}|${Math.max((r.radius_metres ?? 1000) / 1000, MIN_RADIUS_KM)}`
+  const idsByKey = new Map<string, string[]>()
+  for (const r of rows) idsByKey.set(keyOf(r), [...(idsByKey.get(keyOf(r)) ?? []), r.id])
   const seen = new Set<string>()
   const targets = rows.filter((r) => {
-    const km = Math.max((r.radius_metres ?? 1000) / 1000, MIN_RADIUS_KM)
-    const key = `${r.postcode}|${km}`
+    const key = keyOf(r)
     if (seen.has(key)) return false
     seen.add(key)
     return true
@@ -98,14 +111,11 @@ export async function GET(request: NextRequest) {
   > = {}
   let stoppedEarly = false
   let totalStored = 0
+  let failures = 0
 
-  // Council resolution mirrors the daily ingest: PlanIt names the authority,
-  // we key on our own slug.
-  const { data: councilRows } = await supabase.from('councils').select('slug, name')
-  const nameToSlug = new Map<string, string>()
-  for (const c of (councilRows ?? []) as { slug: string; name: string }[]) {
-    nameToSlug.set(c.name.toLowerCase(), c.slug)
-  }
+  // Same resolver as the daily ingest, so a backfilled row can never land
+  // under a second slug for the same authority.
+  const resolver = await createCouncilResolver(supabase)
 
   outer: for (const area of targets) {
     const km = Math.max((area.radius_metres ?? 1000) / 1000, MIN_RADIUS_KM)
@@ -126,69 +136,76 @@ export async function GET(request: NextRequest) {
       if (Date.now() - startedAt > DEADLINE_MS) { stoppedEarly = true; break outer }
 
       const { start, end } = monthWindow(m)
+      const windowStarted = new Date()
+      const sourceKey = areaSourceKey(area.postcode, km)
       try {
-        const apps = await fetchNearby({
-          postcode: area.postcode,
-          radiusKm: km,
-          recentDays: 30, // ignored when a date range is supplied
-          startDate: start,
-          endDate: end,
-          pageSize: 400,
-        })
+        const fetched = await queryPlanIt(
+          { kind: 'postcode', postcode: area.postcode, radiusKm: km },
+          { kind: 'submitted', startDate: start, endDate: end },
+          { pageSize: 400 },
+        )
         stats.windows++
-        stats.fetched += apps.length
+        stats.fetched += fetched.received
 
-        if (apps.length > 0) {
-          const toIngest: IngestApplication[] = apps.map((app) => ({
-            council_slug:
-              nameToSlug.get(app.councilName.toLowerCase()) ?? slugifyAuthority(app.councilName),
-            reference: app.reference,
-            address: app.address,
-            description: app.description,
-            status: app.status,
-            application_date: app.applicationDate,
-            decision_date: app.decisionDate,
-            agent_company: app.agentCompany,
-            target_decision_date: app.targetDecisionDate,
-            raw_data: {
-              source: 'planit', url: app.url, app_type: app.appType,
-              lat: app.lat, lng: app.lng,
-            },
-          }))
-
+        if (fetched.applications.length > 0) {
+          const toIngest = []
+          for (const app of fetched.applications) toIngest.push(fromPlanIt(app, await resolver.resolve(app.councilName)))
           // Same upsert as the daily run, so backfilled rows are scored on the
           // way in and are indistinguishable from live ones afterwards.
-          const result = await upsertApplications(supabase, toIngest)
+          const result = await upsertApplications(supabase, toIngest, { runId, job: 'backfill_history' })
           stats.stored += result.changed
           totalStored += result.changed
         }
-      } catch {
-        // One bad window must not end the run. PlanIt intermittently 502s and
-        // hangs; the window is simply missing and a later run can pick it up.
+        await recordSourceRun(supabase, {
+          runId, job: 'backfill_history', sourceKey: `${sourceKey}:history`, sourceLabel: key, startedAt: windowStarted,
+          status: 'success', httpStatus: fetched.httpStatus, attempts: fetched.attempts,
+          windowStart: start, windowEnd: end, recordsReturned: fetched.received, sourceTotal: fetched.total, truncated: fetched.truncated,
+        })
+      } catch (e) {
+        // A failed window used to be swallowed and then marked done below, so
+        // the applications in it were never fetched again. Now the failure is
+        // recorded, progress on this territory stops here, and the next run
+        // retries this month.
+        failures++
+        stats.skipped = `failed at ${start}: ${String(e)}`
+        await recordSourceRun(supabase, {
+          runId, job: 'backfill_history', sourceKey: `${sourceKey}:history`, sourceLabel: key, startedAt: windowStarted,
+          status: 'failed', httpStatus: e instanceof PlanItError ? e.httpStatus : null, attempts: e instanceof PlanItError ? e.attempts : 1,
+          windowStart: start, windowEnd: end, errorStage: 'fetch', error: e,
+        })
+        await logPipelineEvent(supabase, { runId, job: 'backfill_history', stage: 'fetch', severity: 'error', sourceKey, message: `History window ${start}..${end} failed; will retry next run`, error: e })
+        await new Promise((r) => setTimeout(r, DELAY_MS))
+        continue outer
       }
 
-      // Recorded after each window rather than at the end of the territory, so
-      // a run killed mid-territory still keeps what it achieved. Written on the
-      // area row that produced this fetch and on any sibling sharing the same
-      // postcode and radius, since the dedupe above means one fetch covers all
-      // of them and leaving siblings null would re-fetch identical data.
+      // Recorded after each successful window rather than at the end of the
+      // territory, so a run killed mid-territory still keeps what it achieved.
+      // Written on every area sharing this normalised postcode and radius,
+      // since one fetch covers all of them — and only those: matching on the
+      // postcode alone used to mark a 5km sibling done by a 1km fetch.
       await supabase
         .from('tracked_areas')
         .update({ history_backfilled_through: start })
-        .eq('postcode', area.postcode)
-        .eq('is_active', true)
+        .in('id', idsByKey.get(keyOf(area)) ?? [area.id])
         .or(`history_backfilled_through.is.null,history_backfilled_through.gt.${start}`)
 
       await new Promise((r) => setTimeout(r, DELAY_MS))
     }
   }
 
+  await finishPipelineRun(supabase, runId, failures > 0 || stoppedEarly ? 'partial' : 'success', { territories: targets.length, stored: totalStored, failures, stoppedEarly })
+
   return NextResponse.json({
     ran_at: new Date().toISOString(),
+    run_id: runId,
+    failures,
     months,
     territories: targets.length,
     stored: totalStored,
     stoppedEarly,
     report,
   })
+  } finally {
+    await releasePipelineLock(supabase, lock)
+  }
 }

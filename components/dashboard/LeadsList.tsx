@@ -5,7 +5,7 @@
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import { Check, Target, Filter, ArrowRight } from 'lucide-react'
+import { Check, Target, Filter, ArrowRight, Clock3, Users } from 'lucide-react'
 import { trackOpportunity } from './leadActions'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
@@ -13,7 +13,9 @@ import EmptyState from '@/components/ui/EmptyState'
 import LinkButton from '@/components/ui/LinkButton'
 import { useToast } from '@/components/ui/Toast'
 import { BAND_LABEL, BAND_TONE } from './FitScore'
-import type { PlanningApplication } from '@/types/database'
+import { calculateOpportunityScore } from '@/lib/opportunities/opportunityScore'
+import OpportunityFeedbackButtons from './OpportunityFeedbackButtons'
+import type { OpportunityFeedback, OpportunityProfile, PlanningApplication } from '@/types/database'
 
 type BandFilter = 'HOT' | 'WARM' | 'COLD' | 'ALL'
 
@@ -23,18 +25,42 @@ type BandFilter = 'HOT' | 'WARM' | 'COLD' | 'ALL'
 const SCORE_DISCLAIMER =
   'Fit scores are automated estimates of likely commercial relevance. They are a starting point for qualification, not a recommendation — review each opportunity yourself before acting on it.'
 
+function niceDate(iso: string): string {
+  const d = new Date(`${iso}T00:00:00Z`)
+  if (isNaN(d.getTime())) return iso
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(d)
+}
+
 export default function LeadsList({
   applications,
   activeBand,
   trackedIds,
   showTrackActions,
+  opportunityProfile,
+  feedback,
 }: {
   applications: PlanningApplication[]
   activeBand: BandFilter
   trackedIds: string[]
   showTrackActions: boolean
+  opportunityProfile: OpportunityProfile | null
+  feedback: OpportunityFeedback[]
 }) {
   const trackedSet = new Set(trackedIds)
+  const feedbackByApp = new Map(feedback.map((row) => [row.application_id, row]))
+  const scoredApplications = applications
+    .map((app) => ({
+      app,
+      feedback: feedbackByApp.get(app.id) ?? null,
+      match: calculateOpportunityScore(app, opportunityProfile, feedbackByApp.get(app.id) ?? null),
+    }))
+    .filter((item) => item.match.category !== 'dismissed')
+    .sort((a, b) => b.match.score - a.match.score)
 
   return (
     <div className="space-y-4">
@@ -46,7 +72,7 @@ export default function LeadsList({
           plain anchors to /leads?band=X, so choosing a band silently discarded
           every other filter the user had set and reloaded the whole page. */}
 
-      {applications.length === 0 ? (
+      {scoredApplications.length === 0 ? (
         <div className="rounded-md border border-dashed border-border bg-surface">
           {/* This previously read "Run /api/score after the scraper has stored
               data" — an internal instruction shown to paying customers. */}
@@ -83,10 +109,13 @@ export default function LeadsList({
         </div>
       ) : (
         <div className="space-y-3">
-          {applications.map((app) => (
+          {scoredApplications.map(({ app, match, feedback }) => (
             <LeadCard
               key={app.id}
               app={app}
+              match={match}
+              feedback={feedback}
+              profileId={opportunityProfile?.id ?? null}
               isTracked={trackedSet.has(app.id)}
               showTrackActions={showTrackActions}
             />
@@ -99,10 +128,16 @@ export default function LeadsList({
 
 function LeadCard({
   app,
+  match,
+  feedback,
+  profileId,
   isTracked,
   showTrackActions,
 }: {
   app: PlanningApplication
+  match: ReturnType<typeof calculateOpportunityScore>
+  feedback: OpportunityFeedback | null
+  profileId: string | null
   isTracked: boolean
   showTrackActions: boolean
 }) {
@@ -140,13 +175,13 @@ function LeadCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-0.5">
             <Badge
-              tone={BAND_TONE[band]}
+              tone={match.score >= 80 ? 'success' : match.score >= 65 ? 'primary' : BAND_TONE[band]}
               title={SCORE_DISCLAIMER}
               className="cursor-help font-semibold"
             >
-              {BAND_LABEL[band]}
+              {match.label}
             </Badge>
-            <span className="tabular-data text-xs text-ink-muted">score {app.score ?? 0}</span>
+            <span className="tabular-data text-xs text-ink-muted">{match.score}/100</span>
             {/* Plain text — opening is the explicit button in the action row. */}
             <span className="tabular-data text-xs text-ink-muted">{app.reference}</span>
             {app.application_date && (
@@ -157,6 +192,26 @@ function LeadCard({
             {app.description ?? 'No description'}
           </p>
           {app.address && <p className="text-xs text-ink-muted mt-0.5">{app.address}</p>}
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {app.agent_company ? (
+              <Badge tone="primary" icon={Users} className="px-2 py-0.5 text-2xs">
+                Project team on file
+              </Badge>
+            ) : (
+              <span className="rounded-sm border border-border bg-surface-sunken px-2 py-0.5 text-2xs font-medium text-ink-muted">
+                Project team not published
+              </span>
+            )}
+            {app.target_decision_date ? (
+              <Badge tone="neutral" icon={Clock3} className="px-2 py-0.5 text-2xs">
+                Decision due {niceDate(app.target_decision_date)}
+              </Badge>
+            ) : (
+              <span className="rounded-sm border border-border bg-surface-sunken px-2 py-0.5 text-2xs font-medium text-ink-muted">
+                Timing inferred from status
+              </span>
+            )}
+          </div>
         </div>
 
         {showTrackActions && tracked && (
@@ -167,6 +222,21 @@ function LeadCard({
       </div>
 
       {/* Why it scored — the demo payload */}
+      <div className="mt-3">
+        <p className="text-2xs font-semibold uppercase tracking-wider text-primary-600">Why this fits you</p>
+        <ul className="mt-2 space-y-1">
+          {match.factors.slice(0, 3).map((factor) => (
+            <li key={factor.label} className="flex gap-2 text-xs leading-relaxed text-ink-muted">
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary-500" aria-hidden="true" />
+              <span>{factor.label}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-2 text-xs leading-relaxed text-ink-muted">
+          <span className="font-medium text-ink">{match.timing.label}</span> — {match.recommendedAction}
+        </p>
+      </div>
+
       {app.score_reasons && app.score_reasons.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
           {app.score_reasons.map((reason, i) => (
@@ -198,6 +268,13 @@ function LeadCard({
             Track Opportunity
           </Button>
         )}
+
+        <OpportunityFeedbackButtons
+          applicationId={app.id}
+          profileId={profileId}
+          initialVerdict={feedback?.verdict ?? null}
+          compact
+        />
       </div>
     </div>
   )

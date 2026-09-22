@@ -30,6 +30,13 @@ export default function BlogIndexPage() {
         Notes on planning applications &amp; civils leads
       </h1>
       <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink-muted">{DESCRIPTION}</p>
+      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-muted">
+        Start with the main guide to{' '}
+        <Link href="/construction-sales-intelligence" className="pp-link">
+          construction sales intelligence
+        </Link>
+        , then dig into practical planning-data workflows below.
+      </p>
 
       <div className="mt-10 space-y-8">
         {posts.map((post) => (

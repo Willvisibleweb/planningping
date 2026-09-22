@@ -24,6 +24,8 @@ export default function ApplicationSummary({
   applicationId,
   description,
   initialSummary = null,
+  generatedAt = null,
+  model = null,
 }: {
   applicationId: string
   description: string | null
@@ -32,8 +34,11 @@ export default function ApplicationSummary({
   // instantly — a button whose only effect is to reveal something free is just
   // an extra click.
   initialSummary?: string | null
+  generatedAt?: string | null
+  model?: string | null
 }) {
   const [summary, setSummary] = useState<string | null>(initialSummary)
+  const [generated, setGenerated] = useState<{ at: string | null; model: string | null }>({ at: generatedAt, model })
   const [busy, setBusy] = useState(false)
   const { toast } = useToast()
 
@@ -55,6 +60,7 @@ export default function ApplicationSummary({
         return
       }
       setSummary(json.summary)
+      if (json.model) setGenerated({ at: new Date().toISOString(), model: json.model })
     } catch {
       toast({
         title: 'Couldn’t summarise that',
@@ -70,24 +76,27 @@ export default function ApplicationSummary({
     <div className="rounded-md border border-border bg-surface p-4 sm:p-5 shadow-sm">
       <h3 className="flex items-center gap-1.5 text-sm font-medium text-ink">
         <Sparkles size={14} className="shrink-0 text-primary-500" aria-hidden="true" />
-        In plain English
+        PlanningPing AI analysis
       </h3>
 
       {summary ? (
         <>
           <p className="mt-3 text-sm leading-relaxed text-ink">{summary}</p>
           <p className="mt-3 text-2xs leading-relaxed text-neutral-500">
-            Written from the council&rsquo;s description by an AI model. A
-            reading of the text, not a substitute for it — check the full
-            description above before acting on it.
+            AI-generated from the authority&rsquo;s description only
+            {generated.at ? ` on ${new Date(generated.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
+            {generated.model ? ` (${generated.model})` : ''}. Figures not in the
+            source record are rejected before a summary is saved. This is
+            PlanningPing analysis, not a council statement — check the source
+            record before acting on it.
           </p>
         </>
       ) : (
         <>
           <p className="mt-1 text-xs leading-relaxed text-ink-muted">
             Council descriptions are written for the planning process, not for
-            you. This strips the statutory phrasing and says what the scheme
-            actually involves and whether it carries civils scope.
+            you. This turns the published text into a concise interpretation of
+            the scheme and any possible civils relevance.
           </p>
           <div className="mt-4">
             <Button

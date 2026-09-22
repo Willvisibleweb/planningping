@@ -102,6 +102,103 @@ export interface PlanningApplication {
   // automatically if the council revises the description (0031).
   ai_summary: string | null
   ai_summary_at: string | null
+  // Provenance (0036). Optional because rows read before the migration is
+  // applied do not have them.
+  source_type?: 'planit' | 'legacy_scrape' | 'manual' | null
+  source_record_id?: string | null
+  source_url?: string | null
+  source_last_changed_at?: string | null
+  /** Last time the application appeared in a successful source response. */
+  last_seen_at?: string | null
+  content_hash?: string | null
+  scored_at?: string | null
+  scoring_version?: string | null
+  ai_summary_model?: string | null
+  ai_summary_prompt_version?: string | null
+}
+
+export type ApplicationChangeField =
+  | 'status'
+  | 'decision_date'
+  | 'description'
+  | 'address'
+  | 'agent_company'
+  | 'target_decision_date'
+  | 'application_date'
+  | 'app_type'
+  | 'source_url'
+
+export interface ApplicationChange {
+  id: number
+  application_id: string
+  field: ApplicationChangeField
+  old_value: string | null
+  new_value: string | null
+  detected_at: string
+  source_type: string | null
+  run_id: string | null
+}
+
+export type ProjectOrganisationRole =
+  | 'developer_client'
+  | 'applicant'
+  | 'landowner'
+  | 'planning_agent'
+  | 'architect'
+  | 'planning_consultant'
+  | 'civil_engineer'
+  | 'structural_engineer'
+  | 'drainage_consultant'
+  | 'transport_consultant'
+  | 'landscape_architect'
+  | 'main_contractor'
+  | 'other'
+
+export type ContactVerificationStatus = 'source_record' | 'public_business' | 'verified' | 'unverified'
+
+/** Global public-source organisation, never a user's private CRM record. */
+export interface Organisation {
+  id: string
+  name: string
+  normalized_name: string
+  website: string | null
+  office_location: string | null
+  telephone: string | null
+  public_email: string | null
+  company_profile_url: string | null
+  verification_status: ContactVerificationStatus
+  source_label: string | null
+  last_checked_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ProjectOrganisation {
+  id: string
+  application_id: string
+  organisation_id: string
+  role: ProjectOrganisationRole
+  source_label: string | null
+  source_url: string | null
+  source_checked_at: string | null
+  created_at: string
+}
+
+/** Public or verified business contact data only; no guessed personal details. */
+export interface OrganisationContact {
+  id: string
+  organisation_id: string
+  full_name: string | null
+  job_title: string | null
+  public_email: string | null
+  telephone: string | null
+  linkedin_url: string | null
+  source_label: string | null
+  source_url: string | null
+  verification_status: ContactVerificationStatus
+  last_checked_at: string | null
+  created_at: string
+  updated_at: string
 }
 
 export interface Digest {
@@ -126,6 +223,58 @@ export interface FirmProfile {
   phone: string | null
   contact_email: string | null
   logo_path: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type OpportunityProfileKind = 'own_company' | 'client_company'
+export type OpportunityFeedbackVerdict = 'good' | 'not_relevant'
+export type OpportunityFeedbackReason =
+  | 'too_small'
+  | 'too_large'
+  | 'wrong_sector'
+  | 'wrong_location'
+  | 'wrong_project_type'
+  | 'too_early'
+  | 'too_late'
+  | 'not_a_service'
+  | 'other'
+
+// Company/client-specific recommendation profile. Normal accounts use one
+// primary row; agency accounts can later hold one row per contractor client.
+export interface OpportunityProfile {
+  id: string
+  user_id: string
+  name: string
+  is_primary: boolean
+  profile_kind: OpportunityProfileKind
+  primary_services: string[]
+  secondary_services: string[]
+  base_location: string | null
+  operating_radius_miles: number | null
+  regions: string | null
+  preferred_sectors: string[]
+  preferred_project_types: string | null
+  min_project_size: number | null
+  max_project_size: number | null
+  min_residential_units: number | null
+  max_residential_units: number | null
+  typical_package_value: string | null
+  unwanted_work: string | null
+  preferred_stages: string[]
+  preferred_clients: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface OpportunityFeedback {
+  id: string
+  user_id: string
+  opportunity_profile_id: string | null
+  application_id: string
+  verdict: OpportunityFeedbackVerdict
+  reason: OpportunityFeedbackReason | null
+  note: string | null
   created_at: string
   updated_at: string
 }

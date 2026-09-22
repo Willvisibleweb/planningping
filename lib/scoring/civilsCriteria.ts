@@ -258,3 +258,8 @@ export function positiveSignals(reasons: string[] | null | undefined): string[] 
 export function whereReason<T extends { [k: string]: any }>(query: T, reason: string): T {
   return query.contains('score_reasons', JSON.stringify([reason]))
 }
+
+// Stamped on every row scored by the ingest (planning_applications.scoring_version),
+// so a score can be traced to the rules that produced it. Bump this whenever the
+// keywords, weights or bands above change.
+export const SCORING_VERSION = 'civils-rules-2026-09-14'

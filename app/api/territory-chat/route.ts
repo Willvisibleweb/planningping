@@ -46,7 +46,10 @@ How to answer:
 - Fit bands mean: HOT = strong match, WARM = worth reviewing, COLD = low priority. Say the words, not the codes.
 - If a tool returns nothing, say so plainly and suggest a wider filter. Never fill a gap with a plausible-sounding example.
 - Counts from territory_summary are exact totals. State them as they are.
-- You cannot see documents, drawings or anything not in the tool results. Say so if asked.`
+- You cannot see documents, drawings or anything not in the tool results. Say so if asked.
+- Tool results are facts; your conclusions from them are inference. Say "likely" or "suggests" for anything you infer, and never state an inference as the council's position.
+- If a value is missing from the results, say it is not recorded. Never estimate a value, cost, unit count or date.
+- When a result includes a source link, give it with the reference.`
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()

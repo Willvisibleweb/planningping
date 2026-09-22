@@ -25,6 +25,8 @@ import {
 } from '@/lib/filters/opportunityFilters'
 import { BAND_LABEL, BAND_ORDER } from './FitScore'
 import Badge from '@/components/ui/Badge'
+import Spinner from '@/components/ui/Spinner'
+import { cn } from '@/lib/cn'
 
 function Row({
   label,
@@ -48,25 +50,38 @@ function Row({
 function Chip({
   href,
   active,
+  pending,
+  onNavigate,
   children,
 }: {
   href: string
   active: boolean
+  pending: boolean
+  onNavigate: () => void
   children: React.ReactNode
 }) {
+  const selected = active || pending
+
   return (
     <Link
       href={href}
       scroll={false}
+      // Each chip points at a fresh server-filtered query. Prefetching every
+      // visible option makes the panel feel busy before the user has chosen one.
+      prefetch={false}
+      onNavigate={onNavigate}
       aria-pressed={active}
-      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-[background-color,border-color,color,box-shadow] duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2 ${
-        active
+      aria-busy={pending || undefined}
+      className={cn(
+        'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-[background-color,border-color,color,box-shadow] duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2',
+        selected
           ? 'border-primary-500 bg-primary-500 text-white shadow-sm'
-          : 'border-border bg-surface text-ink-muted hover:border-primary-300 hover:bg-primary-50 hover:text-ink'
-      }`}
+          : 'border-border bg-surface text-ink-muted hover:border-primary-300 hover:bg-primary-50 hover:text-ink',
+        pending && 'cursor-wait',
+      )}
     >
       {children}
-      {active && <X size={11} aria-hidden="true" />}
+      {pending ? <Spinner size={11} className="shrink-0" /> : active && <X size={11} aria-hidden="true" />}
     </Link>
   )
 }
@@ -94,13 +109,24 @@ export default function FilterBar({
 }) {
   const active = activeFilterCount(filters)
   const [open, setOpen] = useState(active > 0)
+  const filterSignature = [
+    filters.band,
+    filters.scope,
+    filters.days,
+    filters.decision,
+    filters.appType,
+    filters.council,
+    filters.withContact ? 'contact' : '',
+  ].join('|')
+  const [pendingNavigation, setPendingNavigation] = useState<{ href: string; signature: string } | null>(null)
+  const pendingHref = pendingNavigation?.signature === filterSignature ? pendingNavigation.href : null
+  const markPending = (href: string) => setPendingNavigation({ href, signature: filterSignature })
 
   // Reuses buildFilterHref so the export carries precisely the filters the user
   // is looking at — no second serialisation to drift out of step with the
   // first. The 'band' no-op just re-emits the current state as a query string.
-  const exportHref = '/leads/export' + (buildFilterHref(filters, 'band', filters.band).split('?')[1]
-    ? '?' + buildFilterHref(filters, 'band', filters.band).split('?')[1]
-    : '')
+  const exportQuery = buildFilterHref(filters, 'band', filters.band).split('?')[1]
+  const exportHref = '/leads/export' + (exportQuery ? `?${exportQuery}` : '')
 
   return (
     <div className="rounded-md border border-border bg-surface">
@@ -126,9 +152,16 @@ export default function FilterBar({
             <Link
               href="/leads"
               scroll={false}
-              className="rounded-sm text-xs font-medium text-ink-muted transition-colors duration-fast ease-standard hover:text-danger-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2"
+              prefetch={false}
+              onNavigate={() => markPending('/leads')}
+              aria-busy={pendingHref === '/leads' || undefined}
+              className={cn(
+                'inline-flex items-center gap-1 rounded-sm text-xs font-medium text-ink-muted transition-colors duration-fast ease-standard hover:text-danger-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/45 focus-visible:ring-offset-2',
+                pendingHref === '/leads' && 'cursor-wait text-danger-600',
+              )}
             >
               Clear all
+              {pendingHref === '/leads' && <Spinner size={11} className="shrink-0" />}
             </Link>
           )}
           {canExport && resultCount > 0 && (
@@ -155,6 +188,8 @@ export default function FilterBar({
                 key={b}
                 active={filters.band === b}
                 href={buildFilterHref(filters, 'band', filters.band === b ? null : b)}
+                pending={pendingHref === buildFilterHref(filters, 'band', filters.band === b ? null : b)}
+                onNavigate={() => markPending(buildFilterHref(filters, 'band', filters.band === b ? null : b))}
               >
                 {BAND_LABEL[b]}
               </Chip>
@@ -167,6 +202,8 @@ export default function FilterBar({
                 key={s.id}
                 active={filters.scope === s.id}
                 href={buildFilterHref(filters, 'scope', filters.scope === s.id ? null : s.id)}
+                pending={pendingHref === buildFilterHref(filters, 'scope', filters.scope === s.id ? null : s.id)}
+                onNavigate={() => markPending(buildFilterHref(filters, 'scope', filters.scope === s.id ? null : s.id))}
               >
                 {s.label}
               </Chip>
@@ -179,6 +216,8 @@ export default function FilterBar({
                 key={r.id}
                 active={filters.days === r.days}
                 href={buildFilterHref(filters, 'days', filters.days === r.days ? null : r.id)}
+                pending={pendingHref === buildFilterHref(filters, 'days', filters.days === r.days ? null : r.id)}
+                onNavigate={() => markPending(buildFilterHref(filters, 'days', filters.days === r.days ? null : r.id))}
               >
                 {r.label}
               </Chip>
@@ -191,6 +230,8 @@ export default function FilterBar({
                 key={d.id}
                 active={filters.decision === d.id}
                 href={buildFilterHref(filters, 'decision', filters.decision === d.id ? null : d.id)}
+                pending={pendingHref === buildFilterHref(filters, 'decision', filters.decision === d.id ? null : d.id)}
+                onNavigate={() => markPending(buildFilterHref(filters, 'decision', filters.decision === d.id ? null : d.id))}
               >
                 {d.label}
               </Chip>
@@ -203,6 +244,8 @@ export default function FilterBar({
                 key={t}
                 active={filters.appType === t}
                 href={buildFilterHref(filters, 'appType', filters.appType === t ? null : t)}
+                pending={pendingHref === buildFilterHref(filters, 'appType', filters.appType === t ? null : t)}
+                onNavigate={() => markPending(buildFilterHref(filters, 'appType', filters.appType === t ? null : t))}
               >
                 {t}
               </Chip>
@@ -216,6 +259,8 @@ export default function FilterBar({
                   key={c.slug}
                   active={filters.council === c.slug}
                   href={buildFilterHref(filters, 'council', filters.council === c.slug ? null : c.slug)}
+                  pending={pendingHref === buildFilterHref(filters, 'council', filters.council === c.slug ? null : c.slug)}
+                  onNavigate={() => markPending(buildFilterHref(filters, 'council', filters.council === c.slug ? null : c.slug))}
                 >
                   {c.name}
                 </Chip>
@@ -224,21 +269,23 @@ export default function FilterBar({
           )}
 
           {contactsAvailable > 0 && (
-            <Row label="Contact">
+            <Row label="Data depth">
               <Chip
                 active={filters.withContact}
                 href={buildFilterHref(filters, 'withContact', filters.withContact ? null : '1')}
+                pending={pendingHref === buildFilterHref(filters, 'withContact', filters.withContact ? null : '1')}
+                onNavigate={() => markPending(buildFilterHref(filters, 'withContact', filters.withContact ? null : '1'))}
               >
                 {filters.withContact && <Check size={11} aria-hidden="true" />}
-                Agent on file
+                Project team on file
                 <span className="tabular-data opacity-70">{contactsAvailable}</span>
               </Chip>
               {/* Said plainly rather than left to be discovered: the agent is
                   present on a minority of records because capture began
                   recently, so this cutting the list hard is expected. */}
               <span className="w-full pt-1 text-2xs leading-relaxed text-neutral-500">
-                Councils publish the agent inconsistently, and we only began
-                recording it recently.
+                Use this when you need screenshot-ready examples with a known
+                planning agent or consultant.
               </span>
             </Row>
           )}

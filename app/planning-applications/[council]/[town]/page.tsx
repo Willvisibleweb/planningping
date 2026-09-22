@@ -29,8 +29,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const parent = await getLocation('council', council.toLowerCase())
   const inCouncil = parent ? `, ${parent.name}` : ''
 
-  const title = `Planning applications in ${location.name}${inCouncil} (${location.app_count}) | PlanningPing`
-  const description = `Browse ${location.app_count} recent planning applications in ${location.name}${inCouncil}. Addresses, descriptions, references, dates and decisions from the council's public planning register.`
+  const title = `${location.name}${inCouncil} Planning Applications | PlanningPing`
+  const description = `Browse ${location.app_count} recent planning applications in ${location.name}${inCouncil}, with source details that help construction teams spot local project opportunities earlier.`
   const url = `${SITE_URL}/planning-applications/${council.toLowerCase()}/${location.slug}`
 
   return {

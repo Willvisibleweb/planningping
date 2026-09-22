@@ -4,9 +4,13 @@
 // app/privacy/content.ts and app/terms/content.ts.
 
 import type { BlogPost } from './types'
+import bestConstructionSalesIntelligencePlatformsUk from '@/content/blog/best-construction-sales-intelligence-platforms-uk'
 import spottingCivilsLeads from '@/content/blog/spotting-civils-leads-in-planning-applications'
 
-const ALL_POSTS: BlogPost[] = [spottingCivilsLeads]
+const ALL_POSTS: BlogPost[] = [
+  bestConstructionSalesIntelligencePlatformsUk,
+  spottingCivilsLeads,
+]
 
 export function getAllPosts(): BlogPost[] {
   return [...ALL_POSTS].sort((a, b) => b.date.localeCompare(a.date))

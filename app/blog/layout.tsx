@@ -29,6 +29,8 @@ export default function BlogLayout({ children }: { children: React.ReactNode }) 
       <footer className="border-t border-border mt-16">
         <div className="mx-auto max-w-4xl px-6 py-6 text-xs leading-relaxed text-neutral-500">
           <Link href="/" className="pp-link-muted">PlanningPing</Link>
+          {' · '}
+          <Link href="/construction-sales-intelligence" className="pp-link-muted">Construction sales intelligence</Link>
         </div>
       </footer>
     </div>

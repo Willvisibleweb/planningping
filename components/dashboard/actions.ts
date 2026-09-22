@@ -62,9 +62,23 @@ export async function addTrackedArea(formData: FormData) {
       { onConflict: 'slug', ignoreDuplicates: true },
     )
 
+  // Optional first-territory settings from onboarding. Each is validated and
+  // only applied when supplied, so every other caller keeps the defaults.
+  const optional: Record<string, unknown> = {}
+  const radiusRaw = Number(formData.get('radius_metres'))
+  if (formData.get('radius_metres') !== null && Number.isFinite(radiusRaw)) {
+    optional.radius_metres = Math.round(Math.min(Math.max(radiusRaw, MIN_RADIUS_METRES), getMaxRadiusMetres(profile)))
+  }
+  const minBand = formData.get('min_band') as MinBand | null
+  if (minBand && VALID_MIN_BANDS.includes(minBand)) optional.min_band = minBand
+  if (formData.get('alerts_enabled') !== null) {
+    // Alerts are professional-only, re-checked here rather than trusted.
+    optional.alerts_enabled = formData.get('alerts_enabled') === 'true' && hasProAccess(profile)
+  }
+
   const { data: inserted, error } = await supabase
     .from('tracked_areas')
-    .insert({ user_id: user.id, label, postcode, council_slug: council.slug })
+    .insert({ user_id: user.id, label, postcode, council_slug: council.slug, ...optional })
     .select('id, postcode, radius_metres')
     .single()
 
@@ -150,7 +164,13 @@ export async function updateTrackedAreaRadius(areaId: string, radiusMetres: numb
   }
 
   const admin = createAdminClient()
-  await fetchAndIngestNearby(admin, updated.postcode, updated.radius_metres, updated.council_slug)
+  const refreshed = await fetchAndIngestNearby(admin, updated.postcode, updated.radius_metres, updated.council_slug)
+  if (refreshed) {
+    await admin
+      .from('tracked_areas')
+      .update({ last_planit_fetch_at: new Date().toISOString() })
+      .eq('id', areaId)
+  }
 
   revalidatePath('/dashboard')
   revalidatePath(`/dashboard/${areaId}`)

@@ -17,24 +17,38 @@
 
 import { NextResponse } from 'next/server'
 import { getGlobalIngestFreshness, STALE_AFTER_HOURS } from '@/lib/health/ingestFreshness'
+import { loadHealthReport } from '@/lib/reliability/healthReport'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 // Never cached: a cached health check reports the health of the past.
 export const dynamic = 'force-dynamic'
 
+// Beyond freshness, this now fails when any source is in the failed state or
+// the daily ingest has not started for over 26 hours — the two conditions a
+// customer would otherwise be first to notice. Still only counts: no source
+// names, errors or customer data leave through an unauthenticated endpoint.
 export async function GET() {
   try {
-    const health = await getGlobalIngestFreshness()
+    const [health, report] = await Promise.all([
+      getGlobalIngestFreshness(),
+      loadHealthReport(createAdminClient()),
+    ])
+    const failing = report.available && (report.counts.failed > 0 || report.ingestOverdue || report.stuckRuns.length > 0)
+    const status = health.stale ? 'stale' : failing ? 'degraded' : 'ok'
 
     return NextResponse.json(
       {
-        status: health.stale ? 'stale' : 'ok',
+        status,
         hoursSinceLastFetch: health.hoursSinceFetch,
         staleAreas: health.staleAreas,
         totalAreas: health.totalAreas,
         thresholdHours: STALE_AFTER_HOURS,
+        sources: report.available ? report.counts : null,
+        ingestOverdue: report.available ? report.ingestOverdue : null,
+        unfinishedRuns: report.available ? report.stuckRuns.length : null,
         checkedAt: new Date().toISOString(),
       },
-      { status: health.stale ? 503 : 200 },
+      { status: status === 'ok' ? 200 : 503 },
     )
   } catch {
     // A check that cannot run is not a pass. Returning 200 here would mean a

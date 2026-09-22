@@ -23,8 +23,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const location = await getLocation('postcode', district.toLowerCase())
   if (!location) return { title: 'Area not found | PlanningPing' }
 
-  const title = `Planning applications in ${location.name} (${location.app_count}) | PlanningPing`
-  const description = `Browse ${location.app_count} recent planning applications in the ${location.name} postcode area. Addresses, descriptions, references, dates and decisions from public council registers.`
+  const title = `${location.name} Planning Applications & Project Opportunities | PlanningPing`
+  const description = `Browse ${location.app_count} recent planning applications in the ${location.name} postcode area and use PlanningPing to turn local planning data into construction opportunity intelligence.`
   const url = `${SITE_URL}/planning-applications/postcode/${location.slug}`
 
   return {

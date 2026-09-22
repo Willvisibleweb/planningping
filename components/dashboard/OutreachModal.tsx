@@ -217,8 +217,11 @@ export default function OutreachModal({
                   <span className="rounded-sm bg-primary-500 px-2 py-0.5 text-xs font-semibold text-white">
                     {activeBrief.scope}
                   </span>
-                  <span className="rounded-sm bg-surface-sunken px-2 py-0.5 text-xs text-ink-muted">
-                    {activeBrief.valueSignal}
+                  <span
+                    className="rounded-sm bg-surface-sunken px-2 py-0.5 text-xs text-ink-muted"
+                    title="An AI estimate of scale from the planning description. The source does not publish a project value."
+                  >
+                    Size estimate: {activeBrief.valueSignal}
                   </span>
                 </div>
                 <p className="mt-2 text-sm text-ink">{activeBrief.reasoning}</p>

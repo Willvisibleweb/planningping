@@ -40,9 +40,9 @@ export default function LiveFeed({ items }: { items: FeedItem[] }) {
         WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 12%, black 88%, transparent)',
       }}
     >
-      <div className="flex items-center justify-between border-b border-border bg-surface-sunken px-4 py-2.5">
-        <span className="text-2xs font-semibold uppercase tracking-wider text-ink-muted">
-          Live from the register
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-primary-50 px-4 py-2.5">
+        <span className="max-w-[18rem] text-2xs font-semibold uppercase tracking-wider text-primary-700">
+          Public planning records becoming sales signals
         </span>
         <span className="flex items-center gap-1.5 text-2xs text-ink-muted">
           <span className="relative flex h-1.5 w-1.5">
@@ -63,6 +63,9 @@ export default function LiveFeed({ items }: { items: FeedItem[] }) {
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-success-50 px-2 py-0.5 text-[10px] font-semibold text-success-700 ring-1 ring-inset ring-success-200">
+                      Example lead
+                    </span>
                     <span className="tabular-data text-2xs font-semibold text-primary-500">
                       {item.reference}
                     </span>

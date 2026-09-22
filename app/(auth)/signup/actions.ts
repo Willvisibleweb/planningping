@@ -43,7 +43,7 @@ export async function signup(formData: FormData) {
     password,
     options: {
       // After email confirmation, Supabase redirects to this URL.
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=${encodeURIComponent('/onboarding?welcome=1')}`,
       // Lands in auth.users.raw_user_meta_data; the handle_new_user trigger
       // reads it to set profiles.user_type and start the trial clock.
       data: { user_type: userType, partnership_provider: partnershipProvider },

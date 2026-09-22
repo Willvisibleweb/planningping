@@ -28,6 +28,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { getProfile, hasProAccess } from '@/lib/access'
 import { consumeAiQuota, releaseAiQuota } from '@/lib/ai/quota'
+import * as z from 'zod/v4'
+import { findUnsupportedFigures } from '@/lib/reliability/aiGuard'
 
 const MODEL = 'claude-haiku-4-5'
 
@@ -36,7 +38,8 @@ const MODEL = 'claude-haiku-4-5'
 // bounds the worst case, e.g. a trial user generating in a loop.
 
 const BRIEF_FIELDS = `- Infer the likely civils scope from the development described (e.g. drainage/SuDS, groundworks/earthworks, highways/S278, structural/retaining, flood mitigation, an agricultural Class Q conversion, etc.). If the description is vague, keep it general rather than guessing specifics.
-- "value_signal" is a short, honest phrase on project size/complexity (e.g. "Small single dwelling — modest, one-off scope" or "Multi-unit residential — larger, multi-phase civils scope"). Don't invent figures; work from what the description and application type imply.
+- "value_signal" is a short, honest phrase on project size/complexity (e.g. "Small single dwelling — modest, one-off scope" or "Multi-unit residential — larger, multi-phase civils scope"). It is an estimate from the description, and must never contain a £ amount, a unit count, an area or any other figure that is not in the context. Describe size in words.
+- The context is the only source of facts. Anything you infer — scope, scale, timing — is inference: phrase it as "likely" or "may", never as the council's position. If something is not in the context, do not mention it.
 - "reasoning" is 1-2 plain-English sentences a busy engineer can read in three seconds: why this is (or isn't strongly) worth pursuing.`
 
 const EMAIL_SYSTEM_PROMPT = `You are a business-development analyst for a UK civil engineering firm, reviewing a planning application as a potential lead.
@@ -100,18 +103,33 @@ const LETTER_TOOL: Anthropic.Tool = {
   },
 }
 
-interface BriefToolInput {
-  scope: string
-  value_signal: string
-  reasoning: string
-}
+// Tool input is validated rather than cast. A model can return a missing
+// field or a wrong type even under a forced tool call, and a cast would pass
+// that straight to the page as though it were a complete brief.
+const BriefSchema = z.object({
+  scope: z.string().trim().min(2).max(200),
+  value_signal: z.string().trim().min(2).max(200),
+  reasoning: z.string().trim().min(10).max(800),
+})
+const OutreachSchema = BriefSchema.extend({
+  angles: z
+    .array(z.object({ label: z.string().trim().min(2).max(120), subject: z.string().trim().min(2).max(200), body: z.string().trim().min(20).max(2500) }))
+    .min(2)
+    .max(3),
+})
+const LetterSchema = BriefSchema.extend({ letter_body: z.string().trim().min(50).max(5000) })
 
-interface OutreachToolInput extends BriefToolInput {
-  angles: { label: string; subject: string; body: string }[]
-}
+class UnverifiableDraftError extends Error {}
 
-interface LetterToolInput extends BriefToolInput {
-  letter_body: string
+// The brief is analysis shown beside the planning record, so every figure in
+// it must come from the record. The drafts are the user's to edit, and phrases
+// like "a 15 minute call" are ordinary there, so only money and counts are
+// checked in them.
+function assertSupported(brief: z.infer<typeof BriefSchema>, drafts: string[], context: string): void {
+  const briefIssues = findUnsupportedFigures(`${brief.scope}\n${brief.value_signal}\n${brief.reasoning}`, [context])
+  const draftIssues = findUnsupportedFigures(drafts.join('\n'), [context], ['money', 'count'])
+  const issues = [...briefIssues, ...draftIssues]
+  if (issues.length > 0) throw new UnverifiableDraftError(`unsupported figures: ${issues.join(', ')}`)
 }
 
 export async function POST(request: NextRequest) {
@@ -218,14 +236,16 @@ export async function POST(request: NextRequest) {
 
 
     if (mode === 'letter') {
-      const result = toolUse.input as LetterToolInput
+      const result = LetterSchema.parse(toolUse.input)
+      assertSupported(result, [result.letter_body], context)
       return NextResponse.json({
         brief: { scope: result.scope, valueSignal: result.value_signal, reasoning: result.reasoning },
         letterBody: result.letter_body,
       })
     }
 
-    const result = toolUse.input as OutreachToolInput
+    const result = OutreachSchema.parse(toolUse.input)
+    assertSupported(result, result.angles.map((a) => `${a.subject}\n${a.body}`), context)
     return NextResponse.json({
       brief: { scope: result.scope, valueSignal: result.value_signal, reasoning: result.reasoning },
       angles: result.angles,
@@ -234,7 +254,13 @@ export async function POST(request: NextRequest) {
     // Hand the slot back — our failure should not cost the user a draft.
     await releaseAiQuota(quota.slotId)
 
-    console.error('Outreach generation failed:', err)
+    console.error('Outreach generation failed:', err instanceof Error ? err.message : err)
+    if (err instanceof UnverifiableDraftError) {
+      return NextResponse.json(
+        { error: 'The draft included figures that are not in the planning record, so it was discarded. Please try again.' },
+        { status: 502 },
+      )
+    }
     return NextResponse.json({ error: 'Could not generate a draft. Please try again.' }, { status: 502 })
   }
 }

@@ -24,8 +24,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const location = await getLocation('council', council.toLowerCase())
   if (!location) return { title: 'Area not found | PlanningPing' }
 
-  const title = `Planning applications in ${location.name} (${location.app_count}) | PlanningPing`
-  const description = `Browse ${location.app_count} recent planning applications in ${location.name}. See addresses, descriptions, references, dates and decisions — updated regularly from the council's public planning register.`
+  const title = `${location.name} Planning Applications & Construction Leads | PlanningPing`
+  const description = `Browse ${location.app_count} recent planning applications in ${location.name} and see how PlanningPing helps construction teams turn local planning activity into prioritised sales opportunities.`
   const url = `${SITE_URL}/planning-applications/${location.slug}`
 
   return {

@@ -4,7 +4,7 @@
 import { ImageResponse } from 'next/og'
 import { OgCard, OG_SIZE, OG_CONTENT_TYPE } from '@/lib/og/card'
 
-export const alt = 'PlanningPing — UK planning applications, scored and tracked'
+export const alt = 'PlanningPing - UK construction sales intelligence from planning data'
 export const size = OG_SIZE
 export const contentType = OG_CONTENT_TYPE
 
@@ -12,10 +12,10 @@ export default async function Image() {
   return new ImageResponse(
     (
       <OgCard
-        eyebrow="UK planning intelligence"
-        title="Spot planning applications first"
-        subtitle="Track any UK postcode, score what matters, and pursue it — from application to won job."
-        facts={['400+ planning authorities', 'Updated every morning']}
+        eyebrow="UK construction sales intelligence"
+        title="Find projects worth pursuing"
+        subtitle="Planning applications monitored, analysed and prioritised for construction sales teams."
+        facts={['UK planning applications', 'AI qualification']}
       />
     ),
     size,

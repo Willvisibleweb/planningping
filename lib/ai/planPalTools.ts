@@ -70,7 +70,7 @@ export function buildPlanPalTools(
 
       let q = supabase
         .from('planning_applications')
-        .select('reference, description, address, status, application_date, band, score, score_reasons, agent_company, council_slug')
+        .select('reference, description, address, status, application_date, band, score, score_reasons, agent_company, council_slug, sourceUrl:raw_data->>url')
         .in('council_slug', slugs)
         .order('score', { ascending: false, nullsFirst: false })
         .limit(MAX_ROWS)
@@ -106,7 +106,9 @@ export function buildPlanPalTools(
           fit: r.band,
           score: r.score,
           signals: positiveSignals(r.score_reasons as string[]),
-          agent: r.agent_company,
+          agent: r.agent_company ?? 'not recorded',
+          // Link to the authority's own record, so an answer can be checked.
+          sourceUrl: r.sourceUrl ?? null,
         })),
       )
     },
