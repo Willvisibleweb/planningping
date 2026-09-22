@@ -18,6 +18,7 @@
 import { NextResponse } from 'next/server'
 import { getGlobalIngestFreshness, STALE_AFTER_HOURS } from '@/lib/health/ingestFreshness'
 import { loadHealthReport } from '@/lib/reliability/healthReport'
+import { ingestPlanDate, loadQueueProgress } from '@/lib/ingest/ingestQueueStore'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 // Never cached: a cached health check reports the health of the past.
@@ -29,12 +30,23 @@ export const dynamic = 'force-dynamic'
 // names, errors or customer data leave through an unauthenticated endpoint.
 export async function GET() {
   try {
-    const [health, report] = await Promise.all([
+    const db = createAdminClient()
+    const planDate = ingestPlanDate()
+    const [health, report, queue] = await Promise.all([
       getGlobalIngestFreshness(),
-      loadHealthReport(createAdminClient()),
+      loadHealthReport(db),
+      loadQueueProgress(db, planDate),
     ])
+
+    // A source that gave up for the day is the condition this check most needs
+    // to catch, and the one it used to miss: the old ingest lost the back half
+    // of its territory list to rate limiting most mornings while this endpoint
+    // reported 'ok', because every source it DID reach looked healthy. Judging
+    // the day's queue rather than only the sources that ran is what makes the
+    // green light mean "everyone got their data".
+    const gaveUp = queue.failed > 0
     const failing = report.available && (report.counts.failed > 0 || report.ingestOverdue || report.stuckRuns.length > 0)
-    const status = health.stale ? 'stale' : failing ? 'degraded' : 'ok'
+    const status = health.stale ? 'stale' : failing || gaveUp ? 'degraded' : 'ok'
 
     return NextResponse.json(
       {
@@ -46,6 +58,9 @@ export async function GET() {
         sources: report.available ? report.counts : null,
         ingestOverdue: report.available ? report.ingestOverdue : null,
         unfinishedRuns: report.available ? report.stuckRuns.length : null,
+        // Today's queue, so a monitor can tell "still working through it" from
+        // "finished, but some territories were never fetched".
+        queue: { date: planDate, ...queue },
         checkedAt: new Date().toISOString(),
       },
       { status: status === 'ok' ? 200 : 503 },

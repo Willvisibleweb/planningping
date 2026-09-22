@@ -1,0 +1,90 @@
+// Step 1 of 3: decide what today's ingest consists of.
+//
+// This job does no fetching. It reconciles plan limits, pulls the tenders feed
+// (one HTTP call), and writes one queued row per PlanIt source. Everything
+// expensive and rate-limitable is left to /api/cron/ingest-work, which can
+// take as many invocations as it needs.
+//
+// Keeping the planner separate is what makes the day's work a fact in the
+// database rather than a list that only ever existed inside one function's
+// memory — which is why the old ingest could be killed at 300s and leave no
+// record of the territories it never reached.
+
+import { NextRequest, NextResponse } from 'next/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { enforcePlanLimitsForAll } from '@/lib/plan/enforceLimits'
+import { ingestTenders } from '@/lib/tenders/ingestTenders'
+import { finishPipelineRun, logPipelineEvent, startPipelineRun } from '@/lib/reliability/pipelineLog'
+import { ingestPlanDate, planDayQueue } from '@/lib/ingest/ingestQueueStore'
+import type { AreaRow } from '@/lib/ingest/areaAlerts'
+
+export const dynamic = 'force-dynamic'
+export const maxDuration = 120
+
+export async function GET(request: NextRequest) {
+  const auth = request.headers.get('authorization')
+  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const supabase = createAdminClient()
+  const planDate = ingestPlanDate()
+  const runId = await startPipelineRun(supabase, 'ingest', 'cron')
+
+  // Bring everyone's areas back within their plan before queueing anything for
+  // them. A trial ending or a downgrade otherwise leaves extra areas in place
+  // and we fetch them from PlanIt daily at our own cost.
+  const reconciled = await enforcePlanLimitsForAll(supabase)
+  if (reconciled.length > 0) {
+    console.log('plan limits reconciled:', JSON.stringify(reconciled))
+  }
+
+  // Tenders is one call and a couple of seconds, so it belongs here rather
+  // than in the queue. Wrapped so a tender-feed failure cannot stop the
+  // planning ingest being planned.
+  let tenders: Awaited<ReturnType<typeof ingestTenders>> | { error: string }
+  try {
+    tenders = await ingestTenders(supabase)
+  } catch (e) {
+    await logPipelineEvent(supabase, { runId, job: 'ingest', stage: 'tenders', severity: 'error', message: 'Tender ingest failed', error: e })
+    tenders = { error: 'tender ingest failed — see pipeline_events' }
+  }
+
+  const { data: areas, error } = await supabase
+    .from('tracked_areas')
+    .select('id, user_id, postcode, radius_metres, alerts_enabled, min_band, label, council_slug, last_planit_fetch_at')
+    .eq('is_active', true)
+    .order('last_planit_fetch_at', { ascending: true, nullsFirst: true })
+  if (error) {
+    await logPipelineEvent(supabase, { runId, job: 'ingest', stage: 'load_areas', severity: 'critical', message: 'Could not load tracked areas', error: error.message })
+    await finishPipelineRun(supabase, runId, 'failed', { stage: 'load_areas' })
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  let plan
+  try {
+    plan = await planDayQueue(supabase, { planDate, runId, areas: (areas ?? []) as AreaRow[] })
+  } catch (e) {
+    await logPipelineEvent(supabase, { runId, job: 'ingest', stage: 'plan_queue', severity: 'critical', message: 'Could not write the ingest queue', error: e })
+    await finishPipelineRun(supabase, runId, 'failed', { stage: 'plan_queue' })
+    return NextResponse.json({ error: String(e) }, { status: 500 })
+  }
+
+  await logPipelineEvent(supabase, {
+    runId, job: 'ingest', stage: 'plan_queue', severity: 'info',
+    message: `Queued ${plan.planned} source${plan.planned === 1 ? '' : 's'} for ${planDate}` +
+      (plan.alreadyQueued > 0 ? ` (${plan.alreadyQueued} already queued)` : ''),
+  })
+
+  // The run is left open deliberately: ingest-finalise closes it once the
+  // queue has drained, so an unfinished run means unfinished work.
+  return NextResponse.json({
+    ran_at: new Date().toISOString(),
+    run_id: runId,
+    plan_date: planDate,
+    areas_active: areas?.length ?? 0,
+    sources_queued: plan.planned,
+    already_queued: plan.alreadyQueued,
+    tenders,
+  })
+}
