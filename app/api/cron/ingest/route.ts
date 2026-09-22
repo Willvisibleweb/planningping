@@ -37,7 +37,7 @@ import {
   skipJob,
 } from '@/lib/ingest/ingestQueueStore'
 import { finishPipelineRun, logPipelineEvent, startPipelineRun } from '@/lib/reliability/pipelineLog'
-import { isQueueComplete } from '@/lib/reliability/ingestQueue'
+import { finaliseIngestDay } from '@/lib/ingest/finaliseIngestDay'
 import { runHealthAlertCheck } from '@/lib/reliability/healthAlerts'
 import {
   acquirePipelineLock,
@@ -165,15 +165,17 @@ export async function GET(request: NextRequest) {
       await new Promise((r) => setTimeout(r, DELAY_MS))
     }
 
-    const queue = await loadQueueProgress(supabase, planDate)
-    const complete = isQueueComplete(queue)
+    const drained = await loadQueueProgress(supabase, planDate)
 
-    // The tail work belongs to ingest-finalise. Point at it rather than doing
-    // it here, so there is one place that decides a day is over.
-    if (!complete) {
+    // Close the day here when the queue emptied. On a Hobby plan this route is
+    // the only ingest cron there is, so if it did not finalise, the Monday
+    // digest would simply never send — which is the regression that the whole
+    // ingest-finalise split would otherwise have introduced.
+    const finalise = await finaliseIngestDay(supabase, { planDate, siteUrl: SITE_URL, runId })
+    if (!finalise.finalised) {
       await logPipelineEvent(supabase, {
         runId, job: 'ingest', stage: 'manual_drain', severity: 'info',
-        message: `Manual run handled ${completed} source${completed === 1 ? '' : 's'}; ${queue.pending + queue.running} left for the workers`,
+        message: `Run handled ${completed} source${completed === 1 ? '' : 's'}; ${drained.pending + drained.running} still queued`,
       })
     }
 
@@ -189,12 +191,13 @@ export async function GET(request: NextRequest) {
       completed,
       failed,
       stopped_early: stoppedEarly,
-      queue,
-      queue_complete: complete,
-      next_step: complete
-        ? 'call /api/cron/ingest-finalise to close the run'
-        : 'remaining sources will be picked up by /api/cron/ingest-work',
+      queue: finalise.queue,
+      finalised: finalise.finalised,
+      next_step: finalise.finalised
+        ? 'day closed'
+        : 'remaining sources stay queued; run this again or call /api/cron/ingest-work',
       tenders,
+      digest: finalise.digest ?? null,
       health_alert: healthAlert,
       processed,
     })

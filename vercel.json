@@ -1,20 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/cron/ingest-plan",
+      "path": "/api/cron/ingest",
       "schedule": "0 5 * * *"
-    },
-    {
-      "path": "/api/cron/ingest-work",
-      "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/cron/ingest-finalise",
-      "schedule": "0 21 * * *"
-    },
-    {
-      "path": "/api/cron/health-check",
-      "schedule": "0 8 * * *"
     },
     {
       "path": "/api/cron/backfill-councils",
