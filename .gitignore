@@ -41,3 +41,5 @@ yarn-error.log*
 next-env.d.ts
 n8n/planningping_scraper.json
 n8n/*.local.json
+# Supabase CLI scratch
+supabase/.temp/
