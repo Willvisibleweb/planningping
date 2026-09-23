@@ -33,6 +33,19 @@ export interface HealthReport {
   available: boolean
   sources: SourceHealthRow[]
   counts: Record<HealthStatus, number>
+  /**
+   * Counts for tracked territories only — the sources a customer's data
+   * actually depends on.
+   *
+   * The national council backfill is opportunistic growth: it walks 418
+   * authorities a batch at a time, and a council it meets for the first time
+   * routinely answers 429. That is a source with no successful run on record,
+   * which assessSourceHealth rightly calls 'failed' — but it is not an outage,
+   * and folding it into the public pass/fail meant the health endpoint would
+   * sit at 503 for as long as coverage kept expanding. A monitor that is
+   * always red tells you nothing.
+   */
+  territoryCounts: Record<HealthStatus, number>
   lastIngest: PipelineRunRow | null
   /** The daily ingest has not started in over 26 hours. */
   ingestOverdue: boolean
@@ -64,7 +77,7 @@ export async function loadHealthReport(db: AdminClient, now: Date = new Date()):
       .order('started_at', { ascending: false })
       .range(page * PAGE, page * PAGE + PAGE - 1)
     if (error) {
-      return { available: false, sources: [], counts: summariseHealth([]), lastIngest: null, ingestOverdue: false, stuckRuns: [] }
+      return { available: false, sources: [], counts: summariseHealth([]), territoryCounts: summariseHealth([]), lastIngest: null, ingestOverdue: false, stuckRuns: [] }
     }
     runs.push(...((data ?? []) as SourceRunRow[]))
     if (!data || data.length < PAGE) break
@@ -124,6 +137,7 @@ export async function loadHealthReport(db: AdminClient, now: Date = new Date()):
     available: true,
     sources,
     counts: summariseHealth(sources.map((s) => s.status)),
+    territoryCounts: summariseHealth(sources.filter((s) => s.kind === 'territory').map((s) => s.status)),
     lastIngest,
     ingestOverdue,
     stuckRuns,

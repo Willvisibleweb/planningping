@@ -110,6 +110,26 @@ export async function planDayQueue(
   return { planDate: opts.planDate, planned: rows.length, alreadyQueued: existingKeys.size }
 }
 
+/**
+ * The pipeline run today's queue was planned under, if the day is already
+ * planned.
+ *
+ * The planner is called on every scheduled tick now, not once a morning, and
+ * planDayQueue is idempotent — so without this each tick opened a fresh
+ * pipeline_run that no job ever pointed at and finalise therefore never
+ * closed. They accumulated as permanently 'running' and the health endpoint
+ * counted them as stuck.
+ */
+export async function runIdForDay(db: AdminClient, planDate: string): Promise<string | null> {
+  const { data } = await db
+    .from('ingest_jobs')
+    .select('run_id')
+    .eq('plan_date', planDate)
+    .not('run_id', 'is', null)
+    .limit(1)
+  return (data?.[0]?.run_id as string | undefined) ?? null
+}
+
 export async function claimJobs(
   db: AdminClient,
   opts: { planDate: string; limit: number; worker: string; leaseSeconds: number },

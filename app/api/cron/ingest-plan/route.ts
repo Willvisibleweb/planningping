@@ -18,7 +18,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { enforcePlanLimitsForAll } from '@/lib/plan/enforceLimits'
 import { ingestTenders } from '@/lib/tenders/ingestTenders'
 import { finishPipelineRun, logPipelineEvent, startPipelineRun } from '@/lib/reliability/pipelineLog'
-import { ingestPlanDate, planDayQueue } from '@/lib/ingest/ingestQueueStore'
+import { ingestPlanDate, planDayQueue, runIdForDay } from '@/lib/ingest/ingestQueueStore'
 import { isAuthorisedCron, respondInBackground } from '@/lib/api/backgroundCron'
 import type { AreaRow } from '@/lib/ingest/areaAlerts'
 
@@ -35,7 +35,16 @@ export async function GET(request: NextRequest) {
 async function planToday(): Promise<Record<string, unknown>> {
   const supabase = createAdminClient()
   const planDate = ingestPlanDate()
-  const runId = await startPipelineRun(supabase, 'ingest', 'cron')
+
+  // Reuse the run this day was already planned under. This route runs on every
+  // scheduled tick, not once a morning, and opening a run per call left one
+  // permanently 'running' behind each repeat — no job pointed at it, so
+  // finalise never closed it, and the health endpoint read them as stuck.
+  const existingRunId = await runIdForDay(supabase, planDate)
+  const runId = existingRunId ?? (await startPipelineRun(supabase, 'ingest', 'cron'))
+  if (existingRunId) {
+    return { ran_at: new Date().toISOString(), run_id: runId, plan_date: planDate, already_planned: true }
+  }
 
   // Bring everyone's areas back within their plan before queueing anything for
   // them. A trial ending or a downgrade otherwise leaves extra areas in place
@@ -82,8 +91,14 @@ async function planToday(): Promise<Record<string, unknown>> {
       (plan.alreadyQueued > 0 ? ` (${plan.alreadyQueued} already queued)` : ''),
   })
 
-  // The run is left open deliberately: ingest-finalise closes it once the
-  // queue has drained, so an unfinished run means unfinished work.
+  // A day with nothing to fetch has no job carrying this run's id, so nothing
+  // would ever close it. Close it here instead of leaving it 'running'.
+  if (plan.planned === 0) {
+    await finishPipelineRun(supabase, runId, 'success', { plan_date: planDate, sources_total: 0, reason: 'no active territories to queue' })
+  }
+
+  // Otherwise the run is left open deliberately: ingest-finalise closes it once
+  // the queue has drained, so an unfinished run means unfinished work.
   return {
     ran_at: new Date().toISOString(),
     run_id: runId,

@@ -45,7 +45,13 @@ export async function GET() {
     // the day's queue rather than only the sources that ran is what makes the
     // green light mean "everyone got their data".
     const gaveUp = queue.failed > 0
-    const failing = report.available && (report.counts.failed > 0 || report.ingestOverdue || report.stuckRuns.length > 0)
+    // Judged on tracked territories, not on the national council backfill. The
+    // backfill meets 418 authorities a batch at a time and a first contact
+    // routinely answers 429, which reads as a failed source — true, but not an
+    // outage, and counting it here kept the endpoint at 503 for as long as
+    // coverage kept growing. A monitor that is always red tells you nothing.
+    const failing =
+      report.available && (report.territoryCounts.failed > 0 || report.ingestOverdue || report.stuckRuns.length > 0)
     const status = health.stale ? 'stale' : failing || gaveUp ? 'degraded' : 'ok'
 
     return NextResponse.json(
@@ -55,7 +61,10 @@ export async function GET() {
         staleAreas: health.staleAreas,
         totalAreas: health.totalAreas,
         thresholdHours: STALE_AFTER_HOURS,
-        sources: report.available ? report.counts : null,
+        // Both are reported: territories decide the status code, the total is
+        // there so expanding coverage is still visible to anyone reading it.
+        sources: report.available ? report.territoryCounts : null,
+        allSources: report.available ? report.counts : null,
         ingestOverdue: report.available ? report.ingestOverdue : null,
         unfinishedRuns: report.available ? report.stuckRuns.length : null,
         // Today's queue, so a monitor can tell "still working through it" from
