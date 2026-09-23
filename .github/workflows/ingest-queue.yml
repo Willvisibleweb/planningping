@@ -4,11 +4,19 @@
 #
 #   Hobby allows two cron jobs, daily only, so the queue worker — which is
 #     only worth having if it runs every fifteen minutes — has no slot.
-#   Vercel's crons have been missing ticks on this project. On 23 Sep neither
-#     the 03:00 backfill nor the 05:00 ingest fired, and councils.last_planit_
-#     fetch_at shows 27 of 425 councils ever backfilled, against a job that
-#     claims 15 a day. A scheduler inside the system it schedules cannot tell
-#     you it did not run; this one can.
+#   Vercel's crons do not appear to fire on this project at all. backfill-
+#     councils has been in vercel.json since 2 Aug at 15 councils a day, which
+#     should have covered all 418 authorities twice over; it had done 27, and
+#     the first run ever recorded in pipeline_runs was triggered by hand on
+#     23 Sep. The daily ingest scheduled at 06:00 UTC likewise has no run at
+#     that hour — the runs that exist are at 05:00, which is an external
+#     cron-job.org job, not Vercel.
+#
+# Correction, for the record: an earlier version of this comment blamed the
+# 23 Sep outage on Vercel dropping ticks. That was wrong. cron-job.org was the
+# real scheduler, and it started returning 401 when CRON_SECRET was rotated on
+# 22 Sep without updating it there. Vercel's crons not firing is a separate,
+# older problem that this workflow also covers.
 #
 # Every scheduled tick is self-sufficient: plan, then drain, then finalise.
 # That matters because GitHub does not deliver every '*/15' tick — it drops and
