@@ -6,9 +6,13 @@
 // where this one stopped — including work abandoned by a function Vercel
 // killed, because an expired lease makes a job claimable again.
 //
-// Run it often. Every ten minutes with a batch of three means the whole day is
-// available to get through the queue, instead of one five-minute window in
+// Run it often. Every fifteen minutes with a batch of three means the whole day
+// is available to get through the queue, instead of one five-minute window in
 // which PlanIt must answer for every territory at once.
+//
+// Answers 202 immediately and works in the background — three sources take
+// about 72 seconds and cron-job.org hangs up at 30. Add ?wait=1 for the real
+// result. See lib/api/backgroundCron.ts.
 //
 // Only one worker fetches at a time, via the existing pipeline lock. Two
 // concurrent workers would not corrupt anything — the claim is atomic — but
@@ -31,10 +35,10 @@ import {
 import { logPipelineEvent } from '@/lib/reliability/pipelineLog'
 import {
   acquirePipelineLock,
-  lockedPipelineResponse,
   PLANIT_PIPELINE_LOCK,
   releasePipelineLock,
 } from '@/lib/reliability/pipelineLock'
+import { isAuthorisedCron, respondInBackground } from '@/lib/api/backgroundCron'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -50,8 +54,7 @@ const LEASE_SECONDS = 280
 const DELAY_MS = 3000
 
 export async function GET(request: NextRequest) {
-  const auth = request.headers.get('authorization')
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isAuthorisedCron(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -59,9 +62,22 @@ export async function GET(request: NextRequest) {
   const planDate = params.get('date') ?? ingestPlanDate()
   const batchSize = Math.max(1, Math.min(Number(params.get('batch')) || DEFAULT_BATCH, 10))
 
+  return respondInBackground(request, { job: 'ingest-work' }, () => drainQueue({ planDate, batchSize }))
+}
+
+async function drainQueue(opts: { planDate: string; batchSize: number }): Promise<Record<string, unknown>> {
+  const { planDate, batchSize } = opts
   const supabase = createAdminClient()
+
   const lockResult = await acquirePipelineLock(supabase, PLANIT_PIPELINE_LOCK, 600, { job: 'ingest-work', trigger: 'cron' })
-  if (!lockResult.acquired) return lockedPipelineResponse('ingest-work', lockResult)
+  if (!lockResult.acquired) {
+    return {
+      skipped: true,
+      job: 'ingest-work',
+      reason: lockResult.error ? 'pipeline_lock_unavailable' : 'pipeline_lock_held',
+      locked_until: lockResult.lockedUntil,
+    }
+  }
   const lock = lockResult.lock
 
   const startedAt = Date.now()
@@ -80,13 +96,13 @@ export async function GET(request: NextRequest) {
 
     if (jobs.length === 0) {
       const progress = await loadQueueProgress(supabase, planDate)
-      return NextResponse.json({
+      return {
         ran_at: new Date().toISOString(),
         plan_date: planDate,
         claimed: 0,
         reason: progress.total === 0 ? 'nothing planned for today yet' : 'no sources due right now',
         queue: progress,
-      })
+      }
     }
 
     // One resolver for the whole batch — see lib/ingest/councilResolver.ts for
@@ -167,7 +183,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    return NextResponse.json({
+    return {
       ran_at: new Date().toISOString(),
       plan_date: planDate,
       claimed: jobs.length,
@@ -176,7 +192,7 @@ export async function GET(request: NextRequest) {
       rate_limited: rateLimited,
       queue,
       processed,
-    })
+    }
   } finally {
     await releasePipelineLock(supabase, lock)
   }

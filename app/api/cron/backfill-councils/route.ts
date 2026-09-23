@@ -16,7 +16,8 @@ import { fromPlanIt, upsertApplications } from '@/lib/ingest/upsertApplications'
 import { createCouncilResolver } from '@/lib/ingest/councilResolver'
 import { authoritySourceKey } from '@/lib/reliability/sourceKeys'
 import { finishPipelineRun, logPipelineEvent, recordSourceRun, startPipelineRun } from '@/lib/reliability/pipelineLog'
-import { acquirePipelineLock, lockedPipelineResponse, PLANIT_PIPELINE_LOCK, releasePipelineLock } from '@/lib/reliability/pipelineLock'
+import { acquirePipelineLock, PLANIT_PIPELINE_LOCK, releasePipelineLock } from '@/lib/reliability/pipelineLock'
+import { isAuthorisedCron, respondInBackground } from '@/lib/api/backgroundCron'
 
 export const maxDuration = 300
 
@@ -29,14 +30,23 @@ const BATCH_SIZE = 15
 const DELAY_MS = 2000 // more conservative than the ingest cron's 1.5s — this is bonus background growth, not core product freshness
 
 export async function GET(request: NextRequest) {
-  const auth = request.headers.get('authorization')
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isAuthorisedCron(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  return respondInBackground(request, { job: 'backfill-councils' }, backfillBatch)
+}
 
+async function backfillBatch(): Promise<Record<string, unknown>> {
   const supabase = createAdminClient()
   const lockResult = await acquirePipelineLock(supabase, PLANIT_PIPELINE_LOCK, 600, { job: 'backfill_councils', trigger: 'cron' })
-  if (!lockResult.acquired) return lockedPipelineResponse('backfill_councils', lockResult)
+  if (!lockResult.acquired) {
+    return {
+      skipped: true,
+      job: 'backfill_councils',
+      reason: lockResult.error ? 'pipeline_lock_unavailable' : 'pipeline_lock_held',
+      locked_until: lockResult.lockedUntil,
+    }
+  }
   const lock = lockResult.lock
 
   try {
@@ -76,11 +86,11 @@ export async function GET(request: NextRequest) {
   if (error) {
     await logPipelineEvent(supabase, { runId, job: 'backfill_councils', stage: 'load_councils', severity: 'critical', message: 'Could not load councils', error: error.message })
     await finishPipelineRun(supabase, runId, 'failed', { stage: 'load_councils' })
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    throw new Error(`could not load councils: ${error.message}`)
   }
   if (!batch || batch.length === 0) {
     await finishPipelineRun(supabase, runId, 'success', { message: 'No councils to backfill' })
-    return NextResponse.json({ message: 'No councils to backfill', total_authorities: allAuthorities.length })
+    return { message: 'No councils to backfill', total_authorities: allAuthorities.length }
   }
 
   const results: Array<{ council: string; fetched: number; changed: number; error?: string }> = []
@@ -132,14 +142,14 @@ export async function GET(request: NextRequest) {
 
   await finishPipelineRun(supabase, runId, failures > 0 ? 'partial' : 'success', { batch_size: batch.length, failures })
 
-  return NextResponse.json({
+  return {
     ran_at: new Date().toISOString(),
     run_id: runId,
     total_authorities: allAuthorities.length,
     batch_size: batch.length,
     failures,
     results,
-  })
+  }
   } finally {
     await releasePipelineLock(supabase, lock)
   }

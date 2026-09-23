@@ -26,6 +26,12 @@
 # was dropped the queue was never planned, every worker run found nothing to
 # do, and all of them reported success. Silence looked identical to health.
 #
+# Every call here adds ?wait=1. The cron routes answer 202 immediately by
+# default, because cron-job.org hangs up at 30 seconds while a batch of sources
+# takes minutes — but a caller that does not wait cannot tell you the work
+# failed, and a red run here is this workflow's only alerting. GitHub imposes no
+# such timeout, so it waits and reports the truth.
+#
 # All three steps are idempotent, so running them on every tick is safe:
 # planning is unique per (day, source), draining claims under a lease, and
 # finalising refuses to close a day whose queue is still draining.
@@ -80,7 +86,7 @@ jobs:
             # the lease, which is expected and stays green.
             curl --fail-with-body -sS -m 300 \
               -H "Authorization: Bearer $CRON_SECRET" \
-              "$SITE/api/cron/$1"
+              "$SITE/api/cron/$1?wait=1"
           }
 
           # Planning is unique per (day, source): on every tick but the first
@@ -130,7 +136,7 @@ jobs:
           fi
           curl --fail-with-body -sS -m 300 \
             -H "Authorization: Bearer $CRON_SECRET" \
-            "$SITE/api/cron/backfill-councils" | tee backfill.json
+            "$SITE/api/cron/backfill-councils?wait=1" | tee backfill.json
           echo
 
       - name: Summarise
@@ -166,7 +172,7 @@ jobs:
             echo "Before 06:00 UTC — not asserting yet."
             exit 0
           fi
-          body=$(curl -sS -m 60 -H "Authorization: Bearer $CRON_SECRET" "$SITE/api/cron/ingest-finalise")
+          body=$(curl -sS -m 300 -H "Authorization: Bearer $CRON_SECRET" "$SITE/api/cron/ingest-finalise?wait=1")
           echo "$body"
           total=$(echo "$body" | sed -n 's/.*"total":\([0-9]*\).*/\1/p')
           if [ "${total:-0}" -eq 0 ]; then

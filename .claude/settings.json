@@ -1,0 +1,11 @@
+{
+  "sandbox": {
+    "network": {
+      "allowedDomains": [
+        "planningping.com",
+        "www.planningping.com",
+        "planningping.vercel.app"
+      ]
+    }
+  }
+}

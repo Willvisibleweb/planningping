@@ -1,17 +1,24 @@
-// The whole ingest in one invocation — for manual runs and for verifying a
-// deploy. The scheduled path is three separate jobs:
+// The whole ingest in one invocation: plan the day, drain as much of the queue
+// as fits the budget, close the day if the queue emptied. The finer-grained
+// path is three separate jobs:
 //
-//   /api/cron/ingest-plan      queue today's sources        (daily, 05:00)
+//   /api/cron/ingest-plan      queue today's sources        (daily, 04:45)
 //   /api/cron/ingest-work      fetch a few at a time        (every 15 min)
 //   /api/cron/ingest-finalise  digest, sweeps, close run    (daily, 21:00)
 //
-// This route exists because "run the ingest now and tell me what happened" is
-// a thing worth being able to do in one call. It plans, drains as much of the
-// queue as fits in its own budget, and finalises if the queue emptied.
+// This route IS scheduled — it is the long-standing cron-job.org job, and the
+// Vercel daily cron — so it doubles as the backstop: if nothing else fires, one
+// call still moves the whole day forward. It is also the one to hit by hand
+// when the question is "run the ingest now and tell me what happened"
+// (with ?wait=1, or the answer is just 202).
 //
-// It is NOT the reliable path and is not scheduled. Whatever it does not
-// finish stays queued for the workers, which is the difference between this
-// and what used to live here: the old version was a single 300-second function
+// Do not point it at a short interval. It opens a pipeline run per call, so a
+// 15-minute schedule would write ~96 run records a day and make the history
+// unreadable; /api/cron/ingest-work is the one built for that.
+//
+// Whatever this does not finish stays queued for the workers, which is the
+// difference between it and what used to live here: the old version was a
+// single 300-second function
 // that walked every territory, and every recorded run was 'partial' or
 // 'failed' — killed by Vercel mid-loop, or rate-limited by PlanIt once it was
 // six sources deep. Losing the back half of the territory list every morning
@@ -41,10 +48,10 @@ import { finaliseIngestDay } from '@/lib/ingest/finaliseIngestDay'
 import { runHealthAlertCheck } from '@/lib/reliability/healthAlerts'
 import {
   acquirePipelineLock,
-  lockedPipelineResponse,
   PLANIT_PIPELINE_LOCK,
   releasePipelineLock,
 } from '@/lib/reliability/pipelineLock'
+import { isAuthorisedCron, respondInBackground } from '@/lib/api/backgroundCron'
 import type { AreaRow } from '@/lib/ingest/areaAlerts'
 
 export const dynamic = 'force-dynamic'
@@ -56,15 +63,24 @@ const DELAY_MS = 3000
 const LEASE_SECONDS = 280
 
 export async function GET(request: NextRequest) {
-  const auth = request.headers.get('authorization')
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isAuthorisedCron(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  return respondInBackground(request, { job: 'ingest' }, runWholeDay)
+}
 
+async function runWholeDay(): Promise<Record<string, unknown>> {
   const supabase = createAdminClient()
   const planDate = ingestPlanDate()
   const lockResult = await acquirePipelineLock(supabase, PLANIT_PIPELINE_LOCK, 600, { job: 'ingest', trigger: 'manual' })
-  if (!lockResult.acquired) return lockedPipelineResponse('ingest', lockResult)
+  if (!lockResult.acquired) {
+    return {
+      skipped: true,
+      job: 'ingest',
+      reason: lockResult.error ? 'pipeline_lock_unavailable' : 'pipeline_lock_held',
+      locked_until: lockResult.lockedUntil,
+    }
+  }
   const lock = lockResult.lock
 
   const startedAt = Date.now()
@@ -95,7 +111,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       await logPipelineEvent(supabase, { runId, job: 'ingest', stage: 'load_areas', severity: 'critical', message: 'Could not load tracked areas', error: error.message })
       await finishPipelineRun(supabase, runId, 'failed', { stage: 'load_areas' })
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      throw new Error(`could not load tracked areas: ${error.message}`)
     }
 
     const plan = await planDayQueue(supabase, { planDate, runId, areas: (areas ?? []) as AreaRow[] })
@@ -181,7 +197,7 @@ export async function GET(request: NextRequest) {
 
     const healthAlert = await runHealthAlertCheck({ db: supabase })
 
-    return NextResponse.json({
+    return {
       ran_at: new Date().toISOString(),
       run_id: runId,
       plan_date: planDate,
@@ -200,7 +216,7 @@ export async function GET(request: NextRequest) {
       digest: finalise.digest ?? null,
       health_alert: healthAlert,
       processed,
-    })
+    }
   } finally {
     await releasePipelineLock(supabase, lock)
   }

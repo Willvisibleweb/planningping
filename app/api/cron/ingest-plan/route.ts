@@ -1,14 +1,17 @@
 // Step 1 of 3: decide what today's ingest consists of.
 //
-// This job does no fetching. It reconciles plan limits, pulls the tenders feed
-// (one HTTP call), and writes one queued row per PlanIt source. Everything
-// expensive and rate-limitable is left to /api/cron/ingest-work, which can
-// take as many invocations as it needs.
+// This job does no PlanIt fetching for territories. It reconciles plan limits,
+// pulls the tenders feed (one HTTP call), and writes one queued row per source.
+// Everything expensive and rate-limitable is left to /api/cron/ingest-work,
+// which can take as many invocations as it needs.
 //
 // Keeping the planner separate is what makes the day's work a fact in the
 // database rather than a list that only ever existed inside one function's
 // memory — which is why the old ingest could be killed at 300s and leave no
 // record of the territories it never reached.
+//
+// Answers 202 immediately and works in the background; ?wait=1 blocks for the
+// real result. See lib/api/backgroundCron.ts.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -16,17 +19,20 @@ import { enforcePlanLimitsForAll } from '@/lib/plan/enforceLimits'
 import { ingestTenders } from '@/lib/tenders/ingestTenders'
 import { finishPipelineRun, logPipelineEvent, startPipelineRun } from '@/lib/reliability/pipelineLog'
 import { ingestPlanDate, planDayQueue } from '@/lib/ingest/ingestQueueStore'
+import { isAuthorisedCron, respondInBackground } from '@/lib/api/backgroundCron'
 import type { AreaRow } from '@/lib/ingest/areaAlerts'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
 
 export async function GET(request: NextRequest) {
-  const auth = request.headers.get('authorization')
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isAuthorisedCron(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  return respondInBackground(request, { job: 'ingest-plan' }, planToday)
+}
 
+async function planToday(): Promise<Record<string, unknown>> {
   const supabase = createAdminClient()
   const planDate = ingestPlanDate()
   const runId = await startPipelineRun(supabase, 'ingest', 'cron')
@@ -58,7 +64,7 @@ export async function GET(request: NextRequest) {
   if (error) {
     await logPipelineEvent(supabase, { runId, job: 'ingest', stage: 'load_areas', severity: 'critical', message: 'Could not load tracked areas', error: error.message })
     await finishPipelineRun(supabase, runId, 'failed', { stage: 'load_areas' })
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    throw new Error(`could not load tracked areas: ${error.message}`)
   }
 
   let plan
@@ -67,7 +73,7 @@ export async function GET(request: NextRequest) {
   } catch (e) {
     await logPipelineEvent(supabase, { runId, job: 'ingest', stage: 'plan_queue', severity: 'critical', message: 'Could not write the ingest queue', error: e })
     await finishPipelineRun(supabase, runId, 'failed', { stage: 'plan_queue' })
-    return NextResponse.json({ error: String(e) }, { status: 500 })
+    throw e
   }
 
   await logPipelineEvent(supabase, {
@@ -78,7 +84,7 @@ export async function GET(request: NextRequest) {
 
   // The run is left open deliberately: ingest-finalise closes it once the
   // queue has drained, so an unfinished run means unfinished work.
-  return NextResponse.json({
+  return {
     ran_at: new Date().toISOString(),
     run_id: runId,
     plan_date: planDate,
@@ -86,5 +92,5 @@ export async function GET(request: NextRequest) {
     sources_queued: plan.planned,
     already_queued: plan.alreadyQueued,
     tenders,
-  })
+  }
 }
