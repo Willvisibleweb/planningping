@@ -1,45 +1,48 @@
-# Drives the ingest queue, because Vercel Hobby cannot.
+# Drives the ingest, because Vercel's scheduler cannot be relied on here.
 #
-# Hobby allows two cron jobs and only daily schedules, so the queue's worker —
-# which needs to run every fifteen minutes to be worth having — has no slot.
-# GitHub Actions has one, for free, and being outside Vercel is a feature
-# rather than a workaround: a scheduler that lives in the system it schedules
-# cannot tell you the system did not run.
+# Two reasons it lives outside Vercel:
 #
-# Vercel still runs /api/cron/ingest once daily as a backstop. That route plans,
-# drains and finalises by itself, so if this workflow stops firing the ingest
-# degrades to once a day instead of stopping. The two cannot collide: fetching
-# is serialised by a Postgres lease (pipeline_locks), planning is idempotent per
-# day, and finalising an already-closed day is a no-op.
+#   Hobby allows two cron jobs, daily only, so the queue worker — which is
+#     only worth having if it runs every fifteen minutes — has no slot.
+#   Vercel's crons have been missing ticks on this project. On 23 Sep neither
+#     the 03:00 backfill nor the 05:00 ingest fired, and councils.last_planit_
+#     fetch_at shows 27 of 425 councils ever backfilled, against a job that
+#     claims 15 a day. A scheduler inside the system it schedules cannot tell
+#     you it did not run; this one can.
 #
-# Setup — one secret, once:
+# Every scheduled tick is self-sufficient: plan, then drain, then finalise.
+# That matters because GitHub does not deliver every '*/15' tick — it drops and
+# delays them under load, and the delivered ticks arrived at 20:11, 22:56,
+# 23:29, 01:14 and 06:01 on the first night. An earlier version of this file
+# keyed each step to its own cron expression, so when the 04:45 planning tick
+# was dropped the queue was never planned, every worker run found nothing to
+# do, and all of them reported success. Silence looked identical to health.
+#
+# All three steps are idempotent, so running them on every tick is safe:
+# planning is unique per (day, source), draining claims under a lease, and
+# finalising refuses to close a day whose queue is still draining.
+#
+# Setup — one secret:
 #   gh secret set CRON_SECRET --repo Willvisibleweb/planningping
-# and paste the same value as the CRON_SECRET env var in Vercel.
-#
-# Note: GitHub disables scheduled workflows in repositories with no activity
-# for 60 days, and may delay a schedule under load. Neither is a problem while
-# the repo is worked on, and the Vercel backstop covers the rest.
+# matching CRON_SECRET in Vercel's production environment.
 
 name: Ingest queue
 
 on:
   schedule:
-    # Plan the day's sources. Runs before the Vercel backstop at 05:00 UTC.
-    - cron: '45 4 * * *'
-    # Drain the queue. This is the one that matters.
+    # Drain, and do whatever else the day still needs.
     - cron: '*/15 * * * *'
-    # Close the day: discharge sweeps, Monday digest, finish the run.
-    - cron: '0 21 * * *'
+    # National council backfill — this is how a new user's council already has
+    # applications before they sign up. Also a Vercel cron that is not firing.
+    - cron: '30 3 * * *'
   workflow_dispatch:
     inputs:
       step:
         description: Which step to run by hand
         type: choice
-        options: [plan, work, finalise]
-        default: work
+        options: [tick, backfill-councils]
+        default: tick
 
-# Never let two of these overlap. The server-side lease would reject the
-# second anyway; this keeps the Actions log readable.
 concurrency:
   group: ingest-queue
   cancel-in-progress: false
@@ -48,13 +51,13 @@ env:
   SITE: https://planningping.com
 
 jobs:
-  plan:
-    name: Queue today's sources
-    if: github.event.schedule == '45 4 * * *' || inputs.step == 'plan'
+  tick:
+    name: Plan, drain, finalise
+    if: github.event.schedule == '*/15 * * * *' || inputs.step == 'tick'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
-      - name: POST ingest-plan
+      - name: Run one full tick
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
@@ -62,64 +65,104 @@ jobs:
             echo "::warning::CRON_SECRET is not set — skipping. Run: gh secret set CRON_SECRET --repo Willvisibleweb/planningping"
             exit 0
           fi
-          curl --fail-with-body -sS -m 300 \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            "$SITE/api/cron/ingest-plan" | tee response.json
+
+          call() {
+            # --fail-with-body: 4xx/5xx fail the step (a red run is the alert,
+            # and GitHub emails it for free). A 202 means another worker holds
+            # the lease, which is expected and stays green.
+            curl --fail-with-body -sS -m 300 \
+              -H "Authorization: Bearer $CRON_SECRET" \
+              "$SITE/api/cron/$1"
+          }
+
+          # Planning is unique per (day, source): on every tick but the first
+          # of the day this writes nothing.
+          echo "— plan —"
+          call ingest-plan | tee plan.json
           echo
 
-  work:
-    name: Drain the queue
-    if: github.event.schedule == '*/15 * * * *' || inputs.step == 'work'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      # A 202 here means another worker holds the lease — expected, not a
-      # failure. --fail-with-body only trips on 4xx/5xx, so the step stays
-      # green for 202 and goes red for a real error, which is the alerting:
-      # a failed run emails whoever owns the repo, for nothing.
-      - name: POST ingest-work
-        env:
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
-        run: |
-          if [ -z "$CRON_SECRET" ]; then
-            echo "::warning::CRON_SECRET is not set — skipping. Run: gh secret set CRON_SECRET --repo Willvisibleweb/planningping"
-            exit 0
-          fi
-          curl --fail-with-body -sS -m 300 \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            "$SITE/api/cron/ingest-work" | tee response.json
+          echo "— work —"
+          call ingest-work | tee work.json
           echo
 
-      # Surface the queue state in the run summary, so the Actions page is a
-      # usable view of the day without opening the database.
+          # No-ops while sources are still queued, so only the tick that
+          # empties the queue actually closes the day.
+          echo "— finalise —"
+          call ingest-finalise | tee finalise.json
+          echo
+
       - name: Summarise
         if: always()
         run: |
-          if [ -f response.json ]; then
+          {
+            echo '### Ingest tick'
+            for f in plan work finalise; do
+              if [ -f "$f.json" ]; then
+                echo "**$f**"
+                echo '```json'
+                cat "$f.json"; echo
+                echo '```'
+              fi
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  backfill:
+    name: Backfill councils
+    if: github.event.schedule == '30 3 * * *' || inputs.step == 'backfill-councils'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: POST backfill-councils
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::warning::CRON_SECRET is not set — skipping."
+            exit 0
+          fi
+          curl --fail-with-body -sS -m 300 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$SITE/api/cron/backfill-councils" | tee backfill.json
+          echo
+
+      - name: Summarise
+        if: always()
+        run: |
+          if [ -f backfill.json ]; then
             {
-              echo '### Ingest queue'
+              echo '### Council backfill'
               echo '```json'
-              cat response.json
-              echo
+              cat backfill.json; echo
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
           fi
 
-  finalise:
-    name: Close the day
-    if: github.event.schedule == '0 21 * * *' || inputs.step == 'finalise'
+  # A tick that plans nothing, drains nothing and finalises nothing is a
+  # success today and an outage tomorrow. This fails the run when the day is
+  # past its first hour and still has no queue, so the failure is visible.
+  guard:
+    name: Queue exists
+    if: github.event.schedule == '*/15 * * * *'
+    needs: tick
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
-      - name: POST ingest-finalise
+      - name: Assert today was planned
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          if [ -z "$CRON_SECRET" ]; then
-            echo "::warning::CRON_SECRET is not set — skipping. Run: gh secret set CRON_SECRET --repo Willvisibleweb/planningping"
+          [ -z "$CRON_SECRET" ] && exit 0
+          hour=$(date -u +%H)
+          # Before 06:00 UTC a day may legitimately not be planned yet.
+          if [ "$hour" -lt 06 ]; then
+            echo "Before 06:00 UTC — not asserting yet."
             exit 0
           fi
-          curl --fail-with-body -sS -m 300 \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            "$SITE/api/cron/ingest-finalise" | tee response.json
-          echo
+          body=$(curl -sS -m 60 -H "Authorization: Bearer $CRON_SECRET" "$SITE/api/cron/ingest-finalise")
+          echo "$body"
+          total=$(echo "$body" | sed -n 's/.*"total":\([0-9]*\).*/\1/p')
+          if [ "${total:-0}" -eq 0 ]; then
+            echo "::error::No ingest queue exists for today after 06:00 UTC — the planner has not run."
+            exit 1
+          fi
+          echo "Queue exists for today (total=$total)."
