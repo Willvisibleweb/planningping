@@ -33,6 +33,8 @@ import {
   skipJob,
 } from '@/lib/ingest/ingestQueueStore'
 import { logPipelineEvent } from '@/lib/reliability/pipelineLog'
+import { finaliseIngestDay } from '@/lib/ingest/finaliseIngestDay'
+import { isQueueComplete } from '@/lib/reliability/ingestQueue'
 import {
   acquirePipelineLock,
   PLANIT_PIPELINE_LOCK,
@@ -173,6 +175,17 @@ async function drainQueue(opts: { planDate: string; batchSize: number }): Promis
 
     const queue = await loadQueueProgress(supabase, planDate)
 
+    // The tick that empties the queue closes the day: discharge sweeps, the
+    // Monday digest, and finishing the run. Doing it here rather than in a
+    // separate scheduled job means the day closes the moment the last source
+    // lands, and there is one less thing that has to fire for the digest to
+    // send. It no-ops while sources are still queued, so the cost is one count
+    // query per tick.
+    let finalised: Awaited<ReturnType<typeof finaliseIngestDay>> | null = null
+    if (isQueueComplete(queue)) {
+      finalised = await finaliseIngestDay(supabase, { planDate, siteUrl: SITE_URL })
+    }
+
     if (rateLimited > 0) {
       await logPipelineEvent(supabase, {
         runId: jobs[0]?.run_id ?? null,
@@ -191,6 +204,8 @@ async function drainQueue(opts: { planDate: string; batchSize: number }): Promis
       failed,
       rate_limited: rateLimited,
       queue,
+      finalised: finalised?.finalised ?? false,
+      digest: finalised?.digest ?? null,
       processed,
     }
   } finally {
