@@ -41,6 +41,7 @@ import {
   loadJobAreas,
   loadQueueProgress,
   planDayQueue,
+  runIdForDay,
   skipJob,
 } from '@/lib/ingest/ingestQueueStore'
 import { finishPipelineRun, logPipelineEvent, startPipelineRun } from '@/lib/reliability/pipelineLog'
@@ -90,7 +91,13 @@ async function runWholeDay(): Promise<Record<string, unknown>> {
   let stoppedEarly = false
 
   try {
-    const runId = await startPipelineRun(supabase, 'ingest', 'manual')
+    // Reuse the run this day was already planned under. Opening one per call
+    // orphaned a run every morning: finalise closes the run the day's jobs
+    // point at, which is the planner's, so this one was never closed and the
+    // health endpoint read it as a run killed mid-flight. Same bug as
+    // ingest-plan had — fixed in both places now.
+    const existingRunId = await runIdForDay(supabase, planDate)
+    const runId = existingRunId ?? (await startPipelineRun(supabase, 'ingest', 'manual'))
 
     const reconciled = await enforcePlanLimitsForAll(supabase)
     if (reconciled.length > 0) console.log('plan limits reconciled:', JSON.stringify(reconciled))
@@ -188,6 +195,14 @@ async function runWholeDay(): Promise<Record<string, unknown>> {
     // digest would simply never send — which is the regression that the whole
     // ingest-finalise split would otherwise have introduced.
     const finalise = await finaliseIngestDay(supabase, { planDate, siteUrl: SITE_URL, runId })
+
+    // A day with nothing queued has no job carrying this run's id, so finalise
+    // declines and nothing else would ever close it. The other way to strand a
+    // run, and the same fix as ingest-plan.
+    if (!finalise.finalised && drained.total === 0 && !existingRunId) {
+      await finishPipelineRun(supabase, runId, 'success', { plan_date: planDate, sources_total: 0, reason: 'no active territories to queue' })
+    }
+
     if (!finalise.finalised) {
       await logPipelineEvent(supabase, {
         runId, job: 'ingest', stage: 'manual_drain', severity: 'info',
