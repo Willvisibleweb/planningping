@@ -115,9 +115,26 @@ export async function addTrackedArea(formData: FormData) {
     // fetched recently enough to reuse; both mean this area's own data is
     // current, so only an outright failure leaves the stamp unset for the cron.
     if (firstFetch) {
+      // Adopt the authority PlanIt actually files this area under when it
+      // differs from the one the postcode implied. The dashboard selects by
+      // this column, so without it a postcode in a reorganised council —
+      // Cumberland, which PlanIt still calls Copeland — shows an empty
+      // dashboard for ever. See discoverAuthority in fetchAndIngestNearby.
+      const correctedSlug =
+        firstFetch.councilSlug && firstFetch.councilSlug !== council.slug ? firstFetch.councilSlug : null
+      if (correctedSlug) {
+        console.log(JSON.stringify({
+          at: 'addTrackedArea.councilCorrected',
+          postcode: inserted.postcode, from: council.slug, to: correctedSlug,
+        }))
+      }
+
       await admin
         .from('tracked_areas')
-        .update({ last_planit_fetch_at: new Date().toISOString() })
+        .update({
+          last_planit_fetch_at: new Date().toISOString(),
+          ...(correctedSlug ? { council_slug: correctedSlug } : {}),
+        })
         .eq('id', inserted.id)
     }
 
@@ -187,9 +204,17 @@ export async function updateTrackedAreaRadius(areaId: string, radiusMetres: numb
   after(async () => {
     const refreshed = await fetchAndIngestNearby(admin, updated.postcode, updated.radius_metres, updated.council_slug)
     if (refreshed) {
+      // Same council correction as addTrackedArea. A widened radius can also
+      // be the first fetch that returns anything at all, so this is the point
+      // a mismatch becomes visible for an area added before the fix existed.
+      const correctedSlug =
+        refreshed.councilSlug && refreshed.councilSlug !== updated.council_slug ? refreshed.councilSlug : null
       await admin
         .from('tracked_areas')
-        .update({ last_planit_fetch_at: new Date().toISOString() })
+        .update({
+          last_planit_fetch_at: new Date().toISOString(),
+          ...(correctedSlug ? { council_slug: correctedSlug } : {}),
+        })
         .eq('id', areaId)
     }
     revalidatePath('/dashboard')

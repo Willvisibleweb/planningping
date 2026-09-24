@@ -25,6 +25,7 @@ import { queryPlanIt, PlanItError } from '@/lib/planit'
 import { fromPlanIt, upsertApplications } from '@/lib/ingest/upsertApplications'
 import { createCouncilResolver } from '@/lib/ingest/councilResolver'
 import { areaSourceKey } from '@/lib/reliability/sourceKeys'
+import { dominantCouncil } from '@/lib/ingest/dominantCouncil'
 import { logPipelineEvent, recordSourceRun } from '@/lib/reliability/pipelineLog'
 import { acquirePipelineLock, releasePipelineLock } from '@/lib/reliability/pipelineLock'
 import type { createAdminClient } from '@/lib/supabase/admin'
@@ -47,7 +48,59 @@ export interface NearbyFetchResult {
   changed: number
   skipped?: boolean
   reason?: string
+  /**
+   * The authority PlanIt actually files this area's applications under, when
+   * it differs from the one we guessed from the postcode. See
+   * discoverAuthority below for why that happens.
+   */
+  councilSlug?: string
 }
+
+/** How far back to look purely to learn which authority covers a point. */
+const DISCOVERY_DAYS = 365
+
+/**
+ * Which authority does PlanIt file this location under?
+ *
+ * We name a territory's council from postcodes.io, which uses current local
+ * government. PlanIt uses whatever the council publishes under, which can be
+ * an authority abolished years ago — CA24 3JE is in Cumberland according to
+ * postcodes.io, and every application there is filed by PlanIt under Copeland,
+ * one of the three districts Cumberland replaced in 2023. PlanIt has no
+ * "Cumberland" at all.
+ *
+ * Since the dashboard selects applications by the territory's council, that
+ * mismatch means a real postcode in a real council shows an empty dashboard
+ * for ever, no matter how much data we hold.
+ *
+ * Rather than hand-maintaining a list of every council merger, ask the source:
+ * whatever authority PlanIt returns for this location is the one to store
+ * against. That keeps working through the next reorganisation without anyone
+ * remembering to update a map.
+ *
+ * Only called when the ordinary window came back empty — with results in hand
+ * we already know the answer and need no extra request.
+ */
+async function discoverAuthority(
+  admin: AdminClient,
+  postcode: string,
+  radiusKm: number,
+): Promise<string | null> {
+  try {
+    const probe = await queryPlanIt(
+      { kind: 'postcode', postcode, radiusKm },
+      { kind: 'recent', days: DISCOVERY_DAYS },
+      { pageSize: 20, background: true },
+    )
+    if (probe.applications.length === 0) return null
+    const resolver = await createCouncilResolver(admin)
+    return dominantCouncil(await Promise.all(probe.applications.map((a) => resolver.resolve(a.councilName))))
+  } catch {
+    // Discovery is a nicety; never let it fail an add-territory.
+    return null
+  }
+}
+
 
 /** When this exact postcode+radius query last returned data. */
 async function lastSuccessForSource(admin: AdminClient, sourceKey: string): Promise<number> {
@@ -118,10 +171,20 @@ export async function fetchAndIngestNearby(
       windowDays: RECENT_DAYS, recordsReturned: result.received, sourceTotal: result.total, truncated: result.truncated,
     })
 
-    if (toIngest.length === 0) return { fetched: 0, changed: 0 }
+    if (toIngest.length === 0) {
+      // Nothing recent here. Before concluding the area is quiet, check we are
+      // even looking under the right authority — an empty result is exactly
+      // what a council-name mismatch looks like.
+      const discovered = await discoverAuthority(admin, postcode, radiusKm)
+      return { fetched: 0, changed: 0, councilSlug: discovered ?? undefined }
+    }
 
     const upserted = await upsertApplications(admin, toIngest, { job: 'territory_fetch' })
-    return { fetched: result.received, changed: upserted.changed }
+    return {
+      fetched: result.received,
+      changed: upserted.changed,
+      councilSlug: dominantCouncil(toIngest.map((a) => a.council_slug)) ?? undefined,
+    }
   } catch (e) {
     console.error('fetchAndIngestNearby failed (non-fatal):', e)
     await recordSourceRun(admin, {
