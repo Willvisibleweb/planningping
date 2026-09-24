@@ -10,6 +10,7 @@
 
 import { hasProAccess } from '@/lib/access'
 import { sendAlertEmail, type AlertItem } from '@/lib/email'
+import { canEmail } from '@/lib/email/unsubscribe'
 import type { Profile } from '@/types/database'
 import type { createAdminClient } from '@/lib/supabase/admin'
 import type { NewApplication } from '@/lib/ingest/upsertApplications'
@@ -133,9 +134,10 @@ export async function sendDischargeAlerts(
   for (const [userId, hits] of hitsByUser) {
     const profile = profileById.get(userId) ?? null
     if (!hasProAccess(profile)) continue
+    if (!canEmail(profile)) continue
 
     const items = hits.map((h) => h.item)
-    const sent = await sendAlertEmail({ to: profile!.email, items, siteUrl: opts.siteUrl })
+    const sent = await sendAlertEmail({ to: profile!.email, userId, items, siteUrl: opts.siteUrl })
     if (!sent) continue
 
     sentCount++

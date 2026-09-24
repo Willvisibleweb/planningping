@@ -15,6 +15,7 @@ import { Resend } from 'resend'
 import { DECISION_COPY, type DecisionOutcome } from '@/lib/classification/decisionOutcome'
 import type { PartnershipProvider } from '@/lib/features'
 import { emailFrom, emailReplyTo } from './from'
+import { unsubscribeHeaders, unsubscribePageUrl } from './unsubscribe'
 
 const MAX_ITEMS = 15
 
@@ -139,6 +140,8 @@ function buildSubject(items: DecisionItem[]): string {
  */
 export async function sendDecisionEmail(opts: {
   to: string
+  // Signs the unsubscribe link. Callers must have checked canEmail(profile).
+  userId: string
   items: DecisionItem[]
   siteUrl: string
   partner?: PartnershipProvider | null
@@ -170,6 +173,7 @@ export async function sendDecisionEmail(opts: {
       <p style="font-size:11px;line-height:1.65;color:#757579;margin:22px 0 0;">
         PlanningPing is an alerting tool, not professional advice. Always verify a decision
         against the official planning authority before acting.
+        <a href="${unsubscribePageUrl(siteUrl, opts.userId)}" style="color:#6b6c70;">Unsubscribe</a>
       </p>
     </div>`
 
@@ -180,6 +184,7 @@ export async function sendDecisionEmail(opts: {
       to: opts.to,
       subject: buildSubject(opts.items),
       html,
+      headers: unsubscribeHeaders(siteUrl, opts.userId),
     })
     if (error) {
       console.error('sendDecisionEmail failed:', error)

@@ -10,6 +10,7 @@ import type { createAdminClient } from '@/lib/supabase/admin'
 import { hasProAccess } from '@/lib/access'
 import { getUserFeatures } from '@/lib/features'
 import { sendAlertEmail, type AlertItem } from '@/lib/email'
+import { canEmail } from '@/lib/email/unsubscribe'
 import type { upsertApplications } from '@/lib/ingest/upsertApplications'
 import type { Profile, MinBand } from '@/types/database'
 
@@ -92,6 +93,7 @@ export async function sendBatchedAlerts(
   for (const [userId, hits] of hitsByUser) {
     const profile = profileById.get(userId) ?? null
     if (!hasProAccess(profile)) continue
+    if (!canEmail(profile)) continue
 
     const items = hits.map((h) => h.item)
     // Partner suggestions are opt-in and per-account. Resolved here from the
@@ -101,6 +103,7 @@ export async function sendBatchedAlerts(
     const features = getUserFeatures(profile)
     const sent = await sendAlertEmail({
       to: profile!.email,
+      userId,
       items,
       siteUrl: opts.siteUrl,
       partner: features.siteMonitoring ? features.partnershipProvider : null,

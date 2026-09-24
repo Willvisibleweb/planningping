@@ -15,6 +15,7 @@ import { resolveDischargeParents } from '@/lib/ingest/resolveDischargeParents'
 import { flagStaleDischarges } from '@/lib/ingest/flagStaleDischarges'
 import { sendDischargeAlerts } from '@/lib/alerts/dischargeAlerts'
 import { runWeeklyDigest } from '@/lib/email/runWeeklyDigest'
+import { runLocationDigest } from '@/lib/email/runLocationDigest'
 import { finishPipelineRun, logPipelineEvent } from '@/lib/reliability/pipelineLog'
 import { loadQueueProgress } from '@/lib/ingest/ingestQueueStore'
 import { isQueueComplete } from '@/lib/reliability/ingestQueue'
@@ -30,6 +31,7 @@ export interface FinaliseResult {
   dischargeNewlyStale?: number
   dischargeAlertsSent?: number
   digest?: Awaited<ReturnType<typeof runWeeklyDigest>> | null
+  locationDigest?: Awaited<ReturnType<typeof runLocationDigest>> | null
   queue: Awaited<ReturnType<typeof loadQueueProgress>>
 }
 
@@ -60,7 +62,23 @@ export async function finaliseIngestDay(
     siteUrl: opts.siteUrl,
   })
 
-  const digest = new Date().getUTCDay() === 1 ? await runWeeklyDigest(db, { siteUrl: opts.siteUrl }) : null
+  const isMonday = new Date().getUTCDay() === 1
+  const digest = isMonday ? await runWeeklyDigest(db, { siteUrl: opts.siteUrl }) : null
+
+  // The public location pages promise a free weekly email. It rides the same
+  // Monday slot as the customer digest but is a separate audience with its own
+  // unsubscribe path, so a failure in one must not stop the other.
+  let locationDigest: Awaited<ReturnType<typeof runLocationDigest>> | null = null
+  if (isMonday) {
+    try {
+      locationDigest = await runLocationDigest(db, { siteUrl: opts.siteUrl })
+    } catch (e) {
+      await logPipelineEvent(db, {
+        runId: opts.runId ?? null, job: 'ingest', stage: 'location_digest', severity: 'error',
+        message: 'Location digest failed', error: e,
+      })
+    }
+  }
 
   // Prefer the run the planner opened, so the day has one run rather than one
   // per invocation that happened to touch it.
@@ -103,6 +121,7 @@ export async function finaliseIngestDay(
     dischargeNewlyStale: newlyStale.length,
     dischargeAlertsSent,
     digest,
+    locationDigest,
     queue,
   }
 }

@@ -13,6 +13,7 @@
 
 import { Resend } from 'resend'
 import { emailFrom, emailReplyTo } from './from'
+import { unsubscribeHeaders, unsubscribePageUrl } from './unsubscribe'
 
 const MAX_ITEMS = 8
 
@@ -153,7 +154,8 @@ export function buildDigestHtml(d: DigestPayload, siteUrl: string): string {
         <div style="font-family:${SANS};font-size:11px;line-height:1.65;color:${C.faint};margin:10px 0 0;">
           <a href="${siteUrl}/settings" style="color:${C.muted};">Manage your digest</a> ·
           <a href="${siteUrl}/terms" style="color:${C.muted};">Terms</a> ·
-          <a href="${siteUrl}/privacy" style="color:${C.muted};">Privacy</a>
+          <a href="${siteUrl}/privacy" style="color:${C.muted};">Privacy</a> ·
+          <a href="${esc(unsubscribePageUrl(siteUrl, d.userId))}" style="color:${C.muted};">Unsubscribe</a>
         </div>
       </td></tr>
     </table>
@@ -183,6 +185,7 @@ export async function sendDigestEmail(d: DigestPayload, siteUrl: string): Promis
       to: d.email,
       subject,
       html: buildDigestHtml(d, siteUrl.replace(/\/$/, '')),
+      headers: unsubscribeHeaders(siteUrl, d.userId),
     })
     if (error) {
       console.error('sendDigestEmail failed:', error)

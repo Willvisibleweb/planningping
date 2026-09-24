@@ -13,6 +13,7 @@
 import { sendDigestEmail, type DigestItem, type DigestPayload } from '@/lib/email/digestEmail'
 import type { MinBand } from '@/types/database'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { canEmail } from '@/lib/email/unsubscribe'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://planningping.com'
 
@@ -99,7 +100,7 @@ export async function runWeeklyDigest(
   const councilSlugs = [...new Set(areaRows.map((a) => a.council_slug))]
 
   const [{ data: profiles }, { data: apps }, { data: recentDigests }] = await Promise.all([
-    supabase.from('profiles').select('id, email').in('id', userIds),
+    supabase.from('profiles').select('id, email, emails_unsubscribed_at').in('id', userIds),
     supabase
       .from('planning_applications')
       .select('id, council_slug, reference, description, address, status, application_date, band')
@@ -115,8 +116,12 @@ export async function runWeeklyDigest(
       .eq('period_end', periodEnd),
   ])
 
+  // Unsubscribed users are left out here, so they never reach a payload —
+  // not in a real send and not in a dry run's would_send list either.
   const emailById = new Map(
-    ((profiles ?? []) as { id: string; email: string }[]).map((p) => [p.id, p.email]),
+    ((profiles ?? []) as { id: string; email: string; emails_unsubscribed_at: string | null }[])
+      .filter((p) => canEmail(p))
+      .map((p) => [p.id, p.email]),
   )
 
   const alreadySent = new Set(

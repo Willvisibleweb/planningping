@@ -13,6 +13,7 @@
 import { Resend } from 'resend'
 import type { PartnershipProvider } from '@/types/database'
 import { emailFrom, emailReplyTo } from '@/lib/email/from'
+import { unsubscribeHeaders, unsubscribePageUrl } from '@/lib/email/unsubscribe'
 
 const MAX_ITEMS = 15
 
@@ -96,6 +97,9 @@ function renderPartnerBlock(partner: PartnershipProvider | null, dashboardUrl: s
 // should never abort the rest of the cron's fan-out.
 export async function sendAlertEmail(opts: {
   to: string
+  // The recipient's user id — signs their unsubscribe link. Callers must have
+  // checked canEmail(profile) first; this function does not re-query.
+  userId: string
   items: AlertItem[]
   siteUrl: string
   // Partner network this recipient belongs to, or null. Resolved by the caller
@@ -123,6 +127,10 @@ export async function sendAlertEmail(opts: {
       ${moreCount > 0 ? `<p style="margin-top:16px;"><a href="${dashboardUrl}" style="color:#2563EB;font-size:13px;font-weight:600;text-decoration:none;">+${moreCount} more — view your dashboard &rarr;</a></p>` : ''}
       ${renderPartnerBlock(opts.partner ?? null, dashboardUrl)}
       <p style="margin-top:24px;"><a href="${dashboardUrl}" style="color:#2563EB;font-size:13px;text-decoration:none;">Open PlanningPing &rarr;</a></p>
+      <p style="margin-top:24px;font-size:11px;line-height:1.65;color:#757579;">
+        You're receiving this because alerts are on for your PlanningPing territories.
+        <a href="${unsubscribePageUrl(opts.siteUrl, opts.userId)}" style="color:#6b6c70;">Unsubscribe</a>
+      </p>
     </div>`
 
   try {
@@ -134,6 +142,7 @@ export async function sendAlertEmail(opts: {
         ? '1 new planning application matching your territories'
         : `${opts.items.length} new planning applications matching your territories`,
       html,
+      headers: unsubscribeHeaders(opts.siteUrl, opts.userId),
     })
     if (error) {
       console.error('sendAlertEmail failed:', error)

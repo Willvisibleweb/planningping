@@ -18,6 +18,7 @@
 import { hasProAccess } from '@/lib/access'
 import { getUserFeatures } from '@/lib/features'
 import { sendDecisionEmail, type DecisionItem } from '@/lib/email/decisionEmail'
+import { canEmail } from '@/lib/email/unsubscribe'
 import type { Profile } from '@/types/database'
 import type { createAdminClient } from '@/lib/supabase/admin'
 import type { DecidedApplication } from '@/lib/ingest/upsertApplications'
@@ -114,10 +115,12 @@ export async function sendDecisionAlerts(
   for (const [userId, items] of itemsByUser) {
     const profile = profileById.get(userId) ?? null
     if (!hasProAccess(profile)) continue
+    if (!canEmail(profile)) continue
 
     const features = getUserFeatures(profile)
     const sent = await sendDecisionEmail({
       to: profile!.email,
+      userId,
       items,
       siteUrl: opts.siteUrl,
       partner: features.siteMonitoring ? features.partnershipProvider : null,

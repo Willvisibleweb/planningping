@@ -8,6 +8,8 @@ import FirmProfileSection from './FirmProfileSection'
 import OpportunityProfileSection from './OpportunityProfileSection'
 import PartnershipSection from './PartnershipSection'
 import TwoFactorSection from './TwoFactorSection'
+import EmailPreferenceSection from './EmailPreferenceSection'
+import DeleteAccountSection from './DeleteAccountSection'
 import type { Profile, FirmProfile, OpportunityProfile } from '@/types/database'
 
 export default async function SettingsPage() {
@@ -66,7 +68,12 @@ export default async function SettingsPage() {
       )}
       <TwoFactorSection enabled={mfa.enabled} />
       <SettingsForm />
+      <EmailPreferenceSection unsubscribedAt={typedProfile.emails_unsubscribed_at} />
       <DigestHistory digests={digests ?? []} />
+      <DeleteAccountSection
+        email={user!.email ?? typedProfile.email}
+        hasSubscription={Boolean(typedProfile.stripe_subscription_id) && typedProfile.subscription_status !== 'canceled'}
+      />
     </div>
   )
 }

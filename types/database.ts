@@ -32,6 +32,9 @@ export interface Profile {
   // and copy; never gates access. Codes match the CHECK in migration 0025.
   sector: SectorCode | null
   digest_day: DigestDay
+  // When the user unsubscribed from all customer email (migration 0039). Null
+  // = subscribed. Every sender checks this via canEmail() in lib/email/unsubscribe.
+  emails_unsubscribed_at: string | null
   // Partner network this account belongs to, or null for the standard
   // experience. Gates partner-only UI and server actions — see lib/features.ts.
   partnership_provider: PartnershipProvider | null
