@@ -55,6 +55,7 @@ function when(iso: string | null | undefined): string {
 
 function topProblemSources(report: HealthReport): SourceHealthRow[] {
   return report.sources
+    .filter((s) => s.kind === 'territory')
     .filter((s) => severityOf(s.status) >= severityOf('degraded'))
     .sort((a, b) => severityOf(b.status) - severityOf(a.status) || a.label.localeCompare(b.label))
     .slice(0, MAX_SOURCES)
@@ -73,8 +74,8 @@ function healthFingerprint(opts: {
   return [
     opts.stale ? 'stale' : 'fresh',
     opts.report.ingestOverdue ? 'overdue' : 'on-time',
-    `failed:${opts.report.counts.failed}`,
-    `degraded:${opts.report.counts.degraded}`,
+    `failed:${opts.report.territoryCounts.failed}`,
+    `degraded:${opts.report.territoryCounts.degraded}`,
     `stuck:${stuckIds}`,
     sourceBits,
   ].join('::')
@@ -144,7 +145,7 @@ function renderHtml(opts: {
                 <td style="width:10px;"></td>
                 <td style="padding:10px;border:1px solid #e5e7eb;border-radius:8px;"><div style="font-size:11px;text-transform:uppercase;color:#6b6c70;">Stale areas</div><div style="font-size:20px;font-weight:700;color:#202124;">${opts.staleAreas}/${opts.totalAreas}</div></td>
                 <td style="width:10px;"></td>
-                <td style="padding:10px;border:1px solid #e5e7eb;border-radius:8px;"><div style="font-size:11px;text-transform:uppercase;color:#6b6c70;">Failed sources</div><div style="font-size:20px;font-weight:700;color:#202124;">${report.counts.failed}</div></td>
+                <td style="padding:10px;border:1px solid #e5e7eb;border-radius:8px;"><div style="font-size:11px;text-transform:uppercase;color:#6b6c70;">Failed territories</div><div style="font-size:20px;font-weight:700;color:#202124;">${report.territoryCounts.failed}</div></td>
               </tr>
             </table>
             <p style="margin:14px 0 0;font-size:13px;line-height:1.6;color:#6b6c70;">Threshold: ${STALE_AFTER_HOURS}h. Last ingest: ${esc(report.lastIngest ? `${report.lastIngest.status} at ${when(report.lastIngest.started_at)}` : 'none')}.</p>
@@ -173,7 +174,7 @@ async function sendHealthEmail(opts: {
   if (!resend) return false
   const subject = opts.status === 'stale'
     ? `PlanningPing alert: ingest data is stale (${opts.staleAreas} stale areas)`
-    : `PlanningPing alert: ingest health is degraded (${opts.report.counts.failed} failed sources)`
+    : `PlanningPing alert: ingest health is degraded (${opts.report.territoryCounts.failed} failed territories)`
   try {
     const { error } = await resend.emails.send({
       from: emailFrom(),
@@ -239,8 +240,15 @@ export async function runHealthAlertCheck(opts: {
 
     const problemSources = topProblemSources(report)
     const stale = freshness.stale
-    const degraded = report.counts.failed > 0 || report.counts.degraded > 0 || report.ingestOverdue || report.stuckRuns.length > 0
-    const warning = report.counts.warning > 0
+    // Judged on tracked territories, matching /api/health/ingest. The national
+    // backfill meets 418 authorities a batch at a time and a first contact
+    // routinely answers 429 — a source with no successful run, correctly called
+    // 'failed', but not an outage. Counting those here meant an alarm every
+    // morning about councils that were fine, and an alarm that cries wolf
+    // daily is one you stop reading.
+    const t = report.territoryCounts
+    const degraded = t.failed > 0 || t.degraded > 0 || report.ingestOverdue || report.stuckRuns.length > 0
+    const warning = t.warning > 0
     if (!stale && !degraded) {
       return {
         status: warning ? 'warning' : 'ok',
