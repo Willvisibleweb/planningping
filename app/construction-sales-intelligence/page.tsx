@@ -390,6 +390,7 @@ export default function ConstructionSalesIntelligencePage() {
           <nav aria-label="Footer" className="flex flex-wrap items-center gap-4 text-xs text-ink-muted">
             <Link href="/blog" className="hover:text-ink">Blog</Link>
             <Link href="/planning-applications/coventry" className="hover:text-ink">UK planning applications</Link>
+            <Link href="/data-quality" className="hover:text-ink">Data quality</Link>
             <Link href="/privacy" className="hover:text-ink">Privacy</Link>
             <Link href="/terms" className="hover:text-ink">Terms</Link>
           </nav>

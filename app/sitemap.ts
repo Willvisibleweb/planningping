@@ -23,6 +23,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     { url: `${SITE_URL}/blog`, lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
+    { url: `${SITE_URL}/data-quality`, lastModified: now, changeFrequency: 'daily', priority: 0.5 },
   ]
 
   for (const post of getAllPosts()) {

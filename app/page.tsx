@@ -576,6 +576,7 @@ export default async function HomePage() {
           <nav aria-label="Footer" className="flex flex-wrap items-center gap-4 text-xs text-ink-muted">
             <Link href="/construction-sales-intelligence" className="hover:text-ink">Construction sales intelligence</Link>
             <Link href="/blog" className="hover:text-ink">Blog</Link>
+            <Link href="/data-quality" className="hover:text-ink">Data quality</Link>
             <Link href="/privacy" className="hover:text-ink">Privacy</Link>
             <Link href="/terms" className="hover:text-ink">Terms</Link>
             <Link href="/login" className="hover:text-ink">Sign in</Link>
