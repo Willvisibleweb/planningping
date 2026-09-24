@@ -1,3 +1,4 @@
+import { withSentryConfig } from "@sentry/nextjs/config";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -32,4 +33,15 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Source maps are only uploaded when SENTRY_AUTH_TOKEN is present, so a build
+// without Sentry configured behaves exactly as it did before — which is what
+// lets this be committed ahead of the account existing. Without uploaded maps
+// a stack trace points at minified code, so set the token when you set the DSN.
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  // Build logs are noisy enough; Sentry only speaks up when something failed.
+  silent: true,
+  telemetry: false,
+});
