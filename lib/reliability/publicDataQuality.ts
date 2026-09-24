@@ -120,15 +120,18 @@ async function loadCoverage(db: AdminClient): Promise<CoverageFigures> {
       .from('planning_applications')
       .select('id', { count: 'exact', head: true })
       .gte('application_date', thirtyDaysAgo),
-    db.from('planning_applications').select('council_slug').limit(50000),
+    // coverage_points (0028) is one row per authority with at least five
+    // located applications — a single cheap count, and slightly conservative
+    // against a true distinct count, which is the right way to be wrong on a
+    // page about trustworthiness.
+    db.from('coverage_points').select('slug', { count: 'exact', head: true }),
   ])
 
-  // Distinct councils, counted here rather than in SQL: Postgrest has no
-  // distinct-count, and the page is revalidated hourly so this runs once an
-  // hour rather than per visitor.
-  const councilsWithData = new Set(
-    ((slugs.data ?? []) as Array<{ council_slug: string }>).map((r) => r.council_slug),
-  ).size
+  // Counting distinct slugs in application rows was the obvious approach and
+  // was silently wrong: PostgREST caps a response at 1000 rows, so the set saw
+  // a handful of councils and the page advertised 10 of 426 when the real
+  // figure was 89.
+  const councilsWithData = slugs.count ?? 0
 
   return {
     councilsKnown: councils.count ?? 0,
