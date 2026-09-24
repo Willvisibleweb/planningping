@@ -12,8 +12,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { loadHealthReport, type HealthReport, type SourceHealthRow } from '@/lib/reliability/healthReport'
 import { logPipelineEvent } from '@/lib/reliability/pipelineLog'
 import { severityOf } from '@/lib/reliability/sourceHealth'
+import { emailFrom } from '@/lib/email/from'
 
-const FROM = 'PlanningPing <notifications@kelwave.co.uk>'
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://planningping.com').replace(/\/$/, '')
 const DEFAULT_COOLDOWN_HOURS = 18
 const DEFAULT_ALERT_EMAIL = 'william.kelwave@gmail.com'
@@ -176,7 +176,7 @@ async function sendHealthEmail(opts: {
     : `PlanningPing alert: ingest health is degraded (${opts.report.counts.failed} failed sources)`
   try {
     const { error } = await resend.emails.send({
-      from: FROM,
+      from: emailFrom(),
       to: opts.to,
       subject,
       html: renderHtml(opts),

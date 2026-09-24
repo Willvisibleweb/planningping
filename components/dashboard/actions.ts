@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { after } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { lookupPostcode } from '@/lib/postcodes'
@@ -86,31 +87,45 @@ export async function addTrackedArea(formData: FormData) {
     return { error: 'Could not add this territory. Please try again.' }
   }
 
-  // Fetch this one area immediately so the dashboard has data now, instead of
-  // waiting for tomorrow's 6am ingest run. Best-effort: if PlanIt is briefly
-  // unavailable or rate-limited, the area is still added successfully and the
-  // next scheduled run will pick it up.
-  const firstFetch = await fetchAndIngestNearby(
-    admin, inserted.postcode, inserted.radius_metres, council.slug,
-  )
+  // Fetch this area from PlanIt, but do not make the person wait for it.
+  //
+  // One PlanIt query averages 18.6 seconds and has taken 63; with retries the
+  // worst case is close to two minutes. Awaiting it here meant the Add
+  // Territory button sat spinning for all of that before the page moved.
+  //
+  // `after` runs this once the response has been sent, so the territory is
+  // added instantly and the fetch still happens immediately — not on the next
+  // cron tick. The dashboard is scoped by council, so a council the national
+  // backfill has already covered shows applications straight away; this fills
+  // in whatever is newest for their specific postcode and radius.
+  after(async () => {
+    const firstFetch = await fetchAndIngestNearby(
+      admin, inserted.postcode, inserted.radius_metres, council.slug,
+    )
 
-  // Stamp the AREA, not just the council.
-  //
-  // fetchAndIngestNearby stamps councils.last_planit_fetch_at, which is what
-  // its own skip check reads — but tracked_areas.last_planit_fetch_at is only
-  // ever written by the ingest cron. So an area added here was genuinely
-  // fetched and still read as never-fetched everywhere else, including the
-  // freshness check, which then told the user the ingest had never run.
-  //
-  // Returns null on failure and { skipped: true } when the council was fetched
-  // recently enough to reuse; both mean this area's own data is current, so
-  // only an outright failure leaves the stamp unset for the cron to pick up.
-  if (firstFetch) {
-    await admin
-      .from('tracked_areas')
-      .update({ last_planit_fetch_at: new Date().toISOString() })
-      .eq('id', inserted.id)
-  }
+    // Stamp the AREA, not just the council.
+    //
+    // fetchAndIngestNearby stamps councils.last_planit_fetch_at — but
+    // tracked_areas.last_planit_fetch_at is only ever written by the ingest
+    // cron. So an area added here was genuinely fetched and still read as
+    // never-fetched everywhere else, including the freshness check, which then
+    // told the user the ingest had never run.
+    //
+    // Returns null on failure and { skipped: true } when this exact source was
+    // fetched recently enough to reuse; both mean this area's own data is
+    // current, so only an outright failure leaves the stamp unset for the cron.
+    if (firstFetch) {
+      await admin
+        .from('tracked_areas')
+        .update({ last_planit_fetch_at: new Date().toISOString() })
+        .eq('id', inserted.id)
+    }
+
+    // Second revalidate: the first one fires before this fetch has finished,
+    // so without it the applications we just stored would not appear until the
+    // next natural revalidation.
+    revalidatePath('/dashboard')
+  })
 
   revalidatePath('/dashboard')
   return {}
@@ -164,13 +179,22 @@ export async function updateTrackedAreaRadius(areaId: string, radiusMetres: numb
   }
 
   const admin = createAdminClient()
-  const refreshed = await fetchAndIngestNearby(admin, updated.postcode, updated.radius_metres, updated.council_slug)
-  if (refreshed) {
-    await admin
-      .from('tracked_areas')
-      .update({ last_planit_fetch_at: new Date().toISOString() })
-      .eq('id', areaId)
-  }
+
+  // Same reasoning as addTrackedArea: the new radius is saved and the page
+  // moves immediately, while the re-fetch it triggers runs after the response.
+  // A widened radius otherwise held the person on a spinner for the length of
+  // a PlanIt round trip.
+  after(async () => {
+    const refreshed = await fetchAndIngestNearby(admin, updated.postcode, updated.radius_metres, updated.council_slug)
+    if (refreshed) {
+      await admin
+        .from('tracked_areas')
+        .update({ last_planit_fetch_at: new Date().toISOString() })
+        .eq('id', areaId)
+    }
+    revalidatePath('/dashboard')
+    revalidatePath(`/dashboard/${areaId}`)
+  })
 
   revalidatePath('/dashboard')
   revalidatePath(`/dashboard/${areaId}`)

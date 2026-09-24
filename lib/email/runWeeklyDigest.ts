@@ -1,3 +1,15 @@
+// The Monday digest.
+//
+// Deliberately NOT gated on hasProAccess, unlike every other email we send.
+// Alerts, decisions and discharge notices are all Pro-only; this one goes to
+// anyone with an active territory, free accounts included. That is a product
+// decision, confirmed 24 Sep 2026 — the digest is the reason a free user comes
+// back, so putting it behind the paywall would remove the thing most likely to
+// turn them into a paying one.
+//
+// So if you are here because the gating looks inconsistent with the other
+// senders: it is inconsistent, and on purpose. Do not "fix" it.
+
 import { sendDigestEmail, type DigestItem, type DigestPayload } from '@/lib/email/digestEmail'
 import type { MinBand } from '@/types/database'
 import type { SupabaseClient } from '@supabase/supabase-js'

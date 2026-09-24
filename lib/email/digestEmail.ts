@@ -12,8 +12,8 @@
 // nothing at all.
 
 import { Resend } from 'resend'
+import { emailFrom } from './from'
 
-const FROM = 'PlanningPing <notifications@kelwave.co.uk>'
 const MAX_ITEMS = 8
 
 export interface DigestItem {
@@ -178,7 +178,7 @@ export async function sendDigestEmail(d: DigestPayload, siteUrl: string): Promis
 
   try {
     const { error } = await resend.emails.send({
-      from: FROM,
+      from: emailFrom(),
       to: d.email,
       subject,
       html: buildDigestHtml(d, siteUrl.replace(/\/$/, '')),

@@ -12,8 +12,8 @@
 
 import { Resend } from 'resend'
 import type { PartnershipProvider } from '@/types/database'
+import { emailFrom } from '@/lib/email/from'
 
-const FROM = 'PlanningPing <notifications@kelwave.co.uk>'
 const MAX_ITEMS = 15
 
 const BAND_COLOR: Record<string, { text: string; bg: string; border: string }> = {
@@ -127,7 +127,7 @@ export async function sendAlertEmail(opts: {
 
   try {
     const { error } = await resend.emails.send({
-      from: FROM,
+      from: emailFrom(),
       to: opts.to,
       subject: opts.items.length === 1
         ? '1 new planning application matching your territories'
