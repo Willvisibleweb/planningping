@@ -12,7 +12,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { loadHealthReport, type HealthReport, type SourceHealthRow } from '@/lib/reliability/healthReport'
 import { logPipelineEvent } from '@/lib/reliability/pipelineLog'
 import { severityOf } from '@/lib/reliability/sourceHealth'
-import { emailFrom } from '@/lib/email/from'
+import { emailFrom, emailReplyTo } from '@/lib/email/from'
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://planningping.com').replace(/\/$/, '')
 const DEFAULT_COOLDOWN_HOURS = 18
@@ -178,6 +178,10 @@ async function sendHealthEmail(opts: {
   try {
     const { error } = await resend.emails.send({
       from: emailFrom(),
+      // Carried here too, though this mail already goes to the admins: it makes
+      // the Reply-To plumbing something we can verify on demand, rather than
+      // only finding out it was wrong when a customer replies and bounces.
+      replyTo: emailReplyTo(),
       to: opts.to,
       subject,
       html: renderHtml(opts),
