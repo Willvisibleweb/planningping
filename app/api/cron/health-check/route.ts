@@ -5,7 +5,7 @@
 // writes an audit event, so it stays behind CRON_SECRET.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { runHealthAlertCheck } from '@/lib/reliability/healthAlerts'
+import { runHealthAlertCheck, sendTestEmail } from '@/lib/reliability/healthAlerts'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -17,6 +17,13 @@ export async function GET(request: NextRequest) {
   }
 
   const params = request.nextUrl.searchParams
+
+  // ?test=1 proves email still works without waiting for something to break.
+  if (params.get('test') === '1') {
+    const result = await sendTestEmail()
+    return NextResponse.json(result, { status: result.sent ? 200 : 500 })
+  }
+
   const result = await runHealthAlertCheck({
     dryRun: params.get('dry') === '1',
     force: params.get('force') === '1',

@@ -208,6 +208,61 @@ export interface HealthAlertResult {
   hoursSinceLastFetch: number | null
 }
 
+/**
+ * Send a harmless test email to the alert recipients.
+ *
+ * The real alarm only fires when something is wrong, which means the only way
+ * to discover that sending is broken — an unverified domain, a rotated API
+ * key, a bad Reply-To — was to have an outage and notice no email arrived.
+ * That is the worst possible moment to learn it.
+ *
+ * This proves the whole path on demand: sender identity, recipients, and the
+ * Reply-To header, without waiting for something to break.
+ */
+export async function sendTestEmail(): Promise<{
+  sent: boolean
+  recipients: string[]
+  from: string
+  replyTo: string | null
+  error?: string
+}> {
+  const to = recipients()
+  const from = emailFrom()
+  const replyTo = emailReplyTo() ?? null
+  const resend = getResend()
+  if (!resend) {
+    return { sent: false, recipients: to, from, replyTo, error: 'RESEND_API_KEY is not set' }
+  }
+
+  const sentAt = when(new Date().toISOString())
+  const { error } = await resend.emails.send({
+    from,
+    to,
+    replyTo: replyTo ?? undefined,
+    subject: 'PlanningPing: email delivery test',
+    html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:520px;">
+      <h1 style="font-size:18px;color:#202124;margin:0 0 12px;">Email delivery test</h1>
+      <p style="font-size:14px;line-height:1.6;color:#3c4043;margin:0 0 12px;">
+        Nothing is wrong. This was sent deliberately to confirm PlanningPing can still reach you.
+      </p>
+      <p style="font-size:13px;line-height:1.7;color:#6b6c70;margin:0;">
+        Sent ${esc(sentAt)}<br>
+        From: ${esc(from)}<br>
+        Reply-To: ${esc(replyTo ?? '(none set — replies go to the From address)')}
+      </p>
+      <p style="font-size:13px;line-height:1.6;color:#6b6c70;margin:12px 0 0;">
+        Hit reply: it should come back to the Reply-To address above, not the From address.
+      </p>
+    </div>`,
+  })
+
+  if (error) {
+    console.error('sendTestEmail failed:', error)
+    return { sent: false, recipients: to, from, replyTo, error: String(error) }
+  }
+  return { sent: true, recipients: to, from, replyTo }
+}
+
 export async function runHealthAlertCheck(opts: {
   db?: ReturnType<typeof createAdminClient>
   dryRun?: boolean
