@@ -14,7 +14,7 @@
 import { Resend } from 'resend'
 import { DECISION_COPY, type DecisionOutcome } from '@/lib/classification/decisionOutcome'
 import type { PartnershipProvider } from '@/lib/features'
-import { emailFrom } from './from'
+import { emailFrom, emailReplyTo } from './from'
 
 const MAX_ITEMS = 15
 
@@ -176,6 +176,7 @@ export async function sendDecisionEmail(opts: {
   try {
     const { error } = await resend.emails.send({
       from: emailFrom(),
+      replyTo: emailReplyTo(),
       to: opts.to,
       subject: buildSubject(opts.items),
       html,

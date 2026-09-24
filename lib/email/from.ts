@@ -19,3 +19,19 @@ export function emailFrom(): string {
   const configured = process.env.EMAIL_FROM?.trim()
   return configured && configured.length > 0 ? configured : DEFAULT_FROM
 }
+
+/**
+ * Where replies to a customer email should land.
+ *
+ * The From address is a sending identity, not a mailbox — Resend is authorised
+ * by DKIM to send as it, and nothing has to receive there. But people do reply
+ * to alerts, and a reply to an address with no mailbox behind it bounces, so
+ * the customer is told their message failed and we never learn they wrote.
+ *
+ * Set EMAIL_REPLY_TO to a real inbox. Unset, no Reply-To header is added and
+ * replies follow the From address, which is the old behaviour.
+ */
+export function emailReplyTo(): string | undefined {
+  const configured = process.env.EMAIL_REPLY_TO?.trim()
+  return configured && configured.length > 0 ? configured : undefined
+}

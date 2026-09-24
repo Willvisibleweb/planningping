@@ -12,7 +12,7 @@
 // nothing at all.
 
 import { Resend } from 'resend'
-import { emailFrom } from './from'
+import { emailFrom, emailReplyTo } from './from'
 
 const MAX_ITEMS = 8
 
@@ -179,6 +179,7 @@ export async function sendDigestEmail(d: DigestPayload, siteUrl: string): Promis
   try {
     const { error } = await resend.emails.send({
       from: emailFrom(),
+      replyTo: emailReplyTo(),
       to: d.email,
       subject,
       html: buildDigestHtml(d, siteUrl.replace(/\/$/, '')),

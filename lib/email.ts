@@ -12,7 +12,7 @@
 
 import { Resend } from 'resend'
 import type { PartnershipProvider } from '@/types/database'
-import { emailFrom } from '@/lib/email/from'
+import { emailFrom, emailReplyTo } from '@/lib/email/from'
 
 const MAX_ITEMS = 15
 
@@ -128,6 +128,7 @@ export async function sendAlertEmail(opts: {
   try {
     const { error } = await resend.emails.send({
       from: emailFrom(),
+      replyTo: emailReplyTo(),
       to: opts.to,
       subject: opts.items.length === 1
         ? '1 new planning application matching your territories'
