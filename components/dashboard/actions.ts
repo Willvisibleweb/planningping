@@ -5,6 +5,7 @@ import { after } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { lookupPostcode } from '@/lib/postcodes'
+import { describeChoices, looksLikePostcode, nearestPostcode, resolvePlace } from '@/lib/places'
 import { fetchAndIngestNearby } from '@/lib/ingest/fetchAndIngestNearby'
 import { getProfile, hasProAccess, maxRadiusMetres as getMaxRadiusMetres, maxTrackedAreas } from '@/lib/access'
 import type { MinBand } from '@/types/database'
@@ -13,26 +14,65 @@ const VALID_MIN_BANDS: MinBand[] = ['ALL', 'WARM_PLUS', 'HOT_ONLY']
 
 const MIN_RADIUS_METRES = 250
 
-export async function addTrackedArea(formData: FormData) {
-  const postcode = (formData.get('postcode') as string)?.trim().toUpperCase()
-  const label = (formData.get('label') as string)?.trim()
+/**
+ * Turn the location field into a postcode.
+ *
+ * The field takes a postcode or a place name. A place picked from the
+ * suggestions arrives with its coordinates (place_lat / place_lng); one typed
+ * and submitted without picking is resolved here, and refused rather than
+ * guessed when there are several places of that name. Either way it ends as
+ * the postcode nearest the place's centre, which is all the rest of the
+ * pipeline understands.
+ */
+async function postcodeFromForm(
+  formData: FormData,
+): Promise<{ postcode: string; placeName: string | null } | { error: string }> {
+  const raw = ((formData.get('postcode') as string) ?? '').trim()
+  if (!raw) return { error: 'Enter a town, city or postcode for this territory.' }
 
-  if (!postcode || !label) {
-    return { error: 'Enter a postcode and a label for this territory.' }
+  const postcodeRegex = /^[A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2}$/
+  if (postcodeRegex.test(raw.toUpperCase())) return { postcode: raw.toUpperCase(), placeName: null }
+  if (looksLikePostcode(raw)) {
+    return { error: 'Enter the full postcode (e.g. ST13 5JF), or a town name.' }
   }
 
-  // Basic UK postcode format check before hitting the API.
-  const postcodeRegex = /^[A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2}$/
-  if (!postcodeRegex.test(postcode)) {
-    return { error: 'Please enter a valid UK postcode.' }
+  const lat = Number(formData.get('place_lat'))
+  const lng = Number(formData.get('place_lng'))
+  const pickedName = (formData.get('place_name') as string | null)?.trim() || null
+  let place: { name: string; lat: number; lng: number } | null =
+    formData.get('place_lat') !== null && Number.isFinite(lat) && Number.isFinite(lng) && pickedName
+      ? { name: pickedName, lat, lng }
+      : null
+
+  if (!place) {
+    const resolved = await resolvePlace(raw)
+    if (!resolved.ok) {
+      return {
+        error:
+          resolved.reason === 'ambiguous'
+            ? `There's more than one place called that — pick one from the list: ${describeChoices(resolved.suggestions)}.`
+            : `We couldn't find "${raw}". Check the spelling, or enter a postcode.`,
+      }
+    }
+    place = resolved.place
+  }
+
+  const postcode = await nearestPostcode(place.lat, place.lng)
+  if (!postcode) return { error: `We couldn't find a postcode near ${place.name}. Try entering one instead.` }
+  return { postcode, placeName: place.name }
+}
+
+export async function addTrackedArea(formData: FormData) {
+  if (!((formData.get('postcode') as string) ?? '').trim()) {
+    return { error: 'Enter a town, city or postcode for this territory.' }
   }
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
 
-  // Check the tier's area cap before the postcode lookup (external API call)
-  // so an over-cap request fails fast.
+  // Check the tier's area cap before the place/postcode lookups (external API
+  // calls) so an over-cap request fails fast.
   const profile = await getProfile()
   const max = maxTrackedAreas(profile)
   const { count } = await supabase
@@ -44,6 +84,16 @@ export async function addTrackedArea(formData: FormData) {
     return {
       error: `Your plan supports up to ${max} tracked area${max === 1 ? '' : 's'} — you have ${count}. Remove one, or upgrade for more.`,
     }
+  }
+
+  const location = await postcodeFromForm(formData)
+  if ('error' in location) return { error: location.error }
+  const { postcode } = location
+
+  // A place name is a perfectly good label; asking for one again is friction.
+  const label = (formData.get('label') as string)?.trim() || location.placeName
+  if (!label) {
+    return { error: 'Give this territory a label.' }
   }
 
   const council = await lookupPostcode(postcode)

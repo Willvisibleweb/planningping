@@ -4,24 +4,36 @@ import { useState, useTransition } from 'react'
 import { addTrackedArea } from './actions'
 import Button from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Input'
+import PlaceInput from '@/components/ui/PlaceInput'
 import { Alert } from '@/components/ui/ErrorState'
 
-// Loose UK postcode shape — deliberately permissive. This only catches obvious
-// typos before a round trip; the server action stays the authority on whether
-// a postcode actually resolves to a planning authority.
-const UK_POSTCODE = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i
+// Same look as the shared Input, which PlaceInput cannot reuse directly — it
+// renders its own <input> so it can own the combobox wiring.
+const PLACE_INPUT =
+  'w-full rounded-sm border bg-surface px-3 py-2 text-sm text-ink placeholder:text-neutral-500 ' +
+  'transition-[border-color,box-shadow] duration-fast ease-standard focus:outline-none ' +
+  'border-border-control hover:border-primary-400 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/15'
 
 export default function AddAreaForm() {
   const [error, setError] = useState<string | null>(null)
-  const [postcode, setPostcode] = useState('')
-  const [postcodeError, setPostcodeError] = useState<string | null>(null)
+  const [location, setLocation] = useState('')
+  const [label, setLabel] = useState('')
+  // True once the person has typed their own label, so picking a place does
+  // not overwrite it.
+  const [labelEdited, setLabelEdited] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   async function handleSubmit(formData: FormData) {
     setError(null)
     startTransition(async () => {
       const result = await addTrackedArea(formData)
-      if (result?.error) setError(result.error)
+      if (result?.error) {
+        setError(result.error)
+        return
+      }
+      setLocation('')
+      setLabel('')
+      setLabelEdited(false)
     })
   }
 
@@ -29,46 +41,44 @@ export default function AddAreaForm() {
     <div className="rounded-md border border-border bg-surface p-5 sm:p-6 shadow-sm">
       <h3 className="text-sm font-semibold text-ink">Add a territory to track</h3>
       <p className="mt-1 text-xs text-ink-muted">
-        We&rsquo;ll identify the planning authority for this postcode automatically.
+        Type a town, city or postcode &mdash; we&rsquo;ll work out the planning authority.
       </p>
 
       <form action={handleSubmit} className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-start">
-        <Field
-          label="Postcode"
-          required
-          error={postcodeError}
-          className="flex-1"
-        >
+        <Field label="Town, city or postcode" required className="flex-1">
           {(p) => (
-            <Input
-              {...p}
+            <PlaceInput
+              id={p.id}
+              aria-describedby={p['aria-describedby']}
+              // The field name stays "postcode" — the server action reads it
+              // as either, and nothing else needs to change.
               name="postcode"
-              type="text"
               required
-              placeholder="e.g. SW1A 1AA"
-              autoComplete="postal-code"
-              value={postcode}
-              onChange={(e) => {
-                setPostcode(e.target.value)
-                if (postcodeError) setPostcodeError(null)
+              placeholder="e.g. Stoke-on-Trent or SW1A 1AA"
+              value={location}
+              onChange={setLocation}
+              onSelect={(place) => {
+                if (place && !labelEdited) setLabel(place.name)
               }}
-              // Checked on blur, not per keystroke — every partially typed
-              // postcode is invalid, and saying so while someone types is
-              // nagging rather than helping.
-              onBlur={() =>
-                setPostcodeError(
-                  postcode.trim() && !UK_POSTCODE.test(postcode.trim())
-                    ? 'That doesn’t look like a UK postcode. Try the full code, e.g. SW1A 1AA.'
-                    : null,
-                )
-              }
+              hiddenFields
+              className={PLACE_INPUT}
             />
           )}
         </Field>
 
-        <Field label="Label" required hint="How you'll recognise it in your list." className="flex-1">
+        <Field label="Label" hint="How you'll recognise it in your list." className="flex-1">
           {(p) => (
-            <Input {...p} name="label" type="text" required placeholder="e.g. Midlands Patch" />
+            <Input
+              {...p}
+              name="label"
+              type="text"
+              placeholder="e.g. Midlands Patch"
+              value={label}
+              onChange={(e) => {
+                setLabel(e.target.value)
+                setLabelEdited(e.target.value.trim() !== '')
+              }}
+            />
           )}
         </Field>
 

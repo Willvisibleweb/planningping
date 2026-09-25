@@ -19,6 +19,8 @@ import { searchAreaAction } from '@/lib/search/actions'
 import type { AreaSearchResult } from '@/lib/search/areaSearch'
 import OpportunityRow from './OpportunityRow'
 import { Skeleton } from '@/components/ui/Skeleton'
+import PlaceInput from '@/components/ui/PlaceInput'
+import type { PlaceSuggestion } from '@/lib/places'
 
 interface Props {
   scopes: { id: string; label: string }[]
@@ -53,6 +55,9 @@ function readUsed(): number {
 
 export default function HeroSearch({ scopes, initial }: Props) {
   const [query, setQuery] = useState('')
+  // The suggestion picked from the list, if any — so the search runs on the
+  // exact place chosen rather than re-guessing from the text.
+  const [place, setPlace] = useState<PlaceSuggestion | null>(null)
   const [scope, setScope] = useState('')
   const [result, setResult] = useState<AreaSearchResult | null>(
     initial ? initial : null,
@@ -92,7 +97,7 @@ export default function HeroSearch({ scopes, initial }: Props) {
     }
 
     startTransition(async () => {
-      setResult(await searchAreaAction(query, scope || undefined))
+      setResult(await searchAreaAction(query, scope || undefined, place))
     })
   }
 
@@ -131,12 +136,12 @@ export default function HeroSearch({ scopes, initial }: Props) {
                 aria-hidden="true"
                 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500"
               />
-              <input
+              <PlaceInput
                 id="area-search"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={setQuery}
+                onSelect={setPlace}
                 placeholder="Enter postcode, town or city"
-                autoComplete="postal-code"
                 aria-invalid={failed ? true : undefined}
                 aria-describedby={failed ? 'search-error' : undefined}
                 className="w-full rounded-sm border border-border-control bg-surface py-2.5 pl-9 pr-3 text-sm text-ink placeholder:text-neutral-500 transition-[border-color,box-shadow] duration-fast ease-standard hover:border-primary-300 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15"
@@ -191,7 +196,7 @@ export default function HeroSearch({ scopes, initial }: Props) {
               </>
             ) : (
               <span className="text-white/60">
-                Try ST13, Coventry or Bristol &mdash; no account needed to look.
+                Try Stoke-on-Trent, Liverpool or ST13 &mdash; no account needed to look.
               </span>
             )}
           </p>
