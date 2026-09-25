@@ -36,6 +36,8 @@ import {
 import { saveSector, saveOnboardingProfile, postcodeFromCoords } from './actions'
 import { addTrackedArea } from '@/components/dashboard/actions'
 import Button from '@/components/ui/Button'
+import PlaceInput from '@/components/ui/PlaceInput'
+import type { PlaceSuggestion } from '@/lib/places'
 import { useToast } from '@/components/ui/Toast'
 import type { OpportunityProfile } from '@/types/database'
 
@@ -142,6 +144,7 @@ export default function OnboardingFlow({
   const radii = radiusOptions.length > 0 ? radiusOptions : [maxRadiusMetres]
   const [radius, setRadius] = useState<number>(radii.includes(3000) ? 3000 : radii[radii.length - 1])
   const [postcode, setPostcode] = useState('')
+  const [place, setPlace] = useState<PlaceSuggestion | null>(null)
   const [label, setLabel] = useState('')
 
   const [error, setError] = useState<string | null>(null)
@@ -183,7 +186,7 @@ export default function OnboardingFlow({
   function useMyLocation() {
     setError(null)
     if (!navigator.geolocation) {
-      setError('Your browser will not share a location. Enter a postcode instead.')
+      setError('Your browser will not share a location. Enter a town or postcode instead.')
       return
     }
 
@@ -198,6 +201,7 @@ export default function OnboardingFlow({
             return
           }
           setPostcode(result.postcode)
+          setPlace(null)
           // Only prefill a label if the user hasn't written one — typing a name
           // and then having it overwritten by a button press is maddening.
           setLabel((current) => current || 'My area')
@@ -205,7 +209,7 @@ export default function OnboardingFlow({
       },
       () => {
         setLocating(false)
-        setError('Could not get your location. Enter a postcode instead.')
+        setError('Could not get your location. Enter a town or postcode instead.')
       },
       { timeout: 10_000, maximumAge: 60_000 },
     )
@@ -215,14 +219,19 @@ export default function OnboardingFlow({
     setError(null)
     const trimmed = postcode.trim()
     if (!trimmed) {
-      setError('Enter a postcode, or use your location.')
+      setError('Enter a town or postcode, or use your location.')
       return
     }
 
     startTransition(async () => {
       const form = new FormData()
       form.set('postcode', trimmed)
-      form.set('label', label.trim() || 'My area')
+      if (place) {
+        form.set('place_lat', String(place.lat))
+        form.set('place_lng', String(place.lng))
+        form.set('place_name', place.name)
+      }
+      form.set('label', label.trim() || place?.name || 'My area')
       form.set('radius_metres', String(radius))
       if (alerts !== 'OFF') form.set('min_band', alerts)
       form.set('alerts_enabled', String(alerts !== 'OFF'))
@@ -404,19 +413,20 @@ export default function OnboardingFlow({
         <div>
           <StepHeader
             title="Where do you work?"
-            body="A postcode is enough — we work out which planning authority covers it. You can add more areas later."
+            body="A town, city or postcode is enough — we work out which planning authority covers it. You can add more areas later."
           />
           <div className="mt-6 space-y-4">
             <div>
-              <label htmlFor="ob-postcode" className="block text-sm font-medium text-ink">Postcode</label>
+              <label htmlFor="ob-postcode" className="block text-sm font-medium text-ink">Town, city or postcode</label>
               <div className="mt-1.5 flex flex-col gap-2 sm:flex-row">
-                <input
+                <PlaceInput
                   id="ob-postcode"
                   value={postcode}
-                  onChange={(e) => setPostcode(e.target.value.toUpperCase())}
-                  placeholder="ST13 5RS"
-                  autoComplete="postal-code"
-                  className={`tabular-data ${INPUT}`}
+                  onChange={setPostcode}
+                  onSelect={setPlace}
+                  placeholder="e.g. Leek or ST13 5RS"
+                  wrapperClassName="flex-1"
+                  className={INPUT}
                 />
                 <Button type="button" variant="secondary" onClick={useMyLocation} loading={locating} loadingLabel="Finding you" className="shrink-0">
                   <LocateFixed size={14} aria-hidden="true" />

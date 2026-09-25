@@ -18,6 +18,7 @@ import { lookupPostcode, postcodeDistrict } from '@/lib/postcodes'
 import { getLocationsByTier, type SeoLocation } from '@/lib/seo/locations'
 import { councilHref, postcodeHref } from '@/lib/seo/links'
 import { POSITIVE_GROUPS } from '@/lib/scoring/civilsCriteria'
+import { describeChoices, nearestPostcode, resolvePlace, type PlaceSuggestion } from '@/lib/places'
 
 export interface ScopeOption {
   id: string
@@ -75,6 +76,12 @@ function matchByName(locations: SeoLocation[], query: string): SeoLocation | nul
   )
 }
 
+/** Exact name only — the loose match is kept for last, after the place search. */
+function matchExactName(locations: SeoLocation[], query: string): SeoLocation | null {
+  const q = query.trim().toLowerCase()
+  return locations.find((l) => l.name.toLowerCase() === q) ?? null
+}
+
 /**
  * Resolve free text to a public location page and preview what is there.
  *
@@ -82,10 +89,17 @@ function matchByName(locations: SeoLocation[], query: string): SeoLocation | nul
  * resolved through postcodes.io — already used elsewhere in the app — to find
  * its district and authority, then matched against the pages that actually
  * exist. There is no point routing someone to a page we do not have.
+ *
+ * A place name ("Alton", "stoke on tret") goes through the place search, which
+ * forgives typos and knows every town in Great Britain, not only the 183 we
+ * have pages for. The place is turned into the postcode at its centre and then
+ * takes exactly the postcode route. `place` is the suggestion the person picked
+ * from the dropdown, when they did, so we never re-guess what they chose.
  */
 export async function searchArea(
   rawQuery: string,
   scopeId?: string,
+  place?: PlaceSuggestion,
 ): Promise<AreaSearchResult> {
   const query = rawQuery.trim()
   if (!query) {
@@ -104,11 +118,13 @@ export async function searchArea(
 
     let location: SeoLocation | null = null
     let href = ''
+    let displayName: string | null = null
 
-    if (UK_POSTCODE.test(query)) {
+    // Postcode → the district page, or failing that the council page.
+    async function locateByPostcode(postcode: string) {
       // Outward code first — it is what postcode pages are keyed on, and it
       // works even when postcodes.io cannot resolve a partial postcode.
-      const outward = (postcodeDistrict(query) ?? query.split(/\s+/)[0]).toLowerCase()
+      const outward = (postcodeDistrict(postcode) ?? postcode.split(/\s+/)[0]).toLowerCase()
       location = postcodes.find((p) => p.slug.toLowerCase() === outward) ?? null
       if (location) href = postcodeHref(location.slug)
 
@@ -118,22 +134,62 @@ export async function searchArea(
       if (!location) {
         // PostcodeInfo.slug is the slugified admin district, which is exactly
         // what councils.slug holds — the same slugifyAuthority both sides.
-        const geo = await lookupPostcode(query)
+        const geo = await lookupPostcode(postcode)
         if (geo?.slug) {
           location = councils.find((c) => c.slug === geo.slug) ?? null
           if (location) href = councilHref(location.slug)
         }
       }
+    }
+
+    function hrefFor(l: SeoLocation): string {
+      return l.tier === 'council'
+        ? councilHref(l.slug)
+        : l.tier === 'postcode'
+          ? postcodeHref(l.slug)
+          : `/planning-applications/${l.parent_slug}/${l.slug}`
+    }
+
+    let chosen: PlaceSuggestion | null = place ?? null
+
+    if (!chosen && UK_POSTCODE.test(query)) {
+      await locateByPostcode(query)
     } else {
-      location =
-        matchByName(councils, query) ?? matchByName(towns, query) ?? matchByName(postcodes, query)
-      if (location) {
-        href =
-          location.tier === 'council'
-            ? councilHref(location.slug)
-            : location.tier === 'postcode'
-              ? postcodeHref(location.slug)
-              : `/planning-applications/${location.parent_slug}/${location.slug}`
+      // A page whose name is exactly what was typed ("Coventry") needs no
+      // outside lookup — unless a specific place was picked from the list, in
+      // which case that choice wins.
+      if (!chosen) {
+        location =
+          matchExactName(councils, query) ?? matchExactName(towns, query) ?? matchExactName(postcodes, query)
+        if (location) href = hrefFor(location)
+      }
+
+      if (!location) {
+        if (!chosen) {
+          const resolved = await resolvePlace(query)
+          if (resolved.ok) {
+            chosen = resolved.place
+          } else if (resolved.reason === 'ambiguous') {
+            return {
+              ok: false,
+              reason: 'not-found',
+              message: `There's more than one of those — pick one from the list, or add the county: ${describeChoices(resolved.suggestions)}.`,
+            }
+          }
+        }
+
+        if (chosen) {
+          const postcode = await nearestPostcode(chosen.lat, chosen.lng)
+          if (postcode) await locateByPostcode(postcode)
+        }
+      }
+
+      // Last resort, the original loose match — still catches a partial name
+      // of a page we have when the place search is down or finds nothing.
+      if (!location && !chosen) {
+        location =
+          matchByName(councils, query) ?? matchByName(towns, query) ?? matchByName(postcodes, query)
+        if (location) href = hrefFor(location)
       }
     }
 
@@ -141,8 +197,21 @@ export async function searchArea(
       return {
         ok: false,
         reason: 'no-coverage',
-        message: `We don't have a page for that yet. Try a nearby town or a postcode district like ST13.`,
+        message: chosen
+          ? `We don't have a public page for ${chosen.name} yet. Create a free account to track it — we'll fetch its applications for you.`
+          : `We couldn't find that place. Check the spelling, or try a postcode like ST13 5JF.`,
       }
+    }
+
+    // TS cannot see that locateByPostcode assigns `location`, so it narrows to
+    // null above; restate the type once it is known to be set.
+    const found = location as SeoLocation
+
+    // When the page is a postcode district, say which town it is for; when it
+    // is a whole council, name the council — its applications are what's shown.
+    if (chosen) {
+      displayName =
+        found.tier === 'postcode' ? `${chosen.name} (${found.slug.toUpperCase()})` : found.name
     }
 
     // Read the applications behind that page. Scores are not in
@@ -161,9 +230,9 @@ export async function searchArea(
       .order('score', { ascending: false })
       .limit(3)
 
-    if (location.tier === 'postcode') q = q.eq('postcode_district', location.slug.toUpperCase())
-    else if (location.tier === 'council') q = q.eq('council_slug', location.slug)
-    else q = q.eq('council_slug', location.parent_slug ?? '')
+    if (found.tier === 'postcode') q = q.eq('postcode_district', found.slug.toUpperCase())
+    else if (found.tier === 'council') q = q.eq('council_slug', found.slug)
+    else q = q.eq('council_slug', found.parent_slug ?? '')
 
     const scope = SEARCH_SCOPES.find((s) => s.id === scopeId)
     if (scope) q = whereReason(q, scope.reason)
@@ -175,9 +244,9 @@ export async function searchArea(
       .select('*', { count: 'exact', head: true })
       .lte('application_date', cutoff)
       .in('band', ['HOT', 'WARM'])
-    if (location.tier === 'postcode') countQ = countQ.eq('postcode_district', location.slug.toUpperCase())
-    else if (location.tier === 'council') countQ = countQ.eq('council_slug', location.slug)
-    else countQ = countQ.eq('council_slug', location.parent_slug ?? '')
+    if (found.tier === 'postcode') countQ = countQ.eq('postcode_district', found.slug.toUpperCase())
+    else if (found.tier === 'council') countQ = countQ.eq('council_slug', found.slug)
+    else countQ = countQ.eq('council_slug', found.parent_slug ?? '')
     if (scope) countQ = whereReason(countQ, scope.reason)
 
     const [{ data: rows }, { count: relevant }] = await Promise.all([q, countQ])
@@ -194,9 +263,9 @@ export async function searchArea(
 
     return {
       ok: true,
-      placeName: location.name,
+      placeName: displayName ?? found.name,
       href,
-      total: location.app_count,
+      total: found.app_count,
       relevant: relevant ?? 0,
       preview,
     }
