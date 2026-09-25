@@ -7,7 +7,7 @@
 // Every figure returned is one we can defend if a prospect asks where it came
 // from, which is the only reason to put numbers on a landing page at all.
 
-import { createClient } from '@/lib/supabase/server'
+import { createPublicClient } from '@/lib/supabase/public'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export interface FeedItem {
@@ -101,7 +101,9 @@ export async function getLandingStats(): Promise<LandingStats> {
     authorities: 400, recentApplications: 0, publicApplications: 0, publicPages: 0,
   }
   try {
-    const supabase = await createClient()
+    // Public client, not the cookie-reading server one — reading cookies here
+    // made the homepage dynamic and switched off its hourly cache.
+    const supabase = createPublicClient()
     const since = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10)
 
     const [{ count: authorities }, { count: recent }, { count: publicApps }, { count: pages }] =

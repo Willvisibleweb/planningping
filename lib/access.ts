@@ -13,15 +13,24 @@ import type { Profile } from '@/types/database'
 // nav check and the page gate cost one profiles query per request. Server
 // actions and route handlers run outside that pass and re-query fresh —
 // exactly what we want for enforcement.
+//
+// getClaims(), not getUser(): the project signs sessions with an asymmetric key
+// (ES256), so getClaims verifies the token's signature and expiry right here
+// against a cached public key. getUser() asks Supabase's auth server instead —
+// one more network round trip on every dashboard page, before anything else
+// can start. The profiles read that follows is the real check that the
+// account still exists: a deleted account's rows are gone (cascade), so its
+// token, even while unexpired, gets null here and is sent to /login.
 export const getProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
+  const { data: claims, error } = await supabase.auth.getClaims()
+  const userId = claims?.claims?.sub
+  if (error || !userId) return null
 
   const { data } = await supabase
     .from('profiles')
     .select('*')
-    .eq('id', user.id)
+    .eq('id', userId)
     .single()
 
   return (data as Profile) ?? null

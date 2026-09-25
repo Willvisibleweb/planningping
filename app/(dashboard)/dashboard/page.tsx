@@ -193,7 +193,7 @@ export default async function DashboardPage() {
   // These three don't depend on each other — fire them concurrently rather
   // than waterfalling. getProfile() is already deduped for free against the
   // layout's call via React's cache().
-  const [{ data: areas, error: areasError }, { data: leads }, { data: opportunityProfile }, profile] = await Promise.all([
+  const [{ data: areas, error: areasError }, { data: leads }, { data: opportunityProfile }, profile, freshness] = await Promise.all([
     supabase.from('tracked_areas').select('*').order('created_at', { ascending: false }),
     // Which applications is the user already tracking as a lead? Used to show
     // "Tracked ✓" instead of the Track button. RLS scopes this to the user.
@@ -204,11 +204,10 @@ export default async function DashboardPage() {
       .eq('is_primary', true)
       .maybeSingle(),
     getProfile(),
+    // Checked here because the dashboard runs whenever someone signs in, and
+    // does not depend on the scheduler that is the thing capable of failing.
+    getIngestFreshness(),
   ])
-
-  // Checked here because the dashboard runs whenever someone signs in, and does
-  // not depend on the scheduler that is the thing capable of failing.
-  const freshness = await getIngestFreshness()
 
   // A brand-new account has nothing to show here, and an empty state holding a
   // form is a worse first screen than being asked two questions. Sent to setup
@@ -233,28 +232,33 @@ export default async function DashboardPage() {
   // Fetch per-council (in parallel) rather than one combined query with a global
   // limit. A single .in(...).limit(50) lets a busy borough fill every slot and
   // starve quieter councils, so their cards render empty even though rows exist.
-  const perCouncil = await Promise.all(
-    councilSlugs.map((slug) =>
-      supabase
-        .from('planning_applications')
-        .select('*')
-        .eq('council_slug', slug)
-        .order('application_date', { ascending: false, nullsFirst: false })
-        .limit(30),
+  //
+  // Feedback depends only on the opportunity profile from the first batch, so it
+  // is fetched alongside the applications rather than after them.
+  const typedProfile = opportunityProfile as OpportunityProfile | null
+  const [perCouncil, { data: feedbackRows }] = await Promise.all([
+    Promise.all(
+      councilSlugs.map((slug) =>
+        supabase
+          .from('planning_applications')
+          .select('*')
+          .eq('council_slug', slug)
+          .order('application_date', { ascending: false, nullsFirst: false })
+          .limit(30),
+      ),
     ),
-  )
+    typedProfile
+      ? supabase
+          .from('opportunity_feedback')
+          .select('*')
+          .eq('opportunity_profile_id', typedProfile.id)
+      : supabase
+          .from('opportunity_feedback')
+          .select('*')
+          .is('opportunity_profile_id', null),
+  ])
   const applications = perCouncil.flatMap((r) => r.data ?? []) as PlanningApplication[]
   const uniqueApplications = [...new Map(applications.map((app) => [app.id, app])).values()]
-  const typedProfile = opportunityProfile as OpportunityProfile | null
-  const { data: feedbackRows } = typedProfile
-    ? await supabase
-        .from('opportunity_feedback')
-        .select('*')
-        .eq('opportunity_profile_id', typedProfile.id)
-    : await supabase
-        .from('opportunity_feedback')
-        .select('*')
-        .is('opportunity_profile_id', null)
   const feedbackByApp = new Map(
     ((feedbackRows ?? []) as OpportunityFeedback[]).map((row) => [row.application_id, row]),
   )
