@@ -19,7 +19,11 @@ export default async function DashboardLayout({
   // supabase.auth.getUser() again here would be a second, redundant round
   // trip to Supabase Auth on every single dashboard page load. profile.email
   // covers what the separate user object was used for below.
-  const profile = await getProfile()
+  //
+  // The 2FA state is fetched alongside it rather than after it: the two don't
+  // depend on each other, and awaiting them in turn made every dashboard page
+  // wait for one network round trip after another.
+  const [profile, mfa] = await Promise.all([getProfile(), getMfaState()])
 
   // Hard redirect — no session (or no profile row, which shouldn't happen for
   // a real authenticated user) means no access, full stop.
@@ -31,7 +35,6 @@ export default async function DashboardLayout({
   // the layout rather than middleware because the layout is the authoritative
   // auth gate for every dashboard route; middleware can be bypassed at the
   // edges, and a 2FA gate that can be skipped is not a gate.
-  const mfa = await getMfaState()
   if (mfa.challengeRequired) redirect('/two-factor')
 
   // Nav is tailored by account type. This is display only — every pro page

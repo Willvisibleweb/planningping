@@ -11,6 +11,7 @@
 // own limit isn't enough on its own.
 
 import { redirect } from 'next/navigation'
+import { after } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { checkRateLimit, recordAttempt } from '@/lib/auth/rateLimit'
 
@@ -30,12 +31,18 @@ export async function loginWithPassword(formData: FormData) {
   const supabase = await createClient()
   const { error } = await supabase.auth.signInWithPassword({ email, password })
 
-  await recordAttempt(email, !error)
-
   if (error) {
+    // Recorded before replying: a failure has to count before the next guess
+    // can arrive, or the lockout lags behind the attacker.
+    await recordAttempt(email, false)
     // Return a generic message — don't reveal whether the email exists.
     return { error: 'Invalid email or password.' }
   }
+
+  // A success only clears old failures, which nothing is waiting on — so it
+  // runs after the redirect is sent rather than holding the user on the login
+  // page for two more database round trips.
+  after(() => recordAttempt(email, true))
 
   redirect('/dashboard')
 }
